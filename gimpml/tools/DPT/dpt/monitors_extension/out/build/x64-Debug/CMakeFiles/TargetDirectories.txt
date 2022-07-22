@@ -1,0 +1,3 @@
+D:/git/GIMP-ML/gimpml/plugins/semseg/monitors_extension/out/build/x64-Debug/CMakeFiles/monitors_extension.dir
+D:/git/GIMP-ML/gimpml/plugins/semseg/monitors_extension/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+D:/git/GIMP-ML/gimpml/plugins/semseg/monitors_extension/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir
