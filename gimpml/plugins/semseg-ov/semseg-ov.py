@@ -42,7 +42,59 @@ image_paths = {
     ),
 }
 
-def semseg(procedure, image, drawable, force_cpu, gpu, vpu, progress_bar, config_path_output):
+class StringEnum:
+    """
+    Helper class for when you want to use strings as keys of an enum. The values would be
+    user facing strings that might undergo translation.
+
+    The constructor accepts an even amount of arguments. Each pair of arguments
+    is a key/value pair.
+    """
+
+    def __init__(self, *args):
+        self.keys = []
+        self.values = []
+
+        for i in range(len(args) // 2):
+            self.keys.append(args[i * 2])
+            self.values.append(args[i * 2 + 1])
+
+    def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
+        tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+        for i in range(len(self.keys)):
+            tree_model.append([self.keys[i], self.values[i]])
+        return tree_model
+
+    def __getattr__(self, name):
+        """Implements access to the key. For example, if you provided a key "red", then you could access it by
+        referring to
+           my_enum.red
+        It may seem silly as "my_enum.red" is longer to write then just "red",
+        but this provides verification that the key is indeed inside enum."""
+        key = name.replace("_", " ")
+        if key in self.keys:
+            return key
+        raise AttributeError("No such key string " + key)
+
+model_name_enum = StringEnum(
+    "deeplabv3",
+    _("deeplabv3"),
+    "sseg-adas-0001",
+    _("sseg-adas-0001"),
+)
+
+device_name_enum = StringEnum(
+    "CPU",
+    _("CPU"),
+    "GPU",
+    _("GPU"),
+    "VPUX",
+    _("VPUX"),
+)
+
+
+def semseg(procedure, image, drawable, device_name, model_name, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
@@ -54,7 +106,7 @@ def semseg(procedure, image, drawable, force_cpu, gpu, vpu, progress_bar, config
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
     with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "wb") as file:
-        pickle.dump({"CPU": bool(force_cpu),"GPU": bool(gpu),"VPU": bool(vpu), "inference_status": "started"}, file)
+        pickle.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
     subprocess.call([python_path, plugin_path])
@@ -92,9 +144,8 @@ def semseg(procedure, image, drawable, force_cpu, gpu, vpu, progress_bar, config
 
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    force_cpu = args.index(0)
-    gpu = args.index(1)
-    vpu = args.index(2)
+    device_name = args.index(0)
+    model_name = args.index(1)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -107,9 +158,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
 
         config = procedure.create_config()
-        config.set_property("CPU", force_cpu)
-        config.set_property("GPU",gpu)
-        config.set_property("VPU", vpu)
         config.begin_run(image, run_mode, args)
 
         GimpUi.init("semseg-ov.py")
@@ -138,36 +186,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
 
-        # Force CPU parameter
-        spin = GimpUi.prop_check_button_new(config, "CPU", _("CPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, CPU is used for model inference."
-                " Otherwise, VPU will be used if available."
-            )
+        # Model Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
+        grid.attach(label, 0, 1, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "model_name", model_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(spin, 1, 2, 1, 1)
-        spin.show()
+        grid.attach(combo, 1, 1, 1, 1)
+        combo.show()
 
-        spin = GimpUi.prop_check_button_new(config, "GPU", _("GPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, GPU is used for model inference."
-                " Otherwise, VPU will be used if available."
-            )
+        # Device Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
+        grid.attach(label, 2, 1, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "device_name", device_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(spin, 2, 2, 1, 1)
-        spin.show()
-
-        spin = GimpUi.prop_check_button_new(config, "VPU", _("VPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, GPU is used for model inference."
-                " Otherwise, VPU will be used if available."
-            )
-        )
-        grid.attach(spin, 3, 2, 1, 1)
-        spin.show()
+        grid.attach(combo, 3, 1, 1, 1)
+        combo.show()
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
@@ -191,12 +228,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         while True:
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
-                force_cpu = config.get_property("CPU")
-                gpu = config.get_property("GPU")
-                vpu = config.get_property("VPU")
+                device_name = config.get_property("device_name")
+                model_name = config.get_property("model_name")
 
                 result = semseg(
-                    procedure, image, layer, force_cpu, gpu, vpu, progress_bar, config_path_output
+                    procedure, image, layer, device_name, model_name, progress_bar, config_path_output
                 )
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
                 if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
@@ -216,25 +252,18 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 class SemSeg(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
-        "CPU": (
-            bool,
-            _("CPU"),
+        "model_name": (
+            str,
+            _("Model Name"),
+            "Model Name: 'deeplabv3', 'sseg-adas-0001'",
+            "deeplabv3",
+            GObject.ParamFlags.READWRITE,
+        ),
+        "device_name": (
+            str,
+            _("Device Name"),
+            "Device Name: 'CPU', 'GPU', 'VPUX'",
             "CPU",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
-        "GPU": (
-            bool,
-            _("GPU"),
-            "GPU",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
-        "VPU": (
-            bool,
-            _("VPU"),
-            "VPU",
-            False,
             GObject.ParamFlags.READWRITE,
         ),
     }
@@ -263,9 +292,8 @@ class SemSeg(Gimp.PlugIn):
             procedure.set_menu_label(N_("OV Semantic Segmentation..."))
             procedure.set_attribution("Kritik Soman", "GIMP-ML", "2021")
             procedure.add_menu_path("<Image>/Layer/GIMP-ML/")
-            procedure.add_argument_from_property(self, "CPU")
-            procedure.add_argument_from_property(self, "GPU")
-            procedure.add_argument_from_property(self, "VPU")
+            procedure.add_argument_from_property(self, "device_name")
+            procedure.add_argument_from_property(self, "model_name")
 
         return procedure
 

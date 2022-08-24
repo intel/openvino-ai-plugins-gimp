@@ -10,15 +10,25 @@ from superes_run_ov import run
 import torch
 from gimpml.tools.tools_utils import get_weight_path
 import traceback
+import numpy as np
 
-
-def get_sr(img,s,device, model_name, weight_path=None):
+def get_sr(img,s, model_name="sr_1033", weight_path=None,device="CPU"):
     if weight_path is None:
         weight_path = get_weight_path()
     
     if model_name == "esrgan":
         out = run(img, os.path.join(weight_path, "superresolution-ov", "realesrgan.xml"), device, model_name)
         out = cv2.resize(out, (0, 0), fx=s / 4, fy=s / 4)
+    elif model_name == "edsr":
+        b, g, r = cv2.split(np.array(img))
+        channel_list = [b, g, r]
+        output_list = []
+        for img_c in channel_list:
+            output = run(img_c, os.path.join(weight_path, "superresolution-ov", "edsr_mtl.xml"), device, model_name)
+            output_list.append(output)
+        out = cv2.merge([output_list[0], output_list[1], output_list[2]], 3)
+        out = cv2.resize(out, (0, 0), fx=s / 2, fy=s / 2)
+
     else:
         out = run(img, os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml"), device, model_name)
         out = cv2.resize(out, (0, 0), fx=s / 3, fy=s / 3)
@@ -29,27 +39,18 @@ if __name__ == "__main__":
     weight_path = get_weight_path()
     with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "rb") as file:
         data_output = pickle.load(file)
-    if data_output["CPU"]:
-        device = "CPU"
-    elif data_output["GPU"]:
-        device = "GPU"
-    elif data_output["VPU"]:
-        device = "VPUX"
-    else:
-        device = "CPU"
-    s = data_output["scale"]
 
-    if data_output["esrgan"]:
-        model_name = "esrgan"
-    elif data_output["sr_1033"]:
-        model_name = "sr_1033"
+    device = data_output["device_name"]
+    s = data_output["scale"]
+    model_name = data_output["model_name"]
+
 
     image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
-        output = get_sr(image, s, device, model_name, weight_path=weight_path)
+        output = get_sr(image, s, model_name=model_name, weight_path=weight_path, device=device)
         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
         with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "wb") as file:
-            pickle.dump({"inference_status": "success", "force_cpu": device }, file)
+            pickle.dump({"inference_status": "success", "device_name": device }, file)
 
         # Remove old temporary error files that were saved
         my_dir = os.path.join(weight_path, "..")

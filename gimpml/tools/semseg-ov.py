@@ -7,22 +7,30 @@ sys.path.extend([plugin_loc])
 
 #from semseg_run import run
 from semseg_run_ov import run
-import torch
+#import torch
 import cv2
 import os
 import traceback
 from gimpml.tools.tools_utils import get_weight_path
 
 
-def get_seg(input_image, device, weight_path=None):
+def get_seg(input_image, model_name="deeplabv3", device="CPU", weight_path=None):
     if weight_path is None:
         weight_path = get_weight_path()
-   
-    out = run(
-            input_image, 
-            os.path.join(weight_path, "semseg-ov", "deeplabv3.xml"),  # "deeplabv3.xml"), semantic-segmentation-adas-0001.xml
-            device,
-        )
+
+    if model_name == "deeplabv3": 
+        out = run(
+                input_image, 
+                os.path.join(weight_path, "semseg-ov", "deeplabv3.xml"),  
+                device,
+            )
+    else:
+        out = run(
+                input_image, 
+                os.path.join(weight_path, "semseg-ov", "semantic-segmentation-adas-0001.xml"),
+                device,
+            )
+
     return out
 
 
@@ -30,20 +38,12 @@ if __name__ == "__main__":
     weight_path = get_weight_path()
     with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "rb") as file:
         data_output = pickle.load(file)
-    #force_cpu = data_output["CPU"]
-    device = "CPU"
-    if data_output["CPU"]:
-        device = "CPU"
-    elif data_output["GPU"]:
-        device = "GPU"
-    elif data_output["VPU"]:
-        device = "VPUX"
-    else:
-        device = "CPU"
+    device = data_output["device_name"]
+    model_name = data_output["model_name"]
     
     image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
-        output = get_seg(image, device, weight_path=weight_path)
+        output = get_seg(image, model_name=model_name, device=device, weight_path=weight_path)
         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
         with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "wb") as file:
             pickle.dump({"inference_status": "success"}, file)

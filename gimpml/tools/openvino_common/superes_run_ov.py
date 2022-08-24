@@ -20,6 +20,7 @@ from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 from time import perf_counter
 
+
 import cv2
 from openvino.inference_engine import IECore
 
@@ -42,7 +43,7 @@ def run(frame, model_path, device, model_name):
      ie = IECore()
 
      plugin_config = get_user_config(device, '', None)
-     log.info('Loading network...')
+     log.info('Loading network: %s',model_name)
      log.info('Device: %s',device)
      
      model = SuperResolution(ie, model_path, frame.shape, model_name)
@@ -78,10 +79,19 @@ def run(frame, model_path, device, model_name):
      return result_frame
 
 if __name__ == "__main__":
-    img = cv2.imread(r"D:\git\new-gimp\GIMP-ML\testscases\sampleinput\car.jpg") #[:, :, ::-1]
+    import numpy as np
+    img = cv2.imread(r"D:\git\new-gimp\GIMP-ML\testscases\sampleinput\haze.png") #[:, :, ::-1]
+
+    #b, g, r = cv2.split(np.array(img))
+    #channel_list = [b, g, r]
+    #output_list = []
+    #for img_c in channel_list:
+    #    output = run(img_c, r"D:\git\31.93_psnr_optimized_edsr\optimized\edsr_mtl.xml","CPU","edsr")
+    #    output_list.append(output)
+    #mask = cv2.merge([output_list[0], output_list[1], output_list[2]], 3)
 
     mask = run(img, r"C:\Users\lab_admin\GIMP-ML\weights\superresolution-ov\realesrgan.xml","VPUX","esrgan") #r r'D:\optimized\realesrgan.xml''E:\open_model_zoo\models\intel\single-image-super-resolution-1033\FP16\single-image-super-resolution-1033.xml
-    #mask = run(img, r"C:\Users\lab_admin\GIMP-ML\weights\superresolution-ov\single-image-super-resolution-1033.xml","CPU","sr_1033")
-    print("type = ", type(mask))
-    print(mask.shape)
-    cv2.imwrite("cache_sr_ov.png", mask)
+ 
+    #print("type = ", type(mask))
+    #print(mask.shape)
+    cv2.imwrite("esrgan_ov.png", mask)
