@@ -22,7 +22,7 @@ class SuperResolution(Model):
         super().__init__(ie, model_path)
         self.model_name = model_name
         self.reshape(input_image_shape)
-        if self.model_name == "esrgan":
+        if self.model_name == "esrgan" or self.model_name == "edsr":
             self.input_blob_name = self.prepare_inputs()
         else:
             self.input_blob_name , self.bicinput_blob_name  = self.prepare_inputs() #, self.bicinput_blob_name
@@ -30,7 +30,10 @@ class SuperResolution(Model):
 
     def reshape(self, base_shape):
         print("base shape:", base_shape)
-        h, w, _ = base_shape
+        if self.model_name == "edsr":
+            h, w = base_shape
+        else:
+            h, w, _ = base_shape
    
 
         input_iter = iter(self.net.input_info)
@@ -56,7 +59,7 @@ class SuperResolution(Model):
         input_shape[2]=h
         input_shape[3]=w
 
-        if self.model_name == "esrgan":
+        if self.model_name == "esrgan" or self.model_name == "edsr":
            self.net.reshape({input_layer: input_shape})
         else:
             self.net.reshape({input_layer: input_shape, bicinput_blob_name: bicinput_size})
@@ -98,7 +101,7 @@ class SuperResolution(Model):
 
         #print("input_blob_name in pre inputs", input_blob_name)
        
-        if self.model_name == "esrgan":
+        if self.model_name == "esrgan" or self.model_name == "edsr":
             return input_blob_name
         else:
             return input_blob_name,bicinput_blob_name
@@ -121,9 +124,9 @@ class SuperResolution(Model):
     def preprocess(self, inputs):
         image = inputs
         input_num = len(self.net.input_info)
-        #print("image------", inputs[0][0])
-        if len(image.shape) != self.c:
-            image = cv2.cvtColor(image, cv2.COLOR_BAYER_BG2GRAY)
+    
+        if self.model_name == "edsr":
+            image = np.expand_dims(image, axis=-1)
 
         if image.shape[0] != self.h or image.shape[1] != self.w:
 
@@ -152,7 +155,7 @@ class SuperResolution(Model):
         resized_image = np.expand_dims(resized_image, 0)
         #print("resized_image",resized_image.shape)
 
-        if self.model_name == "esrgan":
+        if self.model_name == "esrgan" or self.model_name == "edsr":
             dict_inputs = {self.input_blob_name: resized_image}
         else:
             dict_inputs = {self.input_blob_name: resized_image , self.bicinput_blob_name: resized_image_bic.astype(np.float32)} 
@@ -160,12 +163,16 @@ class SuperResolution(Model):
         return dict_inputs, image.shape[1::-1]
 
     def postprocess(self, outputs, dsize):
-        #print("outputs", outputs[self.output_blob_name].shape)
-        prediction = outputs[self.output_blob_name].squeeze()
-        #print("outputs", prediction.shape)
-        prediction = prediction.transpose((1, 2, 0))
-
-        prediction *= 255 
+        print("outputs", outputs[self.output_blob_name].shape)
+        if self.model_name == "edsr" :
+            prediction = outputs[self.output_blob_name][0] #.squeeze()
+            print("outputs", prediction.shape)
+            prediction =  prediction.transpose((1, 2, 0))
+        else:
+            prediction = outputs[self.output_blob_name].squeeze()
+            print("outputs", prediction.shape)
+            prediction =  prediction.transpose((1, 2, 0))
+            prediction *= 255 
      
         prediction = np.clip(prediction, 0, 255) #if not done then we get artifacts due to pixel overflow
 

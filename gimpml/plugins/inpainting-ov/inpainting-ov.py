@@ -74,13 +74,14 @@ class StringEnum:
         raise AttributeError("No such key string " + key)
 
 
-model_name_enum = StringEnum(
-    "Places2",
-    _("Places2"),
-    "CelebA",
-    _("CelebA"),
-    "Paris-StreetView",
-    _("Paris-StreetView"),
+
+device_name_enum = StringEnum(
+    "CPU",
+    _("CPU"),
+    "GPU",
+    _("GPU"),
+    "VPUX",
+    _("VPUX"),
 )
 
 
@@ -89,9 +90,7 @@ def inpainting(
     image,
     n_drawables,
     drawables,
-    force_cpu,
-    gpu,
-    vpu,
+    device_name,
     progress_bar,
     config_path_output,
 ):
@@ -109,9 +108,7 @@ def inpainting(
     with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "wb") as file:
         pickle.dump(
             {
-                "CPU": bool(force_cpu),
-                "GPU": bool(gpu),
-                "VPU": bool(vpu),
+                "device_name": device_name,
                 "n_drawables": n_drawables,
                 "inference_status": "started",
             },
@@ -154,9 +151,7 @@ def inpainting(
 
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    force_cpu = args.index(0)
-    gpu = args.index(1)
-    vpu = args.index(2)
+    device_name = args.index(0)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -169,9 +164,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path_output["plugin_path"] = os.path.join(config_path, "inpainting-ov.py")
 
         config = procedure.create_config()
-        config.set_property("CPU", force_cpu)
-        config.set_property("GPU",gpu)
-        config.set_property("VPU", vpu)
         config.begin_run(image, run_mode, args)
 
         GimpUi.init("inpainting-ov.py")
@@ -210,36 +202,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.show()
 
 
-        # Force CPU parameter
-        spin = GimpUi.prop_check_button_new(config, "CPU", _("CPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, CPU is used for model inference."
-                " Otherwise, GPU will be used if available."
-            )
+        # Device Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
+        grid.attach(label, 0, 0, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "device_name", device_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(spin, 1, 0, 1, 1)
-        spin.show()
-
-        spin = GimpUi.prop_check_button_new(config, "GPU", _("GPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, GPU is used for model inference."
-                " Otherwise, VPU will be used if available."
-            )
-        )
-        grid.attach(spin, 2, 0, 1, 1)
-        spin.show()
-
-        spin = GimpUi.prop_check_button_new(config, "VPU", _("VPU"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, GPU is used for model inference."
-                " Otherwise, VPU will be used if available."
-            )
-        )
-        grid.attach(spin, 3, 0, 1, 1)
-        spin.show()
+        grid.attach(combo, 1, 0, 1, 1)
+        combo.show()
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
@@ -262,33 +233,20 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
  
 
-        # Model Name parameter
-        #label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
-        #grid.attach(label, 3, 0, 1, 1)
-        #label.show()
-        #combo = GimpUi.prop_string_combo_box_new(
-        #    config, "model_name", model_name_enum.get_tree_model(), 0, 1
-        #)
-        #grid.attach(combo, 4, 0, 1, 1)
-        #combo.show()
 
         # Wait for user to click
         dialog.show()
         while True:
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
-                force_cpu = config.get_property("CPU")
-                gpu = config.get_property("GPU")
-                vpu = config.get_property("VPU")
+                device_name = config.get_property("device_name")
                 #model_name = config.get_property("model_name")
                 result = inpainting(
                     procedure,
                     image,
                     n_drawables,
                     layer,
-                    force_cpu,
-                    gpu,
-                    vpu, 
+                    device_name,     
                     progress_bar,
                     config_path_output,
                 )
@@ -310,25 +268,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 class InPainting(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
-        "CPU": (
-            bool,
-            _("CPU"),
+        "device_name": (
+            str,
+            _("Device Name"),
+            "Device Name: 'CPU', 'GPU', 'VPUX'",
             "CPU",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),       
-       "GPU": (
-            bool,
-            _("GPU"),
-            "GPU",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
-        "VPU": (
-            bool,
-            _("VPU"),
-            "VPU",
-            False,
             GObject.ParamFlags.READWRITE,
         ),
     }
@@ -358,9 +302,7 @@ class InPainting(Gimp.PlugIn):
             procedure.set_menu_label(N_("OV InPainting..."))
             procedure.set_attribution("Kritik Soman", "GIMP-ML", "2021")
             procedure.add_menu_path("<Image>/Layer/GIMP-ML/")
-            procedure.add_argument_from_property(self, "CPU")
-            procedure.add_argument_from_property(self, "GPU")
-            procedure.add_argument_from_property(self, "VPU")
+            procedure.add_argument_from_property(self, "device_name")
         return procedure
 
 
