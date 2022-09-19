@@ -1,0 +1,639 @@
+<?xml version="1.0"?>
+<mapping>
+	<map>
+		<framework name="input1" output_port_id="input1" />
+		<IR name="input1" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="63" output_port_id="63" />
+		<IR name="63" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="conv1.conv2d.weight" output_port_id="conv1.conv2d.weight" />
+		<IR name="conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="64" output_port_id="64" />
+		<IR name="64" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="in1.weight" output_port_id="in1.weight" />
+		<IR name="in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="in1.bias" output_port_id="in1.bias" />
+		<IR name="in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="65" output_port_id="65" />
+		<IR name="65" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="66" output_port_id="66" />
+		<IR name="66" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="67" output_port_id="67" />
+		<IR name="67" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="conv2.conv2d.weight" output_port_id="conv2.conv2d.weight" />
+		<IR name="conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="68" output_port_id="68" />
+		<IR name="68" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="in2.weight" output_port_id="in2.weight" />
+		<IR name="in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="in2.bias" output_port_id="in2.bias" />
+		<IR name="in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="69" output_port_id="69" />
+		<IR name="69" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="70" output_port_id="70" />
+		<IR name="70" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="71" output_port_id="71" />
+		<IR name="71" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="conv3.conv2d.weight" output_port_id="conv3.conv2d.weight" />
+		<IR name="conv3.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="72" output_port_id="72" />
+		<IR name="72" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="in3.weight" output_port_id="in3.weight" />
+		<IR name="in3.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="in3.bias" output_port_id="in3.bias" />
+		<IR name="in3.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="73" output_port_id="73" />
+		<IR name="73" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="74" output_port_id="74" />
+		<IR name="74" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="75" output_port_id="75" />
+		<IR name="75" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res1.conv1.conv2d.weight" output_port_id="res1.conv1.conv2d.weight" />
+		<IR name="res1.conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="76" output_port_id="76" />
+		<IR name="76" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res1.in1.weight" output_port_id="res1.in1.weight" />
+		<IR name="res1.in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res1.in1.bias" output_port_id="res1.in1.bias" />
+		<IR name="res1.in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="77" output_port_id="77" />
+		<IR name="77" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="78" output_port_id="78" />
+		<IR name="78" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="79" output_port_id="79" />
+		<IR name="79" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res1.conv2.conv2d.weight" output_port_id="res1.conv2.conv2d.weight" />
+		<IR name="res1.conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="80" output_port_id="80" />
+		<IR name="80" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res1.in2.weight" output_port_id="res1.in2.weight" />
+		<IR name="res1.in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res1.in2.bias" output_port_id="res1.in2.bias" />
+		<IR name="res1.in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="81" output_port_id="81" />
+		<IR name="81" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="82" output_port_id="82" />
+		<IR name="82" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="83" output_port_id="83" />
+		<IR name="83" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res2.conv1.conv2d.weight" output_port_id="res2.conv1.conv2d.weight" />
+		<IR name="res2.conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="84" output_port_id="84" />
+		<IR name="84" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res2.in1.weight" output_port_id="res2.in1.weight" />
+		<IR name="res2.in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res2.in1.bias" output_port_id="res2.in1.bias" />
+		<IR name="res2.in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="85" output_port_id="85" />
+		<IR name="85" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="86" output_port_id="86" />
+		<IR name="86" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="87" output_port_id="87" />
+		<IR name="87" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res2.conv2.conv2d.weight" output_port_id="res2.conv2.conv2d.weight" />
+		<IR name="res2.conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="88" output_port_id="88" />
+		<IR name="88" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res2.in2.weight" output_port_id="res2.in2.weight" />
+		<IR name="res2.in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res2.in2.bias" output_port_id="res2.in2.bias" />
+		<IR name="res2.in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="89" output_port_id="89" />
+		<IR name="89" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="90" output_port_id="90" />
+		<IR name="90" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="91" output_port_id="91" />
+		<IR name="91" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res3.conv1.conv2d.weight" output_port_id="res3.conv1.conv2d.weight" />
+		<IR name="res3.conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="92" output_port_id="92" />
+		<IR name="92" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res3.in1.weight" output_port_id="res3.in1.weight" />
+		<IR name="res3.in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res3.in1.bias" output_port_id="res3.in1.bias" />
+		<IR name="res3.in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="93" output_port_id="93" />
+		<IR name="93" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="94" output_port_id="94" />
+		<IR name="94" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="95" output_port_id="95" />
+		<IR name="95" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res3.conv2.conv2d.weight" output_port_id="res3.conv2.conv2d.weight" />
+		<IR name="res3.conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="96" output_port_id="96" />
+		<IR name="96" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res3.in2.weight" output_port_id="res3.in2.weight" />
+		<IR name="res3.in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res3.in2.bias" output_port_id="res3.in2.bias" />
+		<IR name="res3.in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="97" output_port_id="97" />
+		<IR name="97" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="98" output_port_id="98" />
+		<IR name="98" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="99" output_port_id="99" />
+		<IR name="99" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res4.conv1.conv2d.weight" output_port_id="res4.conv1.conv2d.weight" />
+		<IR name="res4.conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="100" output_port_id="100" />
+		<IR name="100" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res4.in1.weight" output_port_id="res4.in1.weight" />
+		<IR name="res4.in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res4.in1.bias" output_port_id="res4.in1.bias" />
+		<IR name="res4.in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="101" output_port_id="101" />
+		<IR name="101" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="102" output_port_id="102" />
+		<IR name="102" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="103" output_port_id="103" />
+		<IR name="103" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res4.conv2.conv2d.weight" output_port_id="res4.conv2.conv2d.weight" />
+		<IR name="res4.conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="104" output_port_id="104" />
+		<IR name="104" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res4.in2.weight" output_port_id="res4.in2.weight" />
+		<IR name="res4.in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res4.in2.bias" output_port_id="res4.in2.bias" />
+		<IR name="res4.in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="105" output_port_id="105" />
+		<IR name="105" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="106" output_port_id="106" />
+		<IR name="106" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="107" output_port_id="107" />
+		<IR name="107" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res5.conv1.conv2d.weight" output_port_id="res5.conv1.conv2d.weight" />
+		<IR name="res5.conv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="108" output_port_id="108" />
+		<IR name="108" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res5.in1.weight" output_port_id="res5.in1.weight" />
+		<IR name="res5.in1.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res5.in1.bias" output_port_id="res5.in1.bias" />
+		<IR name="res5.in1.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="109" output_port_id="109" />
+		<IR name="109" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="110" output_port_id="110" />
+		<IR name="110" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="111" output_port_id="111" />
+		<IR name="111" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="res5.conv2.conv2d.weight" output_port_id="res5.conv2.conv2d.weight" />
+		<IR name="res5.conv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="112" output_port_id="112" />
+		<IR name="112" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="res5.in2.weight" output_port_id="res5.in2.weight" />
+		<IR name="res5.in2.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="res5.in2.bias" output_port_id="res5.in2.bias" />
+		<IR name="res5.in2.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="113" output_port_id="113" />
+		<IR name="113" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="114" output_port_id="114" />
+		<IR name="114" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="132" output_port_id="132" />
+		<IR name="132" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="116" output_port_id="116" />
+		<IR name="116" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="115" output_port_id="115" />
+		<IR name="115" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="117458" output_port_id="117" />
+		<IR name="117458" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="118" output_port_id="118" />
+		<IR name="118" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="119" output_port_id="119" />
+		<IR name="119" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="120" output_port_id="120" />
+		<IR name="120" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="121" output_port_id="121" />
+		<IR name="121" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="129/Unsqueeze" output_port_id="129" />
+		<IR name="129/Unsqueeze" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="123" output_port_id="123" />
+		<IR name="123" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="122" output_port_id="122" />
+		<IR name="122" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="124456" output_port_id="124" />
+		<IR name="124456" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="125" output_port_id="125" />
+		<IR name="125" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="126" output_port_id="126" />
+		<IR name="126" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="127" output_port_id="127" />
+		<IR name="127" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="128" output_port_id="128" />
+		<IR name="128" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="130/Unsqueeze" output_port_id="130" />
+		<IR name="130/Unsqueeze" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="131" output_port_id="133" />
+		<IR name="131" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="131" output_port_id="131" />
+		<IR name="131" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="134" output_port_id="134" />
+		<IR name="134" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="135" output_port_id="135" />
+		<IR name="135" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="136" output_port_id="136" />
+		<IR name="136" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="137" output_port_id="137" />
+		<IR name="137" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="138" output_port_id="138" />
+		<IR name="138" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="139" output_port_id="139" />
+		<IR name="139" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="140" output_port_id="140" />
+		<IR name="140" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="deconv1.conv2d.weight" output_port_id="deconv1.conv2d.weight" />
+		<IR name="deconv1.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="141" output_port_id="141" />
+		<IR name="141" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="in4.weight" output_port_id="in4.weight" />
+		<IR name="in4.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="in4.bias" output_port_id="in4.bias" />
+		<IR name="in4.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="142" output_port_id="142" />
+		<IR name="142" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="143" output_port_id="143" />
+		<IR name="143" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="161" output_port_id="161" />
+		<IR name="161" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="145" output_port_id="145" />
+		<IR name="145" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="144" output_port_id="144" />
+		<IR name="144" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="146460" output_port_id="146" />
+		<IR name="146460" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="147" output_port_id="147" />
+		<IR name="147" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="148" output_port_id="148" />
+		<IR name="148" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="149" output_port_id="149" />
+		<IR name="149" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="150" output_port_id="150" />
+		<IR name="150" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="158/Unsqueeze" output_port_id="158" />
+		<IR name="158/Unsqueeze" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="152" output_port_id="152" />
+		<IR name="152" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="151" output_port_id="151" />
+		<IR name="151" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="153462" output_port_id="153" />
+		<IR name="153462" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="154" output_port_id="154" />
+		<IR name="154" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="155" output_port_id="155" />
+		<IR name="155" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="156" output_port_id="156" />
+		<IR name="156" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="157" output_port_id="157" />
+		<IR name="157" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="159/Unsqueeze" output_port_id="159" />
+		<IR name="159/Unsqueeze" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="160" output_port_id="162" />
+		<IR name="160" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="160" output_port_id="160" />
+		<IR name="160" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="163" output_port_id="163" />
+		<IR name="163" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="164" output_port_id="164" />
+		<IR name="164" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="165" output_port_id="165" />
+		<IR name="165" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="166" output_port_id="166" />
+		<IR name="166" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="167" output_port_id="167" />
+		<IR name="167" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="168" output_port_id="168" />
+		<IR name="168" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="169" output_port_id="169" />
+		<IR name="169" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="deconv2.conv2d.weight" output_port_id="deconv2.conv2d.weight" />
+		<IR name="deconv2.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="170" output_port_id="170" />
+		<IR name="170" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="in5.weight" output_port_id="in5.weight" />
+		<IR name="in5.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="in5.bias" output_port_id="in5.bias" />
+		<IR name="in5.bias" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="171" output_port_id="171" />
+		<IR name="171" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="172" output_port_id="172" />
+		<IR name="172" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="173" output_port_id="173" />
+		<IR name="173" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="deconv3.conv2d.weight" output_port_id="deconv3.conv2d.weight" />
+		<IR name="deconv3.conv2d.weight" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="output1" output_port_id="output1" />
+		<IR name="output1" output_port_id="2" />
+	</map>
+</mapping>

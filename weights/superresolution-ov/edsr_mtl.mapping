@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<mapping>
+	<map>
+		<framework name="29" out_port_id="29"/>
+		<IR id="120" name="Add_10" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="26" out_port_id="26"/>
+		<IR id="107" name="Conv_7" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="43" out_port_id="43"/>
+		<IR id="180" name="43" out_port_id="5"/>
+	</map>
+	<map>
+		<framework name="27" out_port_id="27"/>
+		<IR id="108" name="Relu_8" out_port_id="1"/>
+	</map>
+	<map>
+		<framework name="40" out_port_id="40"/>
+		<IR id="169" name="Resize_18" out_port_id="4"/>
+	</map>
+	<map>
+		<framework name="x.1" out_port_id="x.1"/>
+		<IR id="62" name="x.1" out_port_id="0"/>
+	</map>
+	<map>
+		<framework name="19" out_port_id="19"/>
+		<IR id="63" name="Constant_0681870" out_port_id="0"/>
+	</map>
+	<map>
+		<framework name="32" out_port_id="32"/>
+		<IR id="141" name="Conv_13" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="21" out_port_id="21"/>
+		<IR id="74" name="Conv_2" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="20" out_port_id="20"/>
+		<IR id="64" name="Sub_1" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="35" out_port_id="35"/>
+		<IR id="155" name="Add_16" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="34" out_port_id="34"/>
+		<IR id="153" name="Conv_15" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="24" out_port_id="24"/>
+		<IR id="95" name="Conv_5" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="22" out_port_id="22"/>
+		<IR id="84" name="Conv_3" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="31" out_port_id="31"/>
+		<IR id="131" name="Relu_12" out_port_id="1"/>
+	</map>
+	<map>
+		<framework name="44" out_port_id="44"/>
+		<IR id="160" name="441111954" out_port_id="0"/>
+	</map>
+	<map>
+		<framework name="23" out_port_id="23"/>
+		<IR id="85" name="Relu_4" out_port_id="1"/>
+	</map>
+	<map>
+		<framework name="30" out_port_id="30"/>
+		<IR id="130" name="Conv_11" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="33" out_port_id="33"/>
+		<IR id="143" name="Add_14" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="25" out_port_id="25"/>
+		<IR id="97" name="Add_6" out_port_id="2"/>
+	</map>
+	<map>
+		<framework name="28" out_port_id="28"/>
+		<IR id="118" name="Conv_9" out_port_id="2"/>
+	</map>
+</mapping>
