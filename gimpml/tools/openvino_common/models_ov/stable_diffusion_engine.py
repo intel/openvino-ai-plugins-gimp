@@ -28,6 +28,8 @@ from tqdm import tqdm
 
 from diffusers import LMSDiscreteScheduler, PNDMScheduler
 import cv2
+import os
+import sys
 
 
 def result(var):
@@ -45,32 +47,26 @@ class StableDiffusionEngine:
         self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
         self.scheduler = scheduler
         # models
-      
+        #print("weight_path in engine ", model)
+        #print("Final path:", os.path.join(model, "text_encoder.xml"))
         self.core = Core()
         # text features
-        self._text_encoder = self.core.read_model(
-            "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\text_encoder.xml",
-           "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\text_encoder.bin")
-        
+        self._text_encoder = self.core.read_model(os.path.join(model, "text_encoder.xml"), os.path.join(model, "text_encoder.bin"))
+         
         self.text_encoder = self.core.compile_model(self._text_encoder, device)
         # diffusion
-        self._unet = self.core.read_model(
-            "C:\\Users\\lab_admin\GIMP-ML\\weights\\stable-diffusion-ov\\unet.xml",
-            "C:\\Users\\lab_admin\GIMP-ML\\weights\\stable-diffusion-ov\\unet.bin"
-        )
+        self._unet = self.core.read_model(os.path.join(model, "unet.xml"),os.path.join(model, "unet.bin"))
+  
+   
         self.unet = self.core.compile_model(self._unet, device)
         self.latent_shape = tuple(self._unet.inputs[0].shape)[1:]
         # decoder
-        self._vae_decoder = self.core.read_model(
-            "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\vae_decoder.xml",
-            "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\vae_decoder.bin"
-        )
+        self._vae_decoder = self.core.read_model(os.path.join(model, "vae_decoder.xml"), os.path.join(model, "vae_decoder.bin"))
+       
         self.vae_decoder = self.core.compile_model(self._vae_decoder, device)
         # encoder
-        self._vae_encoder = self.core.read_model(
-            "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\vae_encoder.xml",
-            "C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov\\vae_encoder.bin"
-        )
+        self._vae_encoder = self.core.read_model(os.path.join(model, "vae_encoder.xml"), os.path.join(model, "vae_encoder.bin")) 
+
         self.vae_encoder = self.core.compile_model(self._vae_encoder, device)
         self.init_image_shape = tuple(self._vae_encoder.inputs[0].shape)[2:]
 

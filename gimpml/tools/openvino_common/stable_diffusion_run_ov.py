@@ -43,7 +43,7 @@ logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG,
 log = logging.getLogger()
 
 
-def run(device,prompt):
+def run(device,prompt,model_path):
  
      log.info('Initializing Inference Engine...')
   
@@ -54,9 +54,10 @@ def run(device,prompt):
             beta_schedule="scaled_linear",
             tensor_format="np"
         )
-
+     print("weight_path in run ",model_path)
      log.info('Device: %s',device)
      engine = StableDiffusionEngine(
+        model = model_path,
         scheduler = scheduler,
         device = device
     )
@@ -79,6 +80,6 @@ def run(device,prompt):
 
 
 if __name__ == "__main__":
-    mask = run("GPU", "Dinner under stars")
+    mask = run("GPU", "Dinner under stars","C:\\Users\\lab_admin\\GIMP-ML\\weights\\stable-diffusion-ov")
     cv2.imwrite("stablediffusion.png", mask)
 

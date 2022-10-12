@@ -12,11 +12,13 @@ from gimpml.tools.tools_utils import get_weight_path
 import traceback
 import numpy as np
 
-def get_sb(device="CPU", prompt="northern lights"):
-
+def get_sb(device="CPU", prompt="northern lights", weight_path=None):
+    if weight_path is None:
+        weight_path = get_weight_path()
+    model_path = os.path.join(weight_path, "stable-diffusion-ov")
  
-        out = run(device, prompt)
-        return out
+    out = run(device, prompt, model_path)
+    return out
 
 
 if __name__ == "__main__":
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     #prompt = data_output["model_name"]
     #image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
-        output = get_sb(device=device, prompt=prompt)
+        output = get_sb(device=device, prompt=prompt, weight_path=weight_path)
         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
         with open(os.path.join(weight_path, "..", "gimp_ml_run.pkl"), "wb") as file:
             pickle.dump({"inference_status": "success", "device_name": device }, file)
