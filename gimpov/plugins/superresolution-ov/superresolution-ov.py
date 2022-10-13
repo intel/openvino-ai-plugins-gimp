@@ -29,12 +29,7 @@ from plugin_utils import *
 
 _ = gettext.gettext
 image_paths = {
-    "colorpalette": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "..",
-        "colorpalette",
-        "color_palette.png",
-    ),
+
     "logo": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
     ),

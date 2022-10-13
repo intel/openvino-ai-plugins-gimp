@@ -2,7 +2,7 @@ import pickle
 import os
 import sys
 
-plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DPT")
+plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
 #from semseg_run import run
