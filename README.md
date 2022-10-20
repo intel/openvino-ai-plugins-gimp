@@ -2,7 +2,7 @@
 
 # OpenVINO™ Plugins for GIMP
 
-This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br> Waiting for GIMP 3 to release officially.<br>|
+This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
 
 # Objectives
@@ -22,7 +22,7 @@ import gimpov
 ```
 
 # Use with GIMP
-![image1](https://github.com/intel-sandbox/GIMP-ML-OV/tree/gimp-screenshot.PNG)
+![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
 [1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.6  (Only windows and linux) <br>
