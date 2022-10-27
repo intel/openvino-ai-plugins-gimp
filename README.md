@@ -38,7 +38,7 @@ On windows, run for GPU: <br>
 [4] Follow steps that are printed in terminal or cmd. <br>
 
 
-#Acknowledgements
+# Acknowledgements
 * Inspiration from GIMP-ML https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
 * Stable Diffusion Engine https://github.com/bes-dev/stable_diffusion.openvino
 
