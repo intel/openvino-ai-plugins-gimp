@@ -38,6 +38,9 @@ On windows, run for GPU: <br>
 [4] Follow steps that are printed in terminal or cmd. <br>
 
 
+#Acknowledgements
+* Inspiration from GIMP-ML https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
+* Stable Diffusion Engine https://github.com/bes-dev/stable_diffusion.openvino
 
 
 # Citation
@@ -54,3 +57,7 @@ Please cite using the following bibtex entry:
 
 # License
 #TODO
+
+
+#Disclaimer
+The authors are not responsible for the content generated using this project. Please, don't use this project to produce illegal, harmful, offensive etc. content.
