@@ -59,5 +59,5 @@ Please cite using the following bibtex entry:
 #TODO
 
 
-#Disclaimer
+# Disclaimer
 The authors are not responsible for the content generated using this project. Please, don't use this project to produce illegal, harmful, offensive etc. content.
