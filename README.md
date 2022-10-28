@@ -4,6 +4,12 @@
 
 This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
+## Current list of plugins:
+[1] Super-Resolution
+[2] Style-Transfer
+[3] Inpainting
+[4] Semantic-Segmentation
+[5] Stable-Diffusion
 
 # Objectives
 [1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
@@ -39,21 +45,10 @@ On windows, run for GPU: <br>
 
 
 # Acknowledgements
-* Inspiration from GIMP-ML https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
+* Plugin architecture inspired from GIMP-ML https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
 * Stable Diffusion Engine https://github.com/bes-dev/stable_diffusion.openvino
 
 
-# Citation
-Please cite using the following bibtex entry:
-
-```
-@article{soman2020GIMPML,
-  title={GIMP-ML: Python Plugins for using Computer Vision Models in GIMP},
-  author={Soman, Kritik},
-  journal={arXiv preprint arXiv:2004.13060},
-  year={2020}
-}
-```
 
 # License
 #TODO
