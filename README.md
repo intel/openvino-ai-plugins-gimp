@@ -5,11 +5,11 @@
 This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
 ## Current list of plugins:
-[1] Super-Resolution
-[2] Style-Transfer
-[3] Inpainting
-[4] Semantic-Segmentation
-[5] Stable-Diffusion
+[1] Super-Resolution <br>
+[2] Style-Transfer <br>
+[3] Inpainting <br>
+[4] Semantic-Segmentation <br>
+[5] Stable-Diffusion <br>
 
 # Objectives
 [1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
