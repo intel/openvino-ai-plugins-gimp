@@ -40,8 +40,8 @@ import gimpov
 On windows, run for CPU: <br>
 ```GIMP-OV\install.bat```<br>
 [4] Follow steps that are printed in terminal or cmd. <br>
-[5] Copy the weights folder to C:\Users\<user_name>\GIMP-OV\weights
-[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in C:\Users\<user_name>\GIMP-OV\weights\stable-diffusion-ov
+[5] Copy the weights folder to ```C:\Users\<user_name>\GIMP-OV\weights``` <br>
+[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\GIMP-OV\weights\stable-diffusion-ov```
 
 
 # Acknowledgements
