@@ -32,27 +32,29 @@ import gimpov
 
 ## Installation Steps
 [1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.6  (Only windows and linux) <br>
-[2] Clone this repository: git clone https://github.com/intel-sandbox/GIMP-ML-OV/tree/openvino-gimp <br>
-[3] Change branch : <br>
-```git checkout --track origin/GIMP3-ML``` <br>
+[2] Clone this repository: git clone https://github.com/intel-sandbox/GIMP-ML-OV.git <br>
+[3] Rename the repository : <br>
+```mv GIMP-ML-OV GIMP-OV``` <br>
 [3] On linux, run for GPU/CPU: <br>
-```bash GIMP-ML/install.bat```<br>
+```bash GIMP-OV/install.bat```<br>
 On windows, run for CPU: <br>
-```GIMP-ML\install.bat```<br>
-On windows, run for GPU: <br>
-```GIMP-ML\install.bat gpu```<br>
+```GIMP-OV\install.bat```<br>
 [4] Follow steps that are printed in terminal or cmd. <br>
+[5] Copy the weights folder to C:\Users\<user_name>\GIMP-OV\weights
+[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in C:\Users\<user_name>\GIMP-OV\weights\stable-diffusion-ov
 
 
 # Acknowledgements
-* Plugin architecture inspired from GIMP-ML https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
-* Stable Diffusion Engine https://github.com/bes-dev/stable_diffusion.openvino
+* Plugin architecture inspired from GIMP-ML - https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
+* Stable Diffusion Engine - https://github.com/bes-dev/stable_diffusion.openvino
 
 
 
 # License
-#TODO
+Apache 2.0
 
 
 # Disclaimer
-The authors are not responsible for the content generated using this project. Please, don't use this project to produce illegal, harmful, offensive etc. content.
+Stable Diffusion’s data model is governed by the Creative ML Open Rail M license, which is not an open source license.
+https://github.com/CompVis/stable-diffusion. Users are responsible for their own assessment whether their proposed use of the project code and model would be governed by and permissible under this license.
+
