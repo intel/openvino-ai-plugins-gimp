@@ -31,6 +31,7 @@ setup(
         'future; python_version <= "2.7"',
         "scipy",
         "typing",
+        "gdown",
         'enum; python_version <= "2.7"',
         "requests",
         "opencv-python<=4.3",
