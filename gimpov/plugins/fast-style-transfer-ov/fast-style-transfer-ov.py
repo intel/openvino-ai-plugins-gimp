@@ -212,7 +212,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         logo.show()
 
         # Show License
-        license_text = _("PLUGIN LICENSE : MIT")
+        license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
         # grid.attach(label, 1, 1, 1, 1)
         vbox.pack_start(label, False, False, 1)
