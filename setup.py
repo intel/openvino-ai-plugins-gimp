@@ -25,12 +25,13 @@ setup(
     keywords="sample, setuptools, development",  # Optional
     packages=find_packages(),
     python_requires=">=2.7",
-    include_package_data=True,  # to include manifest.in
+    include_package_data=True,  
     install_requires=[
         "numpy",
         'future; python_version <= "2.7"',
         "scipy",
         "typing",
+        "gdown",
         'enum; python_version <= "2.7"',
         "requests",
         "opencv-python<=4.3",
