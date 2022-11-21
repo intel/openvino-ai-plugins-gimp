@@ -68,8 +68,7 @@ device_name_enum = StringEnum(
     _("CPU"),
     "GPU",
     _("GPU"),
-    "VPUX",
-    _("VPUX"),
+
 )
 
 
@@ -250,7 +249,7 @@ class StableDiffusion(Gimp.PlugIn):
         "device_name": (
             str,
             _("Device Name"),
-            "Device Name: 'CPU', 'GPU', 'VPUX'",
+            "Device Name: 'CPU', 'GPU'",
             "CPU",
             GObject.ParamFlags.READWRITE,
         ),
