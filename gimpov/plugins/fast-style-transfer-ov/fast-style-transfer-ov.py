@@ -52,16 +52,7 @@ class StringEnum:
             tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
-    def __getattr__(self, name):
-        """Implements access to the key. For example, if you provided a key "red", then you could access it by
-        referring to
-           my_enum.red
-        It may seem silly as "my_enum.red" is longer to write then just "red",
-        but this provides verification that the key is indeed inside enum."""
-        key = name.replace("_", " ")
-        if key in self.keys:
-            return key
-        raise AttributeError("No such key string " + key)
+
 
 model_name_enum = StringEnum(
     "mosaic",
