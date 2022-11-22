@@ -77,8 +77,6 @@ device_name_enum = StringEnum(
     _("CPU"),
     "GPU",
     _("GPU"),
-    "VPUX",
-    _("VPUX"),
 )
 
 
@@ -285,7 +283,7 @@ class Superresolution(Gimp.PlugIn):
         "device_name": (
             str,
             _("Device Name"),
-            "Device Name: 'CPU', 'GPU', 'VPUX'",
+            "Device Name: 'CPU', 'GPU'",
             "CPU",
             GObject.ParamFlags.READWRITE,
         ),
@@ -320,5 +318,5 @@ class Superresolution(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "model_name")
         return procedure
 
-print("--------------before Superres GIMP main -----------------")
+
 Gimp.main(Superresolution.__gtype__, sys.argv)
