@@ -56,5 +56,7 @@ if __name__ == "__main__":
         with open(os.path.join(weight_path, "..", "gimp_ov_run.pkl"), "wb") as file:
             pickle.dump({"inference_status": "failed"}, file)
         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
-            e_type, e_val, e_tb = sys.exc_info()
-            traceback.print_exception(e_type, e_val, e_tb, file=file)
+            traceback.print_exception("DEBUG THE ERROR", file=file)
+            # Uncoment below lines to debug            
+            #e_type, e_val, e_tb = sys.exc_info()
+            #traceback.print_exception(e_type, e_val, e_tb, file=file)
