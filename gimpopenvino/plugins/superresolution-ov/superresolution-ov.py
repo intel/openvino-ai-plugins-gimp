@@ -82,12 +82,12 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
 
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
+    with open(os.path.join(weight_path, "..", "gimp_ov_run.pkl"), "wb") as file:
         pickle.dump({"device_name": device_name, "scale": float(scale),"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
     subprocess.call([python_path, plugin_path])
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "rb") as file:
+    with open(os.path.join(weight_path, "..", "gimp_ov_run.pkl"), "rb") as file:
         data_output = pickle.load(file)
     image.undo_group_end()
     Gimp.context_pop()
@@ -100,7 +100,7 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
             )
             result_layer = result.get_active_layer()
             copy = Gimp.Layer.new_from_drawable(result_layer, image)
-            copy.set_name("SuperResolution")
+            copy.set_name("OV SuperResolution")
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
             image.insert_layer(copy, None, -1)
         else:
@@ -114,7 +114,7 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
             )
             result_layer = result.get_active_layer()
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-            copy.set_name("SuperResolution")
+            copy.set_name("OV SuperResolution")
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
             image_new.insert_layer(copy, None, -1)
 
@@ -132,7 +132,7 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
 
     else:
         show_dialog(
-            "Inference not successful. See error_log.txt in GIMP-OpenVINO folder.",
+            "Inference not successful. See error_log.txt in GIMP-OV folder.",
             "Error !",
             "error",
             image_paths
@@ -150,7 +150,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "..", "..", "tools"
         )
-        with open(os.path.join(config_path, "gimp_openvino_config.pkl"), "rb") as file:
+        with open(os.path.join(config_path, "gimp_ov_config.pkl"), "rb") as file:
             config_path_output = pickle.load(file)
         python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "superresolution-ov.py")
@@ -162,7 +162,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("SuperResolution..."))
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("OV SuperResolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
         dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
@@ -300,9 +300,9 @@ class Superresolution(Gimp.PlugIn):
                 ],  # This includes the docstring, on the top of the file
                 name,
             )
-            procedure.set_menu_label(N_("SuperResolution..."))
-            procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
-            procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
+            procedure.set_menu_label(N_("OV SuperResolution..."))
+            procedure.set_attribution("Arisha Kumar", "GIMP-OV", "2022")
+            procedure.add_menu_path("<Image>/Layer/GIMP-OV/")
             procedure.add_argument_from_property(self, "scale")
             procedure.add_argument_from_property(self, "device_name")
             procedure.add_argument_from_property(self, "model_name")
