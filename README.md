@@ -24,7 +24,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 # Use as a Python Package
 ```Python
 import cv2
-import gimpov
+import gimpopenvino
 ```
 
 # Use with GIMP
@@ -34,14 +34,14 @@ import gimpov
 [1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.6  (Only windows and linux) <br>
 [2] Clone this repository: git clone https://github.com/intel-sandbox/GIMP-ML-OV.git <br>
 [3] Rename the repository : <br>
-```mv GIMP-ML-OV GIMP-OV``` <br>
+```mv GIMP-ML-OV GIMP-OpenVino``` <br>
 [3] On linux, run for GPU/CPU: <br>
-```bash GIMP-OV/install.bat```<br>
+```bash GIMP-OpenVINO/install.bat```<br>
 On windows, run for CPU: <br>
-```GIMP-OV\install.bat```<br>
+```GIMP-OpenVINO\install.bat```<br>
 [4] Follow steps that are printed in terminal or cmd. <br>
-[5] Copy the weights folder to ```C:\Users\<user_name>\GIMP-OV\weights``` <br>
-[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\GIMP-OV\weights\stable-diffusion-ov```
+[5] Copy the weights folder to ```C:\Users\<user_name>\GIMP-OpenVINO\weights``` <br>
+[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\GIMP-OpenVINO\weights\stable-diffusion-ov```
 
 
 # Acknowledgements

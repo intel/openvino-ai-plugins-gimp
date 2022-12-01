@@ -1,4 +1,4 @@
-include gimpov/plugins/images/plugin_logo.png
-include gimpov/plugins/images/error_icon.png
-include gimpov/tools/model_info.csv
+include gimpopenvino/plugins/images/plugin_logo.png
+include gimpopenvino/plugins/images/error_icon.png
+include gimpopenvino/tools/model_info.csv
 

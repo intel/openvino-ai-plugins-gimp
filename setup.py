@@ -6,12 +6,12 @@ with open(os.path.join(here, "README.md"), "r") as fh:
     long_description = fh.read()
 
 setup(
-    name="gimpov",  # Required
+    name="gimpopenvino",  # Required
     version="0.0.1",  # Required
-    description="Intel AI plugin for GIMP, powered by OpenVINO",  # Optional
+    description="OpenVINO™ AI Plugins for GIMP",  # Optional
     long_description=long_description,  # Optional
     long_description_content_type="text/markdown",  # Optional (see note above)
-    url="https://github.com/kritiksoman/GIMP-ML",  # Optional
+    url="",  # Optional
     author="Arisha Kumar",  # Optional
     author_email="",  # Optional
     classifiers=[  # Optional
