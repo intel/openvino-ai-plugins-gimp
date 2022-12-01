@@ -1,5 +1,5 @@
 """
-Script will download weights and create gimp_ov_config.pkl, and print path to be added to GIMP Preferences.
+Script will download weights and create gimp_openvino_config.pkl, and print path to be added to GIMP Preferences.
 """
 import os
 import sys
@@ -7,12 +7,12 @@ import pickle
 import csv
 import hashlib
 import gdown
-import gimpov
+import gimpopenvino
 
 
 def setup_python_weights(install_location=None):
     if not install_location:
-        install_location = os.path.join(os.path.expanduser("~"), "GIMP-OV")
+        install_location = os.path.join(os.path.expanduser("~"), "GIMP-OpenVINO")
         
     if not os.path.isdir(install_location):
         os.mkdir(install_location)
@@ -42,7 +42,7 @@ def setup_python_weights(install_location=None):
         print("and place in: " + weight_path)
         step += 1
     else:  # linux
-        file_path = os.path.join(os.path.dirname(gimpov.__file__), "tools")
+        file_path = os.path.join(os.path.dirname(gimpopenvino.__file__), "tools")
         with open(os.path.join(file_path, "model_info.csv")) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=",")
             headings = next(csv_reader)
@@ -78,8 +78,8 @@ def setup_python_weights(install_location=None):
                         except:
                             print("Failed to download !")
     # plugin_loc = os.path.dirname(os.path.realpath(__file__))
-    plugin_loc = os.path.dirname(gimpov.__file__)
-    with open(os.path.join(plugin_loc, "tools", "gimp_ov_config.pkl"), "wb") as file:
+    plugin_loc = os.path.dirname(gimpopenvino.__file__)
+    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.pkl"), "wb") as file:
         pickle.dump({"python_path": python_path, "weight_path": weight_path}, file)
 
     print(
