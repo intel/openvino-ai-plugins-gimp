@@ -1,9 +1,9 @@
 """
-Script will download weights and create gimp_openvino_config.pkl, and print path to be added to GIMP Preferences.
+Script will download weights and create gimp_openvino_config.txt, and print path to be added to GIMP Preferences.
 """
 import os
 import sys
-import pickle
+#import pickle
 import csv
 import hashlib
 import gdown
@@ -54,13 +54,13 @@ def setup_python_weights(install_location=None):
                 destination = os.path.join(
                     os.path.join(weight_path, model_path), model_file_name
                 )
-                if os.path.isfile(destination):
-                    md5_hash = hashlib.md5()
-                    a_file = open(destination, "rb")
-                    content = a_file.read()
-                    md5_hash.update(content)
-                    digest = md5_hash.hexdigest()
-                    a_file.close()
+                #if os.path.isfile(destination):
+                #    md5_hash = hashlib.md5()
+                #    a_file = open(destination, "rb")
+                #    content = a_file.read()
+                #    md5_hash.update(content)
+                #    digest = md5_hash.hexdigest()
+                #    a_file.close()
                 if not os.path.isfile(destination) or (digest and digest != md5sum):
                     print(
                         "\nDownloading "
@@ -79,8 +79,9 @@ def setup_python_weights(install_location=None):
                             print("Failed to download !")
     # plugin_loc = os.path.dirname(os.path.realpath(__file__))
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
-    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.pkl"), "wb") as file:
-        pickle.dump({"python_path": python_path, "weight_path": weight_path}, file)
+    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.txt"), "w") as file:
+        file.write("python_path=%s\n" %(python_path)) 
+        file.write("weight_path=%s\n" %(weight_path))
 
     print(
         "{}>> Please add this path to Preferences --> Plug-ins in GIMP : ".format(step),

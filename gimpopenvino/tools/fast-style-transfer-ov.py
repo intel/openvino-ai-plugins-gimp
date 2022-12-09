@@ -1,4 +1,3 @@
-import pickle
 import os
 import sys
 
@@ -33,24 +32,22 @@ def get_style(img, model_name="mosaic", weight_path=None,device="CPU"):
 
 if __name__ == "__main__":
     weight_path = get_weight_path()
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "rb") as file:
-        data_output = pickle.load(file)
+    device = sys.argv[1]
+    model_name = sys.argv[2]
 
-    device = data_output["device_name"]
-    model_name = data_output["model_name"]
 
     image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
         output = get_style(image, model_name=model_name, weight_path=weight_path, device=device)
         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
-        with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
-            pickle.dump({"inference_status": "success", "device_name": device }, file)
+
 
         # Remove old temporary error files that were saved
         my_dir = os.path.join(weight_path, "..")
         for f_name in os.listdir(my_dir):
             if f_name.startswith("error_log"):
                 os.remove(os.path.join(my_dir, f_name))
+        sys.exit(0)
 
     except Exception as error:
         with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
@@ -60,3 +57,4 @@ if __name__ == "__main__":
             # Uncoment below lines to debug            
             #e_type, e_val, e_tb = sys.exc_info()
             #traceback.print_exception(e_type, e_val, e_tb, file=file)
+        sys.exit(1)

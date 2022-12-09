@@ -37,15 +37,15 @@ class InpaintingGUI:
                 
                 finalmask[finalmask > 0] = 1.
 
-                print("final mask", finalmask.shape)
-                cv2.imwrite("Finalmask-notwork.png",finalmask.astype(np.uint8)*255)
+                #print("final mask", finalmask.shape)
+                #cv2.imwrite("Finalmask-notwork.png",finalmask.astype(np.uint8)*255)
 
                 self.img[np.squeeze(finalmask, -1) > 0] = 0
-                cv2.imwrite("inpaint_test-mask.png", self.img)
+                #cv2.imwrite("inpaint_test-mask.png", self.img)
                 print("img shape before process", self.img.shape)
                 print("final mask before process", finalmask.shape)
                 self.img = self.inpainter.process(self.img, finalmask)
-                cv2.imwrite("FINAL_TEST.png", self.img)
+                #cv2.imwrite("FINAL_TEST.png", self.img)
                 #self.mask[:, :, :] = 0
                 return self.img
     

@@ -10,7 +10,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gimp, GimpUi, GObject, GLib, Gio, Gtk
 import gettext
 import subprocess
-import pickle
+#import pickle
 import os
 import sys
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
@@ -78,16 +78,20 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
 
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
-        pickle.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
+    #with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
+    #    pickle.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
-    subprocess.call([python_path, plugin_path])
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "rb") as file:
-        data_output = pickle.load(file)
+    print("python_path",python_path)
+    print("plugin_path",plugin_path)
+    print("weight_path in main",weight_path)
+
+    data_output = subprocess.call([python_path, plugin_path, device_name, model_name])
+    #with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "rb") as file:
+        #data_output = pickle.load(file)
     image.undo_group_end()
     Gimp.context_pop()
-    if data_output["inference_status"] == "success":
+    if not data_output:
         result = Gimp.file_load(
             Gimp.RunMode.NONINTERACTIVE,
             Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
@@ -125,8 +129,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "..", "..", "tools"
         )
-        with open(os.path.join(config_path, "gimp_openvino_config.pkl"), "rb") as file:
-            config_path_output = pickle.load(file)
+        #with open(os.path.join(config_path, "gimp_openvino_config.pkl"), "rb") as file:
+        #    config_path_output = pickle.load(file)
+        config_path_output={}
+        with open(os.path.join(config_path, "gimp_openvino_config.txt"), "r") as file:
+            for line in file.readlines():
+                config_path_output[line.split("=")[0]] = line.split("=")[1].replace("\n", "")
         python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
 

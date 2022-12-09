@@ -1,4 +1,3 @@
-import pickle
 import os
 import sys
 
@@ -25,11 +24,10 @@ def get_inpaint(images, masks, device, weight_path=None):
 
 if __name__ == "__main__":
     weight_path = get_weight_path()
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "rb") as file:
-        data_output = pickle.load(file)
-    n_drawables = data_output["n_drawables"]
+
+    n_drawables = int(sys.argv[2])
     
-    device = data_output["device_name"]    
+    device = sys.argv[1]
 
     image1 = cv2.imread(os.path.join(weight_path, "..", "cache0.png"))
     image2 = None
@@ -51,21 +49,13 @@ if __name__ == "__main__":
 
         output = cv2.resize(output, (w, h))
         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
-        with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
-            pickle.dump(
-                {
-                    "inference_status": "success",
-                    "device_name": device,
-                    "n_drawables": n_drawables,
-                },
-                file,
-            )
-
         # Remove old temporary error files that were saved
         my_dir = os.path.join(weight_path, "..")
         for f_name in os.listdir(my_dir):
             if f_name.startswith("error_log"):
                 os.remove(os.path.join(my_dir, f_name))
+        sys.exit(0)
+
     except Exception as error:
         with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
             pickle.dump({"inference_status": "failed"}, file)
@@ -74,3 +64,4 @@ if __name__ == "__main__":
             # Uncoment below lines to debug            
             #e_type, e_val, e_tb = sys.exc_info()
             #traceback.print_exception(e_type, e_val, e_tb, file=file)
+        sys.exit(1)
