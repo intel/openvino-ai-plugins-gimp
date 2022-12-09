@@ -3,6 +3,7 @@ Script will download weights and create gimp_openvino_config.txt, and print path
 """
 import os
 import sys
+import json
 #import pickle
 import csv
 import hashlib
@@ -79,9 +80,15 @@ def setup_python_weights(install_location=None):
                             print("Failed to download !")
     # plugin_loc = os.path.dirname(os.path.realpath(__file__))
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
-    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.txt"), "w") as file:
-        file.write("python_path=%s\n" %(python_path)) 
-        file.write("weight_path=%s\n" %(weight_path))
+    py_dict = {
+        "python_path" : python_path,
+        "weight_path" : weight_path
+        }
+    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.json"), "w") as file:
+        json.dump(py_dict,file)
+    #with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.txt"), "w") as file:
+    #    file.write("python_path=%s\n" %(python_path)) 
+    #    file.write("weight_path=%s\n" %(weight_path))
 
     print(
         "{}>> Please add this path to Preferences --> Plug-ins in GIMP : ".format(step),
