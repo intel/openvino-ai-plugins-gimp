@@ -58,8 +58,8 @@ if __name__ == "__main__":
         #sys.exit(0)
 
     except Exception as error:
-        with open(os.path.join(weight_path, "..", "gimp_openvino_run.pkl"), "wb") as file:
-            pickle.dump({"inference_status": "failed"}, file)
+        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+            json.dump({"inference_status": "failed"}, file)
         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
             traceback.print_exception("DEBUG THE ERROR", file=file)
             # Uncoment below lines to debug
