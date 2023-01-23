@@ -39,7 +39,7 @@ setup(
         "timm==0.4.5",
         "transformers",
         "diffusers",
-        "openvino==2022.1.0"
+        "openvino==2022.3.0"
         
         
     ]
