@@ -31,7 +31,7 @@ import gimpopenvino
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-[1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.6  (Only windows and linux) <br>
+[1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
 [2] Clone this repository: git clone https://github.com/intel-sandbox/GIMP-ML-OV.git <br>
 [3] Rename the repository : <br>
 ```mv GIMP-ML-OV GIMP-OpenVino``` <br>

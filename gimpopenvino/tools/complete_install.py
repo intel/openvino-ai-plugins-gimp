@@ -1,3 +1,6 @@
+# Copyright(C) 2022-2023 Intel Corporation
+# SPDX - License - Identifier: Apache - 2.0
+
 """
 Script will download weights and create gimp_openvino_config.txt, and print path to be added to GIMP Preferences.
 """
