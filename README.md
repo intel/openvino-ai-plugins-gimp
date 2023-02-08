@@ -45,11 +45,11 @@ import gimpopenvino
 [2] Navigate to the GIMP installation directory: <br>
 ```cd C:\Program Files\GIMP 2.99\bin```
 [3] Start the GIMP application: <br>
-```gimp-2.99.exe```
+```gimp-2.99.exe``` <br>
 [4] GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
 
 ### OpenVINO™ Semantic Segmentation Plugin
-![gifs/semantic-segmentation](semantic-segmentation.gif)
+![semantic-segmentation](gifs/semantic-segmentation.gif)
 
 
 
