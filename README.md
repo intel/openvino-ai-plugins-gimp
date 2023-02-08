@@ -31,48 +31,48 @@ import gimpopenvino
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-[1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
-[2] Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
-[3] Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
-[4] windows install: <br>
+1. Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
+2. Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
+3. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
+4. windows install: <br>
 ```openvino-ai-plugins-gimp\install.bat```<br>
-[5] Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
-[6] Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
-[7] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
+5. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
+6 Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
+7 Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
 
 ## Running GIMP
-[1] In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
-[2] Navigate to the GIMP installation directory: <br>
+1. In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
+2. Navigate to the GIMP installation directory: <br>
 ```cd C:\Program Files\GIMP 2.99\bin```
-[3] Start the GIMP application: <br>
+3. Start the GIMP application: <br>
 ```gimp-2.99.exe``` <br>
-[4] GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
+4. GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
 
 ### OpenVINO™ Semantic Segmentation Plugin
-![semantic-segmentation](gifs/semantic-segmentation.gif)
+![](gifs/semantic-segmentation.gif)
 
 ### OpenVINO™ Super Resolution Plugin 
-![super-resolution](gifs/super-res.gif)
+![](gifs/super-res.gif)
 
 ### OpenVINO™ Style Transfer Plugin
-![style-transfer](gifs/style-transfer.gif)
+![](gifs/style-transfer.gif)
 
 ### OpenVINO™ Inpainting Plugin 
 1. Open an image in GIMP. <br>
-2.	Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel” <br>
-3.	Add a new transparent layer of the same size as original image. <br>
-4.	Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
-5.	Now paint the object that you want to remove from the image. <br>
-6.	Select the new layer and image at the same. You should see “two items selected in layer section” <br>
+2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel” <br>
+3. Add a new transparent layer of the same size as original image. <br>
+4. Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
+5. Now paint the object that you want to remove from the image. <br>
+6. Select the new layer and image at the same. You should see “two items selected in layer section” <br>
 
 
-![Inpainting](gifs/inpainting.gif)
+![](gifs/inpainting.gif)
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion
-[1] Create a new layer of size 512x512 <br>
-[2] Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
-[3] Enter a prompt & select the device - CPU or GPU <br>
-[4] Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
+1. Create a new layer of size 512x512 <br>
+2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
+3. Enter a prompt & select the device - CPU or GPU <br>
+4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
 
 ![](gifs/stable-diffusion.gif)
 
