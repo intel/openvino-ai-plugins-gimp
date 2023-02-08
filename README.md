@@ -54,6 +54,12 @@ import gimpopenvino
 ### OpenVINO™ Super Resolution Plugin 
 ![super-resolution](gifs/super-res.gif)
 
+### OpenVINO™ Style Transfer Plugin
+![style-transfer](gifs/style-transfer.gif)
+
+### OpenVINO™ Inpainting Plugin 
+![Inpainting](gifs/inpainting.gif)
+
 
 
 # Acknowledgements
