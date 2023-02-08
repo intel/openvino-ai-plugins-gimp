@@ -58,7 +58,23 @@ import gimpopenvino
 ![style-transfer](gifs/style-transfer.gif)
 
 ### OpenVINO™ Inpainting Plugin 
+1. Open an image in GIMP. <br>
+2.	Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel” <br>
+3.	Add a new transparent layer of the same size as original image. <br>
+4.	Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
+5.	Now paint the object that you want to remove from the image. <br>
+6.	Select the new layer and image at the same. You should see “two items selected in layer section” <br>
+
+
 ![Inpainting](gifs/inpainting.gif)
+
+### OpenVINO™ Image Generator Plugin with Stable Diffusion
+[1] Create a new layer of size 512x512 <br>
+[2] Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
+[3] Enter a prompt & select the device - CPU or GPU <br>
+[4] Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
+
+![](gifs/stable-diffusion.gif)
 
 
 
