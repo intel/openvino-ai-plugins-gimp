@@ -24,8 +24,6 @@ from time import perf_counter
 import cv2
 from openvino.inference_engine import IECore
 
-#sys.path.append(str(Path(__file__).resolve().parents[2] / 'common/python'))
-
 from  models_ov.SuperResolution import SuperResolution
 from performance_metrics import PerformanceMetrics
 from pipelines import get_user_config, AsyncPipeline
@@ -71,27 +69,12 @@ def run(frame, model_path, device, model_name):
            
             result_frame, frame_meta = results
             input_frame = frame_meta['frame']
-
-            #if input_frame.shape != result_frame.shape:
-            #    input_frame = cv2.resize(input_frame, (result_frame.shape[1], result_frame.shape[0]))
-            #final_image = cv2.hconcat([input_frame, result_frame])
-        
+       
      return result_frame
 
 if __name__ == "__main__":
     import numpy as np
-    img = cv2.imread(r"D:\git\\GIMP-OV\testscases\sampleinput\haze.png") #[:, :, ::-1]
+    img = cv2.imread(r"D:\git\\GIMP-OV\sampleinput\haze.png") #[:, :, ::-1]
 
-    #b, g, r = cv2.split(np.array(img))
-    #channel_list = [b, g, r]
-    #output_list = []
-    #for img_c in channel_list:
-    #    output = run(img_c, r"D:\git\31.93_psnr_optimized_edsr\optimized\edsr_mtl.xml","CPU","edsr")
-    #    output_list.append(output)
-    #mask = cv2.merge([output_list[0], output_list[1], output_list[2]], 3)
-
-    mask = run(img, r"C:\Users\lab_admin\GIMP-OV\weights\superresolution-ov\realesrgan.xml","VPUX","esrgan") #r r'D:\optimized\realesrgan.xml''E:\open_model_zoo\models\intel\single-image-super-resolution-1033\FP16\single-image-super-resolution-1033.xml
- 
-    #print("type = ", type(mask))
-    #print(mask.shape)
+    mask = run(img, r"C:\GIMP-OV\weights\superresolution-ov\realesrgan.xml","VPUX","esrgan") #r )
     cv2.imwrite("esrgan_ov.png", mask)

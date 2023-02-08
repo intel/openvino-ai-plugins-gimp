@@ -61,8 +61,6 @@ model_name_enum = StringEnum(
     _("esrgan"),
     "sr_1033",
     _("sr_1033"),
-    "edsr",
-    _("edsr"),
 )
 
 device_name_enum = StringEnum(
@@ -158,12 +156,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "..", "..", "tools"
         )
-        #with open(os.path.join(config_path, "gimp_openvino_config.pkl"), "rb") as file:
-        #    config_path_output = pickle.load(file)
-        #config_path_output={}
-        #with open(os.path.join(config_path, "gimp_openvino_config.txt"), "r") as file:
-        #    for line in file.readlines():
-        #        config_path_output[line.split("=")[0]] = line.split("=")[1].replace("\n", "")
+ 
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         python_path = config_path_output["python_path"]
@@ -280,7 +273,7 @@ class Superresolution(Gimp.PlugIn):
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'esrgan', 'sr_1033', 'edsr'",
+            "Model Name: 'esrgan', 'sr_1033'",
             "sr_1033",
             GObject.ParamFlags.READWRITE,
         ),

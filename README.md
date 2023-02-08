@@ -1,6 +1,6 @@
 
 
-# OpenVINO™ Plugins for GIMP
+# OpenVINO™ AI Plugins for GIMP
 
 This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
@@ -32,16 +32,25 @@ import gimpopenvino
 
 ## Installation Steps
 [1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
-[2] Clone this repository: git clone https://github.com/intel-sandbox/GIMP-ML-OV.git <br>
-[3] Rename the repository : <br>
-```mv GIMP-ML-OV GIMP-OpenVino``` <br>
-[3] On linux, run for GPU/CPU: <br>
-```bash GIMP-OpenVINO/install.bat```<br>
-On windows, run for CPU: <br>
-```GIMP-OpenVINO\install.bat```<br>
-[4] Follow steps that are printed in terminal or cmd. <br>
-[5] Copy the weights folder to ```C:\Users\<user_name>\GIMP-OpenVINO\weights``` <br>
-[6] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\GIMP-OpenVINO\weights\stable-diffusion-ov```
+[2] Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
+[3] Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
+[4] On windows, run for CPU: <br>
+```openvino-ai-plugins-gimp\install.bat```<br>
+[5] Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
+[6] Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
+[7] Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
+
+## Running GIMP
+[1] In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
+[2] Navigate to the GIMP installation directory: <br>
+```cd C:\Program Files\GIMP 2.99\bin```
+[3] Start the GIMP application: <br>
+```gimp-2.99.exe```
+[4] GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
+
+### OpenVINO™ Semantic Segmentation Plugin
+![gifs/semantic-segmentation](semantic-segmentation.gif)
+
 
 
 # Acknowledgements

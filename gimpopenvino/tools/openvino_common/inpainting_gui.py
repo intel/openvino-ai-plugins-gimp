@@ -53,17 +53,15 @@ class InpaintingGUI:
 
 if __name__ == "__main__":
     mask = cv2.imread(r"D:\git\GIMP-OV\testscases\sampleinput\image_mask_new.png") 
-    #print("ORG mask-shape---", mask.astype(np.float32).shape)
-    #mask = cv2.imread(r"D:\git\open_model_zoo\demos\image_inpainting_demo\python\inpaint_test_mask.png")
-    #print("mask-shape---", mask[:, :, 0].shape)
+
     srcImg =  cv2.imread(r"D:\git\GIMP-OV\testscases\sampleinput\img.png")
-    #print("srcImg-shape", srcImg.shape)
+
     
-    out = InpaintingGUI(srcImg, mask, r"D:\omz-models\v10\public\gmcnn-places2-tf\FP16\gmcnn-places2-tf.xml", "CPU").run()
+    out = InpaintingGUI(srcImg, mask, r"D:\gmcnn-places2-tf.xml", "CPU").run()
     
     #print("type = ", type(out))
     #print(out.shape)
-    #cv2.imwrite("inpaint_test.png", out)
+    cv2.imwrite("inpaint_test.png", out)
 
 
 

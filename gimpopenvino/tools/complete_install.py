@@ -16,7 +16,7 @@ import gimpopenvino
 
 def setup_python_weights(install_location=None):
     if not install_location:
-        install_location = os.path.join(os.path.expanduser("~"), "GIMP-OpenVINO")
+        install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
         
     if not os.path.isdir(install_location):
         os.mkdir(install_location)
@@ -58,13 +58,7 @@ def setup_python_weights(install_location=None):
                 destination = os.path.join(
                     os.path.join(weight_path, model_path), model_file_name
                 )
-                #if os.path.isfile(destination):
-                #    md5_hash = hashlib.md5()
-                #    a_file = open(destination, "rb")
-                #    content = a_file.read()
-                #    md5_hash.update(content)
-                #    digest = md5_hash.hexdigest()
-                #    a_file.close()
+ 
                 if not os.path.isfile(destination) or (digest and digest != md5sum):
                     print(
                         "\nDownloading "
@@ -81,7 +75,7 @@ def setup_python_weights(install_location=None):
                             gdown.download(url, destination, quiet=False)
                         except:
                             print("Failed to download !")
-    # plugin_loc = os.path.dirname(os.path.realpath(__file__))
+
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
     py_dict = {
         "python_path" : python_path,
@@ -89,9 +83,7 @@ def setup_python_weights(install_location=None):
         }
     with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.json"), "w") as file:
         json.dump(py_dict,file)
-    #with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.txt"), "w") as file:
-    #    file.write("python_path=%s\n" %(python_path)) 
-    #    file.write("weight_path=%s\n" %(weight_path))
+
 
     print(
         "{}>> Please add this path to Preferences --> Plug-ins in GIMP : ".format(step),

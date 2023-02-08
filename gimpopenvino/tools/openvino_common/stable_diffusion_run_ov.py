@@ -80,6 +80,6 @@ def run(device,prompt,model_path):
 
 
 #if __name__ == "__main__":
-#    mask = run("GPU", "Dinner under stars","C:\\Users\\lab_admin\\GIMP-OV\\weights\\stable-diffusion-ov")
+#    mask = run("GPU", "Dinner under stars","C:\\GIMP-OV\\weights\\stable-diffusion-ov")
 #    cv2.imwrite("stablediffusion.png", mask)
 

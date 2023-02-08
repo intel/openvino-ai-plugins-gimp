@@ -149,13 +149,11 @@ def run(frame, model_path, device):
             frame = render_segmentation(frame, objects, visualizer)
    
     
+   
+    return frame 
 
-
-    
-    return frame #np.array(frame)
-
-#img = cv2.imread(r'D:\git\new-gimp\GIMP-ML\testscases\sampleinput\img.png')[:, :, ::-1]
-#mask = run(img, r'C:\Users\lab_admin\GIMP-ML\weights\semseg\deeplabv3.xml',"VPUX")
+#img = cv2.imread(r'D:\sampleinput\img.png')[:, :, ::-1]
+#mask = run(img, r'C:\GIMP-ML\weights\semseg\deeplabv3.xml',"VPUX")
 #print("type = ", type(mask))
 #print(mask.shape)
 #cv2.imwrite("cache_ov.png", mask)
