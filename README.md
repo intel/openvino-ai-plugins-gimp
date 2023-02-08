@@ -34,7 +34,7 @@ import gimpopenvino
 [1] Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
 [2] Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
 [3] Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
-[4] On windows, run for CPU: <br>
+[4] windows install: <br>
 ```openvino-ai-plugins-gimp\install.bat```<br>
 [5] Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
 [6] Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
@@ -50,6 +50,9 @@ import gimpopenvino
 
 ### OpenVINO™ Semantic Segmentation Plugin
 ![semantic-segmentation](gifs/semantic-segmentation.gif)
+
+### OpenVINO™ Super Resolution Plugin 
+![super-resolution](gifs/super-res.gif)
 
 
 
