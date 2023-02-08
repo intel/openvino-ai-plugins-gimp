@@ -255,7 +255,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
             elif response == Gtk.ResponseType.APPLY:
-                url = "https://kritiksoman.github.io/GIMP-ML-Docs/docs-page.html#item-7-3"
+                url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
                 Gio.app_info_launch_default_for_uri(url, None)
                 continue
             else:
