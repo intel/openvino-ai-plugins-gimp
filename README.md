@@ -49,13 +49,13 @@ import gimpopenvino
 4. GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
 
 ### OpenVINO™ Semantic Segmentation Plugin
-![](gifs/semantic-segmentation.gif)
+![](gifs/semantic-segmentation.webp)
 
 ### OpenVINO™ Super Resolution Plugin 
-![](gifs/super-res.gif)
+![](gifs/super-res.webp)
 
 ### OpenVINO™ Style Transfer Plugin
-![](gifs/style-transfer.gif)
+![](gifs/style-transfer.webp)
 
 ### OpenVINO™ Inpainting Plugin 
 1. Open an image in GIMP. <br>
@@ -74,7 +74,7 @@ import gimpopenvino
 3. Enter a prompt & select the device - CPU or GPU <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
 
-![](gifs/stable-diffusion.gif)
+![](gifs/stable-diffusion.webp)
 
 
 
