@@ -66,7 +66,7 @@ import gimpopenvino
 6. Select the new layer and image at the same. You should see “two items selected in layer section” <br>
 
 
-![](gifs/inpainting.gif)
+![](gifs/inpainting.webp)
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion
 1. Create a new layer of size 512x512 <br>
