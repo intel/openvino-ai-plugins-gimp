@@ -52,10 +52,10 @@ import gimpopenvino
 ![](gifs/semantic-segmentation.gif)
 
 ### OpenVINO™ Super Resolution Plugin 
-
+![](gifs/super-res.gif)
 
 ### OpenVINO™ Style Transfer Plugin
-
+![](gifs/style-transfer.gif)
 
 ### OpenVINO™ Inpainting Plugin 
 1. Open an image in GIMP. <br>
@@ -66,7 +66,7 @@ import gimpopenvino
 6. Select the new layer and image at the same. You should see “two items selected in layer section” <br>
 
 
-
+![](gifs/inpainting.gif)
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion
 1. Create a new layer of size 512x512 <br>
@@ -74,7 +74,7 @@ import gimpopenvino
 3. Enter a prompt & select the device - CPU or GPU <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
 
-
+![](gifs/stable-diffusion.gif)
 
 
 
