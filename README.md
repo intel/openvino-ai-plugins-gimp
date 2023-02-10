@@ -18,7 +18,7 @@ This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVin
 
 # Contribution 
 Welcome people interested in contribution !! 
-Please raise a PR for any new features, modifactions or bug fixes. 
+Please raise a PR for any new features, modification or bug fixes. 
 
 # Use with GIMP
 ![gimp-screenshot](gimp-screenshot.PNG)
@@ -29,7 +29,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 3. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
 4. windows install: <br>
 ```openvino-ai-plugins-gimp\install.bat```<br>
-5. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
+5. Follow steps that are printed in terminal or cmd window to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
 6 Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
 7 Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
 
