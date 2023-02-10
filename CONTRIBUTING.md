@@ -2,7 +2,7 @@
 
 ### License
 
-<PROJECT NAME> is licensed under the terms in [LICENSE]<link to license file in repo>. By contributing to the project, you agree to the license and copyright terms therein and release your contribution under these terms.
+openvino-ai-plugins-gimp is licensed under the terms in [Apache 2.0] https://github.com/intel/openvino-ai-plugins-gimp/LICENSE.md. By contributing to the project, you agree to the license and copyright terms therein and release your contribution under these terms.
 
 ### Sign your work
 
