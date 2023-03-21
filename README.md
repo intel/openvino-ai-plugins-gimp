@@ -1,6 +1,6 @@
 
 
-# OpenVINOô AI Plugins for GIMP
+# OpenVINO‚Ñ¢ AI Plugins for GIMP
 
 This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
@@ -24,7 +24,7 @@ Please raise a PR for any new features, modification or bug fixes.
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-1. Install [GIMP](https://www.gimp.org/downloads/devel/) 2.99.10 (revision 2)  (Only windows and linux) <br>
+1. Install [GIMP](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) 2.99.10 (revision 2)  (Only windows and linux) <br>
 2. Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
 3. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
 4. windows install: <br>
@@ -41,31 +41,31 @@ Please raise a PR for any new features, modification or bug fixes.
 ```gimp-2.99.exe``` <br>
 4. GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
 
-### OpenVINOô Semantic Segmentation Plugin
+### OpenVINO‚Ñ¢ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
 
-### OpenVINOô Super Resolution Plugin 
+### OpenVINO‚Ñ¢ Super Resolution Plugin 
 ![](gifs/super-res.webp)
 
-### OpenVINOô Style Transfer Plugin
+### OpenVINO‚Ñ¢ Style Transfer Plugin
 ![](gifs/style-transfer.webp)
 
-### OpenVINOô Inpainting Plugin 
+### OpenVINO‚Ñ¢ Inpainting Plugin 
 1. Open an image in GIMP. <br>
-2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting ìAdd alpha channelî <br>
+2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting ‚ÄúAdd alpha channel‚Äù <br>
 3. Add a new transparent layer of the same size as original image. <br>
 4. Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
 5. Now paint the object that you want to remove from the image. <br>
-6. Select the new layer and image at the same. You should see ìtwo items selected in layer sectionî <br>
+6. Select the new layer and image at the same. You should see ‚Äútwo items selected in layer section‚Äù <br>
 
 
 ![](gifs/inpainting.webp)
 
-### OpenVINOô Image Generator Plugin with Stable Diffusion
+### OpenVINO‚Ñ¢ Image Generator Plugin with Stable Diffusion
 1. Create a new layer of size 512x512 <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Enter a prompt & select the device - CPU or GPU <br>
-4. Click on ìRun Inferenceî. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
+4. Click on ‚ÄúRun Inference‚Äù. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
 
 ![](gifs/stable-diffusion.webp)
 
@@ -82,6 +82,6 @@ Apache 2.0
 
 
 # Disclaimer
-Stable Diffusionís data model is governed by the Creative ML Open Rail M license, which is not an open source license.
+Stable Diffusion‚Äôs data model is governed by the Creative ML Open Rail M license, which is not an open source license.
 https://github.com/CompVis/stable-diffusion. Users are responsible for their own assessment whether their proposed use of the project code and model would be governed by and permissible under this license.
 
