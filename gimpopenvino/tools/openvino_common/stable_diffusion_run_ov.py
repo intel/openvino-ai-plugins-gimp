@@ -43,17 +43,33 @@ logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG,
 log = logging.getLogger()
 
 
-def run(device,prompt,model_path):
+def run(device,prompt,num_infer_steps,guidance_scale,init_image,strength,seed,create_gif,model_path):
  
      log.info('Initializing Inference Engine...')
+     if seed is not None:   
+        np.random.seed(int(seed))
+        log.info('Seed: %s',seed)
   
+     if init_image is None:
+         log.info('LMSDiscreteScheduler...')
+         scheduler = LMSDiscreteScheduler(
+                beta_start=0.00085,
+                beta_end=0.012,
+                beta_schedule="scaled_linear",
+                tensor_format="np"
+            )
+     else:
+        log.info('PNDMScheduler...')
+        scheduler = PNDMScheduler(
 
-     scheduler = LMSDiscreteScheduler(
             beta_start=0.00085,
             beta_end=0.012,
             beta_schedule="scaled_linear",
+            skip_prk_steps = True,
             tensor_format="np"
-        )
+        ) 
+
+
      print("weight_path in run ",model_path)
      log.info('Device: %s',device)
      engine = StableDiffusionEngine(
@@ -62,15 +78,21 @@ def run(device,prompt,model_path):
         device = device
     )
      log.info('Starting inference...')
+     log.info('Prompt: %s',prompt)
+     log.info('num_inference_steps: %s',num_infer_steps)
+     log.info('guidance_scale: %s',guidance_scale)
+     log.info('strength: %s',strength)
 
      image = engine(
         prompt = prompt,
-        init_image = None,
+        init_image = None if init_image is None else cv2.imread(init_image),
         mask = None, 
-        strength = 0.5,
-        num_inference_steps = 16,
-        guidance_scale = 7.5,
-        eta = 0.0
+        strength = strength,
+        num_inference_steps = num_infer_steps,
+        guidance_scale = guidance_scale,
+        eta = 0.0,
+        create_gif = bool(create_gif),
+        model = model_path
     )  
 
 

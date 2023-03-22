@@ -68,7 +68,7 @@ device_name_enum = StringEnum(
 
 
 
-def stablediffusion(procedure, image, drawable, device_name, prompt, progress_bar, config_path_output):
+def stablediffusion(procedure, image, drawable, device_name, prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
@@ -79,7 +79,7 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, progress_ba
 
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
-        json.dump({"device_name": device_name,"prompt": prompt, "inference_status": "started"}, file)
+        json.dump({"device_name": device_name,"prompt": prompt, "num_infer_steps": num_infer_steps,"guidance_scale": guidance_scale,"initial_image": initial_image, "strength": strength, "seed": seed, "create_gif": create_gif, "inference_status": "started"}, file)
 
     # Run inference and load as layer
     subprocess.call([python_path, plugin_path])
@@ -131,6 +131,12 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, progress_ba
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
     device_name = args.index(0)
     prompt = args.index(1)
+    num_infer_steps = args.index(2)
+    guidance_scale = args.index(3)
+    seed = args.index(4)
+    create_gif = args.index(5)
+    initial_image = args.index(6)
+    strength = args.index(7)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -183,7 +189,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         #Prompt text
         prompt_text = Gtk.Entry.new()
         grid.attach(prompt_text, 1, 1, 1, 1)
-        prompt_text.set_width_chars(40)
+        prompt_text.set_width_chars(60)
       
         prompt_text.show()
 
@@ -192,6 +198,94 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(prompt_label, 0, 1, 1, 1)
         vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
+
+       # num_infer_steps parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
+        grid.attach(label, 0, 2, 1, 1)
+        label.show()
+        spin = GimpUi.prop_spin_button_new(
+            config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
+        )
+        grid.attach(spin, 1, 2, 1, 1)
+        spin.show()
+
+        # guidance_scale parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
+        grid.attach(label, 0, 3, 1, 1)
+        label.show()
+        spin = GimpUi.prop_spin_button_new(
+            config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
+        )
+        grid.attach(spin, 1, 3, 1, 1)
+        spin.show()
+
+        # seed
+        seed = Gtk.Entry.new()
+        grid.attach(seed, 1, 4, 1, 1)
+        seed.set_width_chars(40)
+        seed.set_placeholder_text(_("If left blank, random seed will be set.."))
+        #seed.set_text("Person|Cars")
+        seed.show()
+
+        seed_text = _("Seed")
+        seed_label = Gtk.Label(label=seed_text)
+        grid.attach(seed_label, 0, 4, 1, 1)
+        vbox.pack_start(seed_label, False, False, 1)
+        seed_label.show()
+
+        # Create GIF Parameter
+        #config.set_property("create_gif", create_gif)
+        spin = GimpUi.prop_check_button_new(config, "create_gif", _("_Create GIF from the latent frames generated at each inference step"))
+        spin.set_tooltip_text(
+            _(
+                "If checked, a GIF of all the latent frames will be created. "
+                "Please note that currently this process is extremely slow."
+             
+            )
+        )
+        grid.attach(spin, 1, 5, 1, 1)
+        spin.show()
+        
+        #UI to browse Initial Image 
+        def choose_file(widget):
+            if file_chooser_dialog.run() == Gtk.ResponseType.OK:
+                if file_chooser_dialog.get_file() is not None:
+                    #config.set_property("file", file_chooser_dialog.get_file())
+                    file_entry.set_text(file_chooser_dialog.get_file().get_path())
+                
+            file_chooser_dialog.hide()
+
+        file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image (Optional)..."))
+        grid.attach(file_chooser_button, 0, 6, 1, 1)
+        file_chooser_button.show()
+        file_chooser_button.connect("clicked", choose_file)
+
+        file_entry = Gtk.Entry.new()
+        grid.attach(file_entry, 1, 6, 1, 1)
+        file_entry.set_width_chars(40)
+        file_entry.set_placeholder_text(_("Choose path..."))
+        if initial_image is not None:
+            #print("initial_image",initial_image)
+            file_entry.set_text(initial_image.get_path())
+        file_entry.show()
+
+        file_chooser_dialog = Gtk.FileChooserDialog(
+            use_header_bar=use_header_bar,
+            title=_("Initial Image path..."),
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        file_chooser_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+        file_chooser_dialog.add_button("_OK", Gtk.ResponseType.OK)
+
+        # Initial_image strength parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
+        grid.attach(label, 0, 7, 1, 1)
+        label.show()
+        spin = GimpUi.prop_spin_button_new(
+            config, "strength", step_increment=0.1, page_increment=0.1, digits=1
+        )
+        grid.attach(spin, 1, 7, 1, 1)
+        spin.show()
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
@@ -217,11 +311,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if response == Gtk.ResponseType.OK:
                 device_name = config.get_property("device_name")
                 prompt = prompt_text.get_text()
+                num_infer_steps = config.get_property("num_infer_steps")
+                guidance_scale = config.get_property("guidance_scale")
+                strength = config.get_property("strength")
 
 
+                if len(file_entry.get_text()) != 0:
+                    initial_image = file_entry.get_text()
+                else:
+                    initial_image = None
+                if len(seed.get_text()) != 0:
+                    seed = seed.get_text()
+                else:
+                    seed = None
+                create_gif = config.get_property("create_gif")
+                
                 result = stablediffusion(
-                    procedure, image, layer, device_name, prompt, progress_bar, config_path_output
+                    procedure, image, layer, device_name, prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif, progress_bar, config_path_output
                 )
+                
                 # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
                 if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
@@ -241,6 +349,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 class StableDiffusion(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
+        "num_infer_steps": (int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32, GObject.ParamFlags.READWRITE,),
+        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "_Guidance Scale (Default:7.5)", 1.0, 20.0, 7.5, GObject.ParamFlags.READWRITE,),
+        "strength": (float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8, GObject.ParamFlags.READWRITE,),         
+        "create_gif": (
+            bool, 
+            _("_Create GIF from the latent frames generated at each inference step"), 
+            "Create GIF", 
+            False, 
+            GObject.ParamFlags.READWRITE,
+            ),
         "device_name": (
             str,
             _("Device Name"),
@@ -248,6 +366,8 @@ class StableDiffusion(Gimp.PlugIn):
             "CPU",
             GObject.ParamFlags.READWRITE,
         ),
+       # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
+
     }
 
     ## GimpPlugIn virtual methods ##
@@ -272,9 +392,14 @@ class StableDiffusion(Gimp.PlugIn):
                 name,
             )
             procedure.set_menu_label(N_("Stable diffusion..."))
-            procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
+            procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2023")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
             procedure.add_argument_from_property(self, "device_name")
+            #procedure.add_argument_from_property(self, "initial_image")
+            procedure.add_argument_from_property(self, "num_infer_steps")
+            procedure.add_argument_from_property(self, "guidance_scale")
+            procedure.add_argument_from_property(self, "strength")
+            procedure.add_argument_from_property(self, "create_gif")
             
         return procedure
 
