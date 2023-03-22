@@ -15,12 +15,12 @@ from gimpopenvino.tools.tools_utils import get_weight_path
 import traceback
 import numpy as np
 
-def get_sb(device="CPU", prompt="northern lights", weight_path=None):
+def get_sb(device="CPU", prompt="northern lights", num_infer_steps=32, guidance_scale=7.5, init_image=None, strength=0.8, seed=None, create_gif=False, weight_path=None):
     if weight_path is None:
         weight_path = get_weight_path()
     model_path = os.path.join(weight_path, "stable-diffusion-ov")
  
-    out = run(device, prompt, model_path)
+    out = run(device, prompt, num_infer_steps,guidance_scale, init_image, strength, seed, create_gif, model_path)
     return out
 
 
@@ -30,14 +30,19 @@ if __name__ == "__main__":
         data_output = json.load(file)
     device = data_output["device_name"] 
     prompt = data_output["prompt"]
+    init_image = data_output["initial_image"]
+    num_infer_steps = data_output["num_infer_steps"]
+    guidance_scale = data_output["guidance_scale"]
+    strength = data_output["strength"]
+    seed = data_output["seed"]
+    create_gif = data_output["create_gif"]
 
 
     #prompt = data_output["model_name"]
     #image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
-        output = get_sb(device=device, prompt=prompt, weight_path=weight_path)
-        #cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
-        cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output)
+        output = get_sb(device=device, prompt=prompt, num_infer_steps=num_infer_steps, guidance_scale=guidance_scale, init_image=init_image, strength=strength, seed=seed, create_gif=create_gif, weight_path=weight_path)
+        cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
         data_output["inference_status"] = "success"
         with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
             json.dump(data_output, file)

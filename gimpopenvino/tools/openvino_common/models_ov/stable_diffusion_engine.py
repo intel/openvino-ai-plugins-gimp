@@ -24,6 +24,14 @@ import cv2
 import os
 import sys
 
+import transformers
+
+#For GIF
+from PIL import Image
+import glob
+import json
+
+
 
 def result(var):
     return next(iter(var.values()))
@@ -37,7 +45,8 @@ class StableDiffusionEngine:
             tokenizer="openai/clip-vit-large-patch14",
             device="CPU"
             ):
-        self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+        #self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+        self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
         self.scheduler = scheduler
         # models
         #print("weight_path in engine ", model)
@@ -115,7 +124,9 @@ class StableDiffusionEngine:
             strength = 0.5,
             num_inference_steps = 32,
             guidance_scale = 7.5,
-            eta = 0.0
+            eta = 0.0,
+            create_gif = False,
+            model = None
     ):
         # extract condition
         tokens = self.tokenizer(
@@ -182,6 +193,10 @@ class StableDiffusionEngine:
             extra_step_kwargs["eta"] = eta
 
         t_start = max(num_inference_steps - init_timestep + offset, 0)
+        
+        if create_gif:
+            frames = []
+        
         for i, t in tqdm(enumerate(self.scheduler.timesteps[t_start:])):
             # expand the latents if we are doing classifier free guidance
             latent_model_input = np.stack([latents, latents], 0) if guidance_scale > 1.0 else latents[None]
@@ -192,7 +207,7 @@ class StableDiffusionEngine:
             # predict the noise residual
             noise_pred = result(self.unet.infer_new_request({
                 "latent_model_input": latent_model_input,
-                "t": t,
+                "t": float(t),
                 "encoder_hidden_states": text_embeddings
             }))
 
@@ -210,6 +225,8 @@ class StableDiffusionEngine:
             if mask is not None:
                 init_latents_proper = self.scheduler.add_noise(init_latents, noise, t)
                 latents = ((init_latents_proper * mask) + (latents * (1 - mask)))[0]
+            if create_gif:
+                frames.append(latents)            
 
         image = result(self.vae_decoder.infer_new_request({
             "latents": np.expand_dims(latents, 0)
@@ -218,4 +235,22 @@ class StableDiffusionEngine:
         # convert tensor to opencv's image format
         image = (image / 2 + 0.5).clip(0, 1)
         image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)
+        if create_gif:
+            gif_folder=os.path.join(model,"../../gif")
+            if not os.path.exists(gif_folder):
+                os.makedirs(gif_folder)
+            for i in range(0,len(frames)):
+                image = result(self.vae_decoder.infer_new_request({
+                "latents": np.expand_dims(frames[i], 0)}))
+                image = (image / 2 + 0.5).clip(0, 1)
+                image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)
+                output = gif_folder + "/" + str(i).zfill(3) +".png"
+                cv2.imwrite(output, image)
+            with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
+                json.dump({"prompt": prompt}, file)
+            frames_image =  [Image.open(image) for image in glob.glob(f"{gif_folder}/*.png")]  
+            frame_one = frames_image[0]
+            gif_file=os.path.join(gif_folder,"stable_diffusion.gif")
+            frame_one.save(gif_file, format="GIF", append_images=frames_image, save_all=True, duration=100, loop=0)
+
         return image
