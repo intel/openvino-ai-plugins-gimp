@@ -36,7 +36,8 @@ if __name__ == "__main__":
     #image = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
     try:
         output = get_sb(device=device, prompt=prompt, weight_path=weight_path)
-        cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
+        #cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output[:, :, ::-1])
+        cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output)
         data_output["inference_status"] = "success"
         with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
             json.dump(data_output, file)
