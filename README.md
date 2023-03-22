@@ -67,7 +67,8 @@ Please raise a PR for any new features, modifactions or bug fixes.
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Enter a prompt, other parameters and select the device - CPU or GPU <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
-5. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
+5. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
+```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
 ![](gifs/stable-diffusion.webp)
 
