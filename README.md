@@ -1,6 +1,6 @@
 
 
-# OpenVINOô AI Plugins for GIMP
+# OpenVINO‚Ñ¢ AI Plugins for GIMP
 
 This branch is under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
 
@@ -30,9 +30,9 @@ Please raise a PR for any new features, modifactions or bug fixes.
 4. windows install: <br>
 ```openvino-ai-plugins-gimp\install.bat```<br>
 5. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
-6 Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
-7 Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
-8 Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/openai/clip-vit-large-patch14/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov```
+6. Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
+7. Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov``` <br>
+8. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/openai/clip-vit-large-patch14/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov``` <br>
 
 ## Running GIMP
 1. In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
@@ -42,32 +42,33 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ```gimp-2.99.exe``` <br>
 4. GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
 
-### OpenVINOô Semantic Segmentation Plugin
+### OpenVINO‚Ñ¢ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
 
-### OpenVINOô Super Resolution Plugin 
+### OpenVINO‚Ñ¢ Super Resolution Plugin 
 ![](gifs/super-res.webp)
 
-### OpenVINOô Style Transfer Plugin
+### OpenVINO‚Ñ¢ Style Transfer Plugin
 ![](gifs/style-transfer.webp)
 
-### OpenVINOô Inpainting Plugin 
+### OpenVINO‚Ñ¢ Inpainting Plugin 
 1. Open an image in GIMP. <br>
-2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting ìAdd alpha channelî <br>
+2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting ‚ÄúAdd alpha channel‚Äù <br>
 3. Add a new transparent layer of the same size as original image. <br>
 4. Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
 5. Now paint the object that you want to remove from the image. <br>
-6. Select the new layer and image at the same. You should see ìtwo items selected in layer sectionî <br>
+6. Select the new layer and image at the same. You should see ‚Äútwo items selected in layer section‚Äù <br>
 
 
 ![](gifs/inpainting.webp)
 
-### OpenVINOô Image Generator Plugin with Stable Diffusion
+### OpenVINO‚Ñ¢ Image Generator Plugin with Stable Diffusion
 1. Create a new layer of size 512x512 <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Enter a prompt, other parameters and select the device - CPU or GPU <br>
-4. Click on ìRun Inferenceî. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
-5. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif```
+4. Click on ‚ÄúRun Inference‚Äù. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
+5. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
+```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
 ![](gifs/stable-diffusion.webp)
 
@@ -84,6 +85,6 @@ Apache 2.0
 
 
 # Disclaimer
-Stable Diffusionís data model is governed by the Creative ML Open Rail M license, which is not an open source license.
+Stable Diffusion‚Äôs data model is governed by the Creative ML Open Rail M license, which is not an open source license.
 https://github.com/CompVis/stable-diffusion. Users are responsible for their own assessment whether their proposed use of the project code and model would be governed by and permissible under this license.
 
