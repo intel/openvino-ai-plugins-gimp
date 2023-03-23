@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 
 here = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(here, "README.md"), "r") as fh:
+with open(os.path.join(here, "README.md"), "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 setup(
