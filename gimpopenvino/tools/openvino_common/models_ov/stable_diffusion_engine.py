@@ -52,7 +52,7 @@ class StableDiffusionEngine:
         #print("weight_path in engine ", model)
         #print("Final path:", os.path.join(model, "text_encoder.xml"))
         self.core = Core()
-		self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
+        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
         # text features
         self._text_encoder = self.core.read_model(os.path.join(model, "text_encoder.xml"), os.path.join(model, "text_encoder.bin"))
          
