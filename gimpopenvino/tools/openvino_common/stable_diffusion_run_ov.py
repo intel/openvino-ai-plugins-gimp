@@ -43,12 +43,14 @@ logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG,
 log = logging.getLogger()
 
 
-def run(device,prompt,num_infer_steps,guidance_scale,init_image,strength,seed,create_gif,model_path):
+def run(device,prompt,negative_prompt,num_infer_steps,guidance_scale,init_image,strength,seed,create_gif,model_path):
  
      log.info('Initializing Inference Engine...')
      if seed is not None:   
         np.random.seed(int(seed))
         log.info('Seed: %s',seed)
+        
+        
   
      if init_image is None:
          log.info('LMSDiscreteScheduler...')
@@ -79,12 +81,14 @@ def run(device,prompt,num_infer_steps,guidance_scale,init_image,strength,seed,cr
     )
      log.info('Starting inference...')
      log.info('Prompt: %s',prompt)
+     log.info('negative_prompt: %s',negative_prompt)
      log.info('num_inference_steps: %s',num_infer_steps)
      log.info('guidance_scale: %s',guidance_scale)
      log.info('strength: %s',strength)
 
      image = engine(
         prompt = prompt,
+        negative_prompt = negative_prompt,
         init_image = None if init_image is None else cv2.imread(init_image),
         mask = None, 
         strength = strength,
