@@ -12,6 +12,7 @@ import csv
 import hashlib
 import gdown
 import gimpopenvino
+from openvino.runtime import Core
 
 
 def setup_python_weights(install_location=None):
@@ -77,9 +78,12 @@ def setup_python_weights(install_location=None):
                             print("Failed to download !")
 
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
+    ie = Core()
+    supported_devices = ie.available_devices
     py_dict = {
         "python_path" : python_path,
-        "weight_path" : weight_path
+        "weight_path" : weight_path,
+        "supported_devices": supported_devices
         }
     with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.json"), "w") as file:
         json.dump(py_dict,file)

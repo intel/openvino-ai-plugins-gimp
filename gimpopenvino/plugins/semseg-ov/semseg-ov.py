@@ -56,6 +56,24 @@ class StringEnum:
         return tree_model
 
 
+class DeviceEnum:
+
+
+    def __init__(self, supported_devices):
+        self.keys = []
+        self.values = [] 
+        for i in supported_devices:
+            
+            self.keys.append(i)
+            self.values.append(i)
+
+    def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
+        tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+        for i in range(len(self.keys)):
+            tree_model.append([self.keys[i], self.values[i]])
+        return tree_model
+
 model_name_enum = StringEnum(
     "deeplabv3",
     _("deeplabv3"),
@@ -63,12 +81,7 @@ model_name_enum = StringEnum(
     _("sseg-adas-0001"),
 )
 
-device_name_enum = StringEnum(
-    "CPU",
-    _("CPU"),
-    "GPU",
-    _("GPU"),
-)
+
 
 
 def semseg(procedure, image, drawable, device_name, model_name, progress_bar, config_path_output):
@@ -141,6 +154,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 #config_path_output[line.split("=")[0]] = line.split("=")[1].replace("\n", "")
         python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
+        
+        device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)

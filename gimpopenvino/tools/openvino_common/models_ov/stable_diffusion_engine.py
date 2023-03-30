@@ -49,29 +49,23 @@ class StableDiffusionEngine:
         self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
         self.scheduler = scheduler
         # models
-        #print("weight_path in engine ", model)
-        #print("Final path:", os.path.join(model, "text_encoder.xml"))
+     
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
         # text features
-        self._text_encoder = self.core.read_model(os.path.join(model, "text_encoder.xml"), os.path.join(model, "text_encoder.bin"))
-         
-        self.text_encoder = self.core.compile_model(self._text_encoder, device)
-        # diffusion
-        self._unet = self.core.read_model(os.path.join(model, "unet.xml"),os.path.join(model, "unet.bin"))
-  
-   
-        self.unet = self.core.compile_model(self._unet, device)
-        self.latent_shape = tuple(self._unet.inputs[0].shape)[1:]
-        # decoder
-        self._vae_decoder = self.core.read_model(os.path.join(model, "vae_decoder.xml"), os.path.join(model, "vae_decoder.bin"))
-       
-        self.vae_decoder = self.core.compile_model(self._vae_decoder, device)
-        # encoder
-        self._vae_encoder = self.core.read_model(os.path.join(model, "vae_encoder.xml"), os.path.join(model, "vae_encoder.bin")) 
 
-        self.vae_encoder = self.core.compile_model(self._vae_encoder, device)
-        self.init_image_shape = tuple(self._vae_encoder.inputs[0].shape)[2:]
+        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device)
+       
+        # diffusion
+     
+        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device)
+        self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
+        # decoder
+        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device)
+          
+        # encoder
+        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device) 
+        self.init_image_shape = tuple(self.vae_encoder.inputs[0].shape)[2:]
 
     def _preprocess_mask(self, mask):
         h, w = mask.shape
@@ -121,6 +115,7 @@ class StableDiffusionEngine:
             self,
             prompt,
             init_image = None,
+            negative_prompt=None,
             mask = None,
             strength = 0.5,
             num_inference_steps = 32,
@@ -142,8 +137,14 @@ class StableDiffusionEngine:
 
         # do classifier free guidance
         if guidance_scale > 1.0:
+        
+            if negative_prompt is None:
+                uncond_tokens = ""
+            else:       
+                uncond_tokens = negative_prompt
+                
             tokens_uncond = self.tokenizer(
-                "",
+                uncond_tokens,
                 padding="max_length",
                 max_length=self.tokenizer.model_max_length,
                 truncation=True
@@ -171,7 +172,7 @@ class StableDiffusionEngine:
             init_latents = self._encode_image(init_image)
             init_timestep = int(num_inference_steps * strength) + offset
             init_timestep = min(init_timestep, num_inference_steps)
-            timesteps = np.array([[self.scheduler.timesteps[-init_timestep]]]).astype(np.long)
+            timesteps = np.array([[self.scheduler.timesteps[-init_timestep]]]).astype(np.compat.long)
             noise = np.random.randn(*self.latent_shape)
             latents = self.scheduler.add_noise(init_latents, noise, timesteps)[0]
 
