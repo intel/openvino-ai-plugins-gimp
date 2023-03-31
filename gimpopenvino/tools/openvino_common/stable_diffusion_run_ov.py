@@ -21,6 +21,7 @@ from pathlib import Path
 from time import perf_counter
 
 import os
+import random
 
 
 # scheduler
@@ -49,6 +50,12 @@ def run(device,prompt,negative_prompt,num_infer_steps,guidance_scale,init_image,
      if seed is not None:   
         np.random.seed(int(seed))
         log.info('Seed: %s',seed)
+     else:
+        ran_seed = random.randrange(9999999999) #4294967294 
+        np.random.seed(int(ran_seed))
+        log.info('Random Seed: %s',ran_seed)
+        
+        
         
         
   
