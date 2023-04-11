@@ -70,7 +70,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ![](gifs/inpainting.webp)
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion
-1. Create a new layer of size 512x512 <br>
+1. Create or choose a layer  <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Enter a prompt, other parameters and select the device - CPU or GPU <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
