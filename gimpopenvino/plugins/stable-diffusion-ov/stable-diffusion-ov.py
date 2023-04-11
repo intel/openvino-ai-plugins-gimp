@@ -18,6 +18,7 @@ import json
 import os
 import sys
 
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
 from plugin_utils import *
 
@@ -76,21 +77,36 @@ class DeviceEnum:
             tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
-    
+model_name_enum = StringEnum(
+    "SD_1.4",
+    _("SD_1.4"),
+    "SD_1.5",
+    _("SD_1.5"),
+)  
+
+scheduler_name_enum = StringEnum(
+    "LMSDiscreteScheduler",
+    _("LMSDiscreteScheduler"),
+    "PNDMScheduler",
+    _("PNDMScheduler"),
+    "EulerDiscreteScheduler",
+    _("EulerDiscreteScheduler"),
+)   
     
 
-def stablediffusion(procedure, image, drawable, device_name, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif, progress_bar, config_path_output):
+def stablediffusion(procedure, image, drawable, device_name, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif,scheduler,model_name, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
     plugin_path = config_path_output["plugin_path"]
 
     Gimp.context_push()
-    image.undo_group_start()
-
-    save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+    #image.undo_group_start()
+    print("FIRST IMAGE WHAT IS IT:",type(image))
+    print("FIRST drawable WHAT IS IT:",type(drawable))
+    #save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
-        json.dump({"device_name": device_name,"prompt": prompt, "negative_prompt": negative_prompt, "num_infer_steps": num_infer_steps,"guidance_scale": guidance_scale,"initial_image": initial_image, "strength": strength, "seed": seed, "create_gif": create_gif, "inference_status": "started"}, file)
+        json.dump({"device_name": device_name,"prompt": prompt, "negative_prompt": negative_prompt, "num_infer_steps": num_infer_steps,"guidance_scale": guidance_scale,"initial_image": initial_image, "strength": strength, "seed": seed, "create_gif": create_gif, "scheduler": scheduler, "model_name": model_name, "inference_status": "started"}, file)
 
 
     # Run inference and load as layer
@@ -98,19 +114,31 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
 
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
         data_output = json.load(file)
-    image.undo_group_end()
+    #image.undo_group_end()
     Gimp.context_pop()
     #scale = 3
     if data_output["inference_status"] == "success":
+        #if initial_image == None:
+        #    image_new = Gimp.Image.new(
+        #            drawable[0].get_width(), drawable[0].get_height() , 0
+        #        )  
+        #else:
         image_new = Gimp.Image.new(
-                drawable[0].get_width(), drawable[0].get_height() , 0
-            )  
+                    data_output["src_width"], data_output["src_height"] , 0
+                )
+
         display = Gimp.Display.new(image_new)        
         result = Gimp.file_load(
             Gimp.RunMode.NONINTERACTIVE,
             Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
         )
-        result_layer = result.get_active_layer()
+        try:
+            # 2.99.10
+            result_layer = result.get_active_layer()
+        except:
+            # > 2.99.10
+            result_layers = result.list_layers()
+            result_layer = result_layers[0]
         #copy = Gimp.Layer.new_from_drawable(result_layer, image)
         copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
         copy.set_name("Stable Diffusion")
@@ -118,15 +146,15 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
         image_new.insert_layer(copy, None, -1)
 
         Gimp.displays_flush()
-        image.undo_group_end()
+        #image.undo_group_end()
         Gimp.context_pop()
 
 
         # Remove temporary layers that were saved
         my_dir = os.path.join(weight_path, "..")
-        for f_name in os.listdir(my_dir):
-            if f_name.startswith("cache"):
-                os.remove(os.path.join(my_dir, f_name))
+        #for f_name in os.listdir(my_dir):
+        #    if f_name.startswith("cache"):
+        #        os.remove(os.path.join(my_dir, f_name))
 
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
@@ -141,15 +169,17 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
 
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data ):
-    device_name = args.index(0)
-    prompt = args.index(1)
-    negative_prompt = args.index(2)
-    num_infer_steps = args.index(3)
-    guidance_scale = args.index(4)
-    seed = args.index(5)
-    create_gif = args.index(6)
-    initial_image = args.index(7)
-    strength = args.index(8)
+    model_name = args.index(0)
+    device_name = args.index(1)
+    prompt = args.index(2)
+    scheduler = args.index(3)
+    negative_prompt = args.index(4)
+    num_infer_steps = args.index(5)
+    guidance_scale = args.index(6)
+    seed = args.index(7)
+    create_gif = args.index(8)
+    initial_image = args.index(9)
+    strength = args.index(10)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -167,6 +197,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
+        
 
         GimpUi.init("stable-diffusion-ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property(
@@ -192,15 +223,24 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
         vbox.add(grid)
         grid.show()
 
+        # Model Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
+        grid.attach(label, 0, 0, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "model_name", model_name_enum.get_tree_model(), 0, 1
+        )
+        grid.attach(combo, 1, 0, 1, 1)
+        combo.show()
 
         # Device Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
-        grid.attach(label, 0, 0, 1, 1)
+        grid.attach(label, 2, 0, 1, 1)
         label.show()
         combo = GimpUi.prop_string_combo_box_new(
             config, "device_name", device_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(combo, 1, 0, 1, 1)
+        grid.attach(combo, 3, 0, 1, 1)
         combo.show()
 
         #Prompt text
@@ -215,6 +255,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
         grid.attach(prompt_label, 0, 1, 1, 1)
         vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
+
+        # Scheduler Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
+        grid.attach(label, 2, 1, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
+        )
+        grid.attach(combo, 3, 1, 1, 1)
+        combo.show()   
         
         #Negative Prompt text
         negative_prompt_text = Gtk.Entry.new()
@@ -248,6 +298,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
         )
         grid.attach(spin, 1, 4, 1, 1)
         spin.show()
+
+     
 
         # seed
         seed = Gtk.Entry.new()
@@ -345,6 +397,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
                 num_infer_steps = config.get_property("num_infer_steps")
                 guidance_scale = config.get_property("guidance_scale")
                 strength = config.get_property("strength")
+                model_name = config.get_property("model_name")
+                scheduler = config.get_property("scheduler")
 
 
                 if len(file_entry.get_text()) != 0:
@@ -358,13 +412,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data ):
                 create_gif = config.get_property("create_gif")
                 
                 result = stablediffusion(
-                    procedure, image, layer, device_name, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif, progress_bar, config_path_output
+                    procedure, image, layer, device_name, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image, strength, seed, create_gif,scheduler,model_name, progress_bar, config_path_output
                 )
                 
                 # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                    config.end_run(Gimp.PDBStatusType.SUCCESS)
+                #if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
+                #    config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
@@ -397,16 +451,37 @@ class StableDiffusion(Gimp.PlugIn):
             "CPU",
             GObject.ParamFlags.READWRITE,
         ),
+        "model_name": (
+            str,
+            _("Model Name"),
+            "Model Name: 'SD_1.4', 'SD_1.5'",
+            "SD_1.4",
+            GObject.ParamFlags.READWRITE,
+        ),    
+        "scheduler": (
+            str,
+            _("Scheduler"),
+            "Scheduler Name: 'LMSDiscreteScheduler', 'PNDMScheduler','EulerDiscreteScheduler'",
+            "LMSDiscreteScheduler",
+            GObject.ParamFlags.READWRITE,
+        ),              
        # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
 
     }
 
     ## GimpPlugIn virtual methods ##
     def do_query_procedures(self):
-        self.set_translation_domain(
-            "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-        )
+        try:
+            self.set_translation_domain(
+                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
+            )
+        except:
+            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
+
         return ["stable-diffusion-ov"]
+
+    def do_set_i18n(self, procname):
+        return True, 'gimp30-python', None
 
     def do_create_procedure(self, name):
         procedure = None
@@ -431,6 +506,8 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
             procedure.add_argument_from_property(self, "create_gif")
+            procedure.add_argument_from_property(self, "model_name")
+            procedure.add_argument_from_property(self, "scheduler")
             
         return procedure
 

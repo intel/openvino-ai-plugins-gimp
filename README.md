@@ -24,15 +24,22 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-1. Install [GIMP](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) 2.99.10 (revision 2)  (Only windows and linux) <br>
-2. Install OpenVino Runtime 2022.3 https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html . <br>
-3. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
-4. windows install: <br>
+1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) (Only windows) <br>
+2. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
+3. windows install: <br>
 ```openvino-ai-plugins-gimp\install.bat```<br>
-5. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
-6. Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
-7. Download Stable-Diffusion models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov``` <br>
-8. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/openai/clip-vit-large-patch14/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov``` <br>
+4. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
+5. Copy the weights folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
+6. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
+7. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/openai/clip-vit-large-patch14/tree/main and place it in ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
+
+### Generate Stable-Diffusion-1.5 openvino model 
+1. Setup openvino-notebooks for windows - https://github.com/openvinotoolkit/openvino_notebooks/ <br>
+2. In the notebook - https://github.com/openvinotoolkit/openvino_notebooks/blob/main/notebooks/225-stable-diffusion-text-to-image/225-stable-diffusion-text-to-image.ipynb make the following change: <br>
+   Replace this line ```pipe = StableDiffusionPipeline.from_pretrained("prompthero/openjourney").to("cpu")``` with ```StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to("cpu")``` <br>
+3. Run the cells -Create Pytorch Models pipeline, Text Encoder, U-net, VAE to generate the opevino models. <br>
+4. Copy the generated models( all the .xmls & .bins file ) from 225-stable-diffusion-text-to-image folder to ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
+5. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/runwayml/stable-diffusion-v1-5/tree/main/tokenizer and place it in  ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
 
 ## Running GIMP
 1. In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
