@@ -93,9 +93,13 @@ class StableDiffusionEngine(DiffusionPipeline):
             tokenizer="openai/clip-vit-large-patch14",
             device="CPU"
             ):
-        #self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
-        self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
+        try: 
+            self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
+        except:
+            self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+            self.tokenizer.save_pretrained(model)
         self.scheduler = scheduler
+        
         # models
      
         self.core = Core()

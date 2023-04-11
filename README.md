@@ -33,8 +33,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
 6. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in <br> 
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
-7. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/openai/clip-vit-large-patch14/tree/main and place it in <br> 
-```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
+
 
 ### Generate Stable-Diffusion-1.5 openvino model 
 1. Setup openvino-notebooks for windows - https://github.com/openvinotoolkit/openvino_notebooks/ <br>
@@ -45,8 +44,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 3. Run the cells -Create Pytorch Models pipeline, Text Encoder, U-net, VAE to generate the opevino models. <br>
 4. Copy the generated models( all the .xmls & .bins file ) from 225-stable-diffusion-text-to-image folder to <br> 
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
-5. Download the clip-vit-large-patch14 tokenizer files - merges.txt, special_tokens_map.json, tokenizer_config.json, vocab.json  from https://huggingface.co/runwayml/stable-diffusion-v1-5/tree/main/tokenizer and place it in  <br> 
-```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
+
 
 ## Running GIMP
 1. In a new command window run setupvars.bat from OpenVino toolkit folder. <br>

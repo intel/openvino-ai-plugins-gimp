@@ -101,10 +101,9 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
     plugin_path = config_path_output["plugin_path"]
 
     Gimp.context_push()
-    #image.undo_group_start()
-    print("FIRST IMAGE WHAT IS IT:",type(image))
-    print("FIRST drawable WHAT IS IT:",type(drawable))
-    #save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+    image.undo_group_start()
+
+    save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
         json.dump({"device_name": device_name,"prompt": prompt, "negative_prompt": negative_prompt, "num_infer_steps": num_infer_steps,"guidance_scale": guidance_scale,"initial_image": initial_image, "strength": strength, "seed": seed, "create_gif": create_gif, "scheduler": scheduler, "model_name": model_name, "inference_status": "started"}, file)
 
@@ -114,15 +113,10 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
 
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
         data_output = json.load(file)
-    #image.undo_group_end()
+    image.undo_group_end()
     Gimp.context_pop()
-    #scale = 3
+   
     if data_output["inference_status"] == "success":
-        #if initial_image == None:
-        #    image_new = Gimp.Image.new(
-        #            drawable[0].get_width(), drawable[0].get_height() , 0
-        #        )  
-        #else:
         image_new = Gimp.Image.new(
                     data_output["src_width"], data_output["src_height"] , 0
                 )
@@ -146,15 +140,15 @@ def stablediffusion(procedure, image, drawable, device_name, prompt, negative_pr
         image_new.insert_layer(copy, None, -1)
 
         Gimp.displays_flush()
-        #image.undo_group_end()
+        image.undo_group_end()
         Gimp.context_pop()
 
 
         # Remove temporary layers that were saved
         my_dir = os.path.join(weight_path, "..")
-        #for f_name in os.listdir(my_dir):
-        #    if f_name.startswith("cache"):
-        #        os.remove(os.path.join(my_dir, f_name))
+        for f_name in os.listdir(my_dir):
+            if f_name.startswith("cache"):
+                os.remove(os.path.join(my_dir, f_name))
 
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
