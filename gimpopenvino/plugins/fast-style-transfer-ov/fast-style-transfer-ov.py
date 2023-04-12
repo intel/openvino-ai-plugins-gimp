@@ -118,7 +118,13 @@ def styletransfer(procedure, image, drawable, device_name, model_name, progress_
             Gimp.RunMode.NONINTERACTIVE,
             Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
         )
-        result_layer = result.get_active_layer()
+        try:
+            # 2.99.10
+            result_layer = result.get_active_layer()
+        except:
+            # > 2.99.10
+            result_layers = result.list_layers()
+            result_layer = result_layers[0]
         copy = Gimp.Layer.new_from_drawable(result_layer, image)
         copy.set_name("StyleTransfer")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
@@ -277,10 +283,17 @@ class Styletransfer(Gimp.PlugIn):
  
     ## GimpPlugIn virtual methods ##
     def do_query_procedures(self):
-        self.set_translation_domain(
-            "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-        )
+        try:
+            self.set_translation_domain(
+                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
+            )
+        except:
+            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
+
         return ["fast-style-transfer-ov"]
+
+    def do_set_i18n(self, procname):
+        return True, 'gimp30-python', None
 
     def do_create_procedure(self, name):
         procedure = None
