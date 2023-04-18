@@ -24,35 +24,53 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) (Only windows) <br>
-2. Clone this repository: git clone https://github.com/intel/openvino-ai-plugins-gimp.git <br>
-3. windows install: <br>
-```openvino-ai-plugins-gimp\install.bat```<br>
-4. Follow steps that are printed in terminal or cmd to add the gimpenv3 path to the GIMP GUI [Edit-> Preferences-> Folders-> Plugins]. <br>
-5. Copy the weights folder to <br> 
-```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights``` <br>
-6. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in <br> 
-```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
 
+### Windows
+1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
+2. Clone, run install script, copy weights:
+   ```
+   :: clone this repo:
+   git clone https://github.com/intel/openvino-ai-plugins-gimp.git
+   
+   :: run install script
+   openvino-ai-plugins-gimp\install.bat
+   
+   :: Copy the openvino models to user weights folder
+   Xcopy /E /I .\openvino-ai-plugins-gimp\weights %userprofile%\openvino-ai-plugins-gimp\weights\
+   ```
+4. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in <br> 
+```%userprofile%\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
+5. Start the GIMP application, and add the gimpenv3 path that was printed at the end of the install script to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
+6. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+
+### Linux (Tested on Ubuntu 22.04)
+1. Install flatpak distribution of GIMP development package -- instructions here: [GIMP Development Downloads](https://www.gimp.org/downloads/devel/) <br>
+2. Clone, run install script, copy weights:
+   ```
+   # clone this repo:
+   git clone https://github.com/intel/openvino-ai-plugins-gimp.git 
+
+   # run install script
+   openvino-ai-plugins-gimp/install.sh
+
+   # Copy the openvino models to user weights folder
+   cp -R openvino-ai-plugins-gimp/weights/* ~/openvino-ai-plugins-gimp/weights/
+   ```
+4. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in <br> 
+```~/openvino-ai-plugins-gimp/weights/stable-diffusion-ov\stable-diffusion-1.4``` <br>
+5. Start the GIMP application (```flatpak run org.gimp.GIMP```), and add the gimpenv3 path that was printed at the end of the install script to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
+6. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
 ### Generate Stable-Diffusion-1.5 openvino model 
 1. Setup openvino-notebooks for windows - https://github.com/openvinotoolkit/openvino_notebooks/ <br>
-2. In the notebook - https://github.com/openvinotoolkit/openvino_notebooks/blob/main/notebooks/225-stable-diffusion-text-to-image/225-stable-diffusion-text-to-image.ipynb make the following change: <br>
+6. In the notebook - https://github.com/openvinotoolkit/openvino_notebooks/blob/main/notebooks/225-stable-diffusion-text-to-image/225-stable-diffusion-text-to-image.ipynb make the following change: <br>
    Replace this line <br> 
    ```pipe = StableDiffusionPipeline.from_pretrained("prompthero/openjourney").to("cpu")``` with  <br>
    ```pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to("cpu")``` <br>
-3. Run the cells -Create Pytorch Models pipeline, Text Encoder, U-net, VAE to generate the opevino models. <br>
-4. Copy the generated models( all the .xmls & .bins file ) from 225-stable-diffusion-text-to-image folder to <br> 
-```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
-
-
-## Running GIMP
-1. In a new command window run setupvars.bat from OpenVino toolkit folder. <br>
-2. Navigate to the GIMP installation directory: <br>
-```cd C:\Program Files\GIMP 2.99\bin```
-3. Start the GIMP application: <br>
-```gimp-2.99.exe``` <br>
-4. GIMP GUI should start up. Check if the OpenVino Plugins are loaded by going to layers -> OpenVino-AI-Plugins. <br>
+7. Run the cells -Create Pytorch Models pipeline, Text Encoder, U-net, VAE to generate the opevino models. <br>
+8. Copy the generated models( all the .xmls & .bins file ) from 225-stable-diffusion-text-to-image folder to <br> 
+(For Windows) ```C:\Users\<user_name>\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.5``` <br>
+(For Linux) ```~/openvino-ai-plugins-gimp/weights/stable-diffusion-ov/stable-diffusion-1.5``` <br>
 
 ### OpenVINO™ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
@@ -68,8 +86,8 @@ Please raise a PR for any new features, modifactions or bug fixes.
 2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel” <br>
 3. Add a new transparent layer of the same size as original image. <br>
 4. Select paint brush with white foreground color and black background color. Choose the thickness of the brush <br>
-5. Now paint the object that you want to remove from the image. <br>
-6. Select the new layer and image at the same. You should see “two items selected in layer section” <br>
+10. Now paint the object that you want to remove from the image. <br>
+11. Select the new layer and image at the same. You should see “two items selected in layer section” <br>
 
 
 ![](gifs/inpainting.webp)
@@ -79,7 +97,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Enter a prompt, other parameters and select the device - CPU or GPU <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Gimp output window) <br>
-5. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
+6. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
 ![](gifs/stable-diffusion.webp)
