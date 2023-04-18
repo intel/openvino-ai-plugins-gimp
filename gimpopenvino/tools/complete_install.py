@@ -38,7 +38,7 @@ def setup_python_weights(install_location=None):
     step += 1
     print(
         "{}>> Please move the weights folder from the cloned repository: \n"
-        "GIMP-OV".format(
+        "openvino-ai-plugins-gimp".format(
             step
         )
     )
