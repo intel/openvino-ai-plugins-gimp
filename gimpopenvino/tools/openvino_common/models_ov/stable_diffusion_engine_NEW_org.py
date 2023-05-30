@@ -62,14 +62,14 @@ def preprocess(image: PIL.Image.Image):
        image (np.ndarray): preprocessed image tensor
        meta (Dict): dictionary with preprocessing metadata info
     """
-    print("FIRST image size", image.size )
+ 
     src_width, src_height = image.size
     image = image.convert('RGB')
     dst_width, dst_height = scale_fit_to_window(
         512, 512, src_width, src_height)
     image = np.array(image.resize((dst_width, dst_height),
                      resample=PIL.Image.Resampling.LANCZOS))[None, :]
-    print("2nd image size", image.size )
+
     pad_width = 512 - dst_width
     pad_height = 512 - dst_height
     pad = ((0, 0), (0, pad_height), (0, pad_width), (0, 0))
@@ -77,8 +77,9 @@ def preprocess(image: PIL.Image.Image):
     image = image.astype(np.float32) / 255.0
     image = 2.0 * image - 1.0
     image = image.transpose(0, 3, 1, 2)
-    print("4th image size", image.shape )
+  
     return image, {"padding": pad, "src_width": src_width, "src_height": src_height}
+
 
 def result(var):
     return next(iter(var.values()))
@@ -90,42 +91,34 @@ class StableDiffusionEngine(DiffusionPipeline):
             scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU"]
+            device="CPU"
             ):
-        #self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
         try: 
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
         except:
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
-                
         self.scheduler = scheduler
+        
         # models
      
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
         # text features
 
-        print("Text Device:",device[0])
-        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
-        
+        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device)
         self._text_encoder_output = self.text_encoder.output(0)
        
         # diffusion
-        print("unet Device:",device[1])
-        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1]) #"unet_ov22_2.xml"
+     
+        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device)
         self._unet_output = self.unet.output(0)
         self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
         # decoder
-        print("Vae Device:",device[2])
-        
-        
-        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
-            
+        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device)
+          
         # encoder
-            
-        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[2]) 
-    
+        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device) 
         self.init_image_shape = tuple(self.vae_encoder.inputs[0].shape)[2:]
 
         self._vae_d_output = self.vae_decoder.output(0)
@@ -141,6 +134,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             prompt,
             init_image = None,
             negative_prompt=None,
+            mask = None,
             strength = 0.5,
             num_inference_steps = 32,
             guidance_scale = 7.5,
@@ -267,28 +261,24 @@ class StableDiffusionEngine(DiffusionPipeline):
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
         if image is None:
-            print("Image is NONE")
+      
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(self.scheduler, LMSDiscreteScheduler):
-             
+       
                 noise = noise * self.scheduler.sigmas[0].numpy()
                 return noise, {}
             elif isinstance(self.scheduler, EulerDiscreteScheduler):
-              
+   
                 noise = noise * self.scheduler.sigmas.max().numpy()
                 return noise, {}
             else:
                 return noise, {}
         input_image, meta = preprocess(image)
-       
+
         moments = self.vae_encoder(input_image)[self._vae_e_output]
-      
-        mean, logvar = np.split(moments, 2, axis=1)
-  
+        mean, logvar = np.split(moments, 2, axis=1) 
         std = np.exp(logvar * 0.5)
         latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
-       
-         
         latents = self.scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
         return latents, meta
 
@@ -333,10 +323,6 @@ class StableDiffusionEngine(DiffusionPipeline):
             image = cv2.resize(image, (orig_width, orig_height))
                         
         return image
-
-        
-                      #image = (image / 2 + 0.5).clip(0, 1)
-        #image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)   
 
 
     def get_timesteps(self, num_inference_steps:int, strength:float):
