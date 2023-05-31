@@ -52,9 +52,9 @@ Please raise a PR for any new features, modifactions or bug fixes.
 6. python sd_model_conversion.py <br>
 
 ### Running Stable Diffusion model Server -- NEW !! (Still in active development)
-1. Open a new command window & run the SD model server <br>
+1. Open a new command window  <br>
 2. Run Stable Diffusion model Server : This is done to reduce the start-up latency in loading the models onto the devices & importing python packages upfront. <br>
-   ```<path\to>\gimpenv3\Scripts\python.exe <path\to\openvino-ai-plugins-gimp\gimpopenvino\tools\stable-diffusion-ov-server.py``` <br>
+   ```<path\to\your>\gimpenv3\Scripts\python.exe <path\to\your\openvino-ai-plugins-gimp\gimpopenvino\tools\stable-diffusion-ov-server.py``` <br>
    You will see the models being loaded and compiled, once its done "Waiting first" will be printed <br>
    - In order to change the devices or switch between models, please modify L167/L168 in openvino-ai-plugins-gimp\gimpopenvino\tools\stable-diffusion-ov-server.py and restart the server <br>
 
