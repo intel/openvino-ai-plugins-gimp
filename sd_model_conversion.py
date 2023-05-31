@@ -34,7 +34,7 @@ install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gi
 weight_path = os.path.join(install_location, "weights\stable-diffusion-ov\stable-diffusion-1.5")
 
 if not os.path.isdir(weight_path):
-        os.mkdir(weight_path)
+        os.makedirs(weight_path)
 
 print("weight path is :", weight_path)
 
