@@ -42,11 +42,21 @@ log = logging.getLogger()
 
 
 
-def run(model_name,device_name): 
-     
-
+def run(): 
     weight_path = get_weight_path()
     blobs = False
+    #log.info('Loading config file...')
+
+    import json
+
+    # Opening JSON file
+    config_path = os.path.join(weight_path, "stable-diffusion-ov/config.json")
+    f = open(config_path)
+    data = json.load(f)
+   
+   
+    model_name = data["model_version"] # "SD_1.5" #For SD 1.4 version use "SD_1.4"
+    device_name = data["device_list"] # ["CPU","GPU.0","GPU.0"] #To run on iGPU change to "GPU". To run on dGPU change to "GPU.1"
    
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
@@ -61,7 +71,7 @@ def run(model_name,device_name):
 
     log.info('Initializing Inference Engine...')
 
-    log.info('EulerDiscreteScheduler...') #EulerDiscreteScheduler
+    #log.info('EulerDiscreteScheduler...') #EulerDiscreteScheduler
     scheduler = EulerDiscreteScheduler(
     beta_start=0.00085, 
     beta_end=0.012, # 0.012, 
@@ -69,7 +79,7 @@ def run(model_name,device_name):
     )
 
 
-    print("weight_path in run ",model_path)
+    #print("weight_path in run ",model_path)
  
 
     engine = StableDiffusionEngine(
@@ -81,15 +91,15 @@ def run(model_name,device_name):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen()
-        print("Waiting first")
+        print("Ready")
         while True:
             conn, addr = s.accept()
             with conn:
-                print(f"Connected by {addr}")
+                #print(f"Connected by {addr}")
                 while True:
-                    print("Waiting")
+                    #print("Waiting")
                     data = conn.recv(1024)
-                    print("WOKE UP")
+                    print("Waiting")
                     if not data:
                         break
                     try:    
@@ -164,9 +174,6 @@ def run(model_name,device_name):
                 
 
 if __name__ == "__main__":
-   model_name = "SD_1.5" #For SD 1.4 version use "SD_1.4"
-   device_name = ["GPU.1","GPU.1","GPU.1"] #To run on iGPU change to "GPU". To run on dGPU change to "GPU.1"
-   
-   run(model_name,device_name)
+   run()
    print("Exiting Run")
    
