@@ -19,6 +19,11 @@ import json
 # import pickle
 import os
 import sys
+import socket
+
+HOST = "127.0.0.1"  # The server's hostname or IP address
+PORT = 65432  # The port used by the server
+
 
 # from openvino.runtime import Core, Model
 
@@ -97,7 +102,7 @@ scheduler_name_enum = StringEnum(
 )
 
 
-def stablediffusion(procedure, image, drawable, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image,
+def stablediffusion(procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
                     strength, seed, create_gif, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
@@ -110,11 +115,12 @@ def stablediffusion(procedure, image, drawable, prompt, negative_prompt, num_inf
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
     # Option Cache
-    sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run.json")
+    sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
 
     with open(sd_option_cache, "w") as file:
         json.dump({"prompt": prompt,
                    "negative_prompt": negative_prompt,
+                   "scheduler": scheduler,
                    "num_infer_steps": num_infer_steps,
                    "guidance_scale": guidance_scale,
                    "initial_image": initial_image,
@@ -180,18 +186,22 @@ def stablediffusion(procedure, image, drawable, prompt, negative_prompt, num_inf
             "error",
             image_paths
         )
+        os.remove(sd_option_cache)
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    prompt = args.index(0)
-    negative_prompt = args.index(1)
-    num_infer_steps = args.index(2)
-    guidance_scale = args.index(3)
-    seed = args.index(4)
-    create_gif = args.index(5)
-    initial_image = args.index(6)
-    strength = args.index(7)
+    model_name = args.index(0)
+    device_name = args.index(1)
+    prompt = args.index(2)
+    scheduler = args.index(3)
+    negative_prompt = args.index(4)
+    num_infer_steps = args.index(5)
+    guidance_scale = args.index(6)
+    seed = args.index(7)
+    create_gif = args.index(8)
+    initial_image = args.index(9)
+    strength = args.index(10)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -213,13 +223,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
         sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
                                     initial_image="", strength=0.8, seed="", create_gif=False,
-                                    inference_status="success", src_height=512, src_width=512)
+                                    inference_status="success", src_height=512, src_width=512,scheduler="")
 
-        sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run.json")
+        sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
 
         try:
             with open(sd_option_cache, "r") as file:
                 sd_option_cache_data = json.load(file)
+               
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
@@ -230,8 +241,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion...."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Help", Gtk.ResponseType.APPLY)
+        dialog.add_button("_Help", Gtk.ResponseType.HELP)
+        dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        
 
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
@@ -247,19 +260,51 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.set_row_spacing(10)
         vbox.add(grid)
         grid.show()
+        
+        
+        # Model Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
+        grid.attach(label, 0, 0, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "model_name", model_name_enum.get_tree_model(), 0, 1
+        )
+        grid.attach(combo, 1, 0, 1, 1)
+        combo.show()
+
+        # Device Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
+        grid.attach(label, 2, 0, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "device_name", device_name_enum.get_tree_model(), 0, 1
+        )
+        grid.attach(combo, 3, 0, 1, 1)
+        combo.show()        
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
-        grid.attach(prompt_text, 1, 2, 1, 1)
+        grid.attach(prompt_text, 1, 1, 1, 1)
         prompt_text.set_width_chars(60)
+
         prompt_text.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["prompt"], -1))
         prompt_text.show()
 
         prompt_text_label = _("Enter text to generate image")
         prompt_label = Gtk.Label(label=prompt_text_label)
-        grid.attach(prompt_label, 0, 2, 1, 1)
+        grid.attach(prompt_label, 0, 1, 1, 1)
         vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
+        
+        # Scheduler Name parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
+        grid.attach(label, 2, 1, 1, 1)
+        label.show()
+        combo = GimpUi.prop_string_combo_box_new(
+            config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
+        )
+        grid.attach(combo, 3, 1, 1, 1)
+        combo.show()        
 
         # Negative Prompt text
         negative_prompt_text = Gtk.Entry.new()
@@ -383,12 +428,18 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Wait for user to click
         dialog.show()
+     
+ 
+        
         while True:
             response = dialog.run()
+                 
+                
             if response == Gtk.ResponseType.OK:
 
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
+                scheduler = config.get_property("scheduler")
                 num_infer_steps = config.get_property("num_infer_steps")
                 guidance_scale = config.get_property("guidance_scale")
                 strength = config.get_property("strength")
@@ -404,7 +455,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 create_gif = config.get_property("create_gif")
 
                 result = stablediffusion(
-                    procedure, image, layer, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image,
+                    procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
                     strength, seed, create_gif, progress_bar, config_path_output
                 )
 
@@ -414,7 +465,31 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
             elif response == Gtk.ResponseType.APPLY:
-                url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
+                device_name = config.get_property("device_name")
+                model_name = config.get_property("model_name")
+                
+                print("model_name-------",model_name)
+                             
+                try: 
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.connect((HOST, PORT))
+                    s.sendall(b"kill")
+                        
+                    print("stable-diffusion model server killed")
+                except:
+                    print("No stable-diffusion model server found to kill")
+                    
+       
+                server = "stable-diffusion-ov-server.py"
+  
+                server_path = os.path.join(config_path, server)
+              
+                process = subprocess.Popen([python_path, server_path, model_name, device_name], close_fds=True)
+                config_path_output["process_pid"] = process.pid            
+                continue
+                
+            elif response == Gtk.ResponseType.HELP:
+                url = "https://github.com/intel/openvino-ai-plugins-gimp.git"
                 Gio.app_info_launch_default_for_uri(url, None)
                 continue
             else:
@@ -442,6 +517,27 @@ class StableDiffusion(Gimp.PlugIn):
             False,
             GObject.ParamFlags.READWRITE,
         ),
+        "device_name": (
+            str,
+            _("Device Name"),
+            "Device Name: 'CPU', 'GPU'",
+            "CPU",
+            GObject.ParamFlags.READWRITE,
+        ),
+        "model_name": (
+            str,
+            _("Model Name"),
+            "Model Name: 'SD_1.4', 'SD_1.5'",
+            "SD_1.4",
+            GObject.ParamFlags.READWRITE,
+        ),    
+        "scheduler": (
+            str,
+            _("Scheduler"),
+            "Scheduler Name: 'LMSDiscreteScheduler', 'PNDMScheduler','EulerDiscreteScheduler'",
+            "LMSDiscreteScheduler",
+            GObject.ParamFlags.READWRITE,
+        ),         
 
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
 
@@ -485,6 +581,9 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
             procedure.add_argument_from_property(self, "create_gif")
+            procedure.add_argument_from_property(self, "model_name")
+            procedure.add_argument_from_property(self, "scheduler") 
+            procedure.add_argument_from_property(self, "device_name")            
 
         return procedure
 

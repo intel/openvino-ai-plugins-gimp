@@ -42,7 +42,7 @@ log = logging.getLogger()
 
 
 
-def run(): 
+def run(model_name,device_name): 
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
@@ -50,13 +50,13 @@ def run():
     import json
 
     # Opening JSON file
-    config_path = os.path.join(weight_path, "stable-diffusion-ov/config.json")
-    f = open(config_path)
-    data = json.load(f)
+    #config_path = os.path.join(weight_path, "stable-diffusion-ov/config.json")
+    #f = open(config_path)
+    #data = json.load(f)
    
    
-    model_name = data["model_version"] # "SD_1.5" #For SD 1.4 version use "SD_1.4"
-    device_name = data["device_list"] # ["CPU","GPU.0","GPU.0"] #To run on iGPU change to "GPU". To run on dGPU change to "GPU.1"
+    #model_name = data["model_version"] # "SD_1.5" #For SD 1.4 version use "SD_1.4"
+    #device_name = data["device_list"] # ["CPU","GPU.0","GPU.0"] #To run on iGPU change to "GPU". To run on dGPU change to "GPU.1"
    
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
@@ -71,12 +71,7 @@ def run():
 
     log.info('Initializing Inference Engine...')
 
-    #log.info('EulerDiscreteScheduler...') #EulerDiscreteScheduler
-    scheduler = EulerDiscreteScheduler(
-    beta_start=0.00085, 
-    beta_end=0.012, # 0.012, 
-    beta_schedule="scaled_linear",
-    )
+
 
 
     #print("weight_path in run ",model_path)
@@ -84,7 +79,6 @@ def run():
 
     engine = StableDiffusionEngine(
         model = model_path,
-        scheduler = scheduler,
         device = device_name
     )    
     
@@ -99,15 +93,19 @@ def run():
                 while True:
                     #print("Waiting")
                     data = conn.recv(1024)
+                    
+                    if data.decode() == "kill":
+                        sys.exit()
                     print("Waiting")
                     if not data:
                         break
                     try:    
                         weight_path = get_weight_path()
-                        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
+                        with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "r") as file:
                             data_output = json.load(file)
                        
                         prompt = data_output["prompt"]
+                        scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
                         init_image = data_output["initial_image"]
                         num_infer_steps = data_output["num_infer_steps"]
@@ -115,6 +113,34 @@ def run():
                         strength = data_output["strength"]
                         seed = data_output["seed"]
                         create_gif = data_output["create_gif"]
+                        
+                        
+                        if scheduler == "LMSDiscreteScheduler":
+                             log.info('LMSDiscreteScheduler...')
+                             scheduler = LMSDiscreteScheduler(
+                                    beta_start=0.00085,
+                                    beta_end=0.012,
+                                    beta_schedule="scaled_linear",
+                                    
+                                )
+                        elif scheduler == "PNDMScheduler":
+                            log.info('PNDMScheduler...')
+                            scheduler = PNDMScheduler(
+
+                                beta_start=0.00085,
+                                beta_end=0.012,
+                                beta_schedule="scaled_linear",
+                                skip_prk_steps = True,
+                                
+                            ) 
+                          
+                        else:
+                             log.info('EulerDiscreteScheduler...')
+                             scheduler = EulerDiscreteScheduler(
+                             beta_start=0.00085, 
+                             beta_end=0.012, 
+                             beta_schedule="scaled_linear"
+                             )
               
                         
                         strength = 1.0 if init_image is None else strength
@@ -139,6 +165,7 @@ def run():
                             prompt = prompt,
                             negative_prompt = negative_prompt,
                             init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
+                            scheduler = scheduler,
                             strength = strength,
                             num_inference_steps = num_infer_steps,
                             guidance_scale = guidance_scale,
@@ -155,7 +182,7 @@ def run():
                         data_output["src_width"] = src_width
 
                         data_output["inference_status"] = "success"
-                        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+                        with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             json.dump(data_output, file)
 
                         # Remove old temporary error files that were saved
@@ -165,7 +192,7 @@ def run():
                                 os.remove(os.path.join(my_dir, f_name))
 
                     except Exception as error:
-                        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+                        with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
                             traceback.print_exception("DEBUG THE ERROR", file=file)                            
@@ -174,6 +201,14 @@ def run():
                 
 
 if __name__ == "__main__":
-   run()
+   
+   
+   
+   model_name = sys.argv[1]
+   device_ = sys.argv[2]
+
+   device_name = [device_,device_,device_]   
+   run(model_name,device_name)
+   
    print("Exiting Run")
    

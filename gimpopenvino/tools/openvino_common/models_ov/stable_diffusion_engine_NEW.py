@@ -87,7 +87,7 @@ def result(var):
 class StableDiffusionEngine(DiffusionPipeline):
     def __init__(
             self,
-            scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
+            #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
             device=["CPU","CPU","CPU"]
@@ -99,7 +99,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
                 
-        self.scheduler = scheduler
+        #self.scheduler = scheduler
         # models
      
         self.core = Core()
@@ -141,6 +141,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             prompt,
             init_image = None,
             negative_prompt=None,
+            scheduler=None,
             strength = 0.5,
             num_inference_steps = 32,
             guidance_scale = 7.5,
@@ -157,6 +158,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             return_tensors="np",
         )
         text_embeddings = self.text_encoder(text_input.input_ids)[self._text_encoder_output]
+    
 
         # do classifier free guidance
         do_classifier_free_guidance = guidance_scale > 1.0
@@ -179,26 +181,26 @@ class StableDiffusionEngine(DiffusionPipeline):
             text_embeddings = np.concatenate([uncond_embeddings, text_embeddings])
 
         # set timesteps
-        accepts_offset = "offset" in set(inspect.signature(self.scheduler.set_timesteps).parameters.keys())
+        accepts_offset = "offset" in set(inspect.signature(scheduler.set_timesteps).parameters.keys())
         extra_set_kwargs = {}
         
         if accepts_offset:
             extra_set_kwargs["offset"] = 1
 
-        self.scheduler.set_timesteps(num_inference_steps, **extra_set_kwargs)
+        scheduler.set_timesteps(num_inference_steps, **extra_set_kwargs)
 
-        timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength)
+        timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, scheduler)
         latent_timestep = timesteps[:1]
 
         # get the initial random noise unless the user supplied it
-        latents, meta = self.prepare_latents(init_image, latent_timestep)
+        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler)
 
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
         # eta (η) is only used with the DDIMScheduler, it will be ignored for other schedulers.
         # eta corresponds to η in DDIM paper: https://arxiv.org/abs/2010.02502
         # and should be between [0, 1]
-        accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
+        accepts_eta = "eta" in set(inspect.signature(scheduler.step).parameters.keys())
         extra_step_kwargs = {}
         if accepts_eta:
             extra_step_kwargs["eta"] = eta
@@ -208,7 +210,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         for i, t in enumerate(self.progress_bar(timesteps)):
             # expand the latents if we are doing classifier free guidance
             latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
-            latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+            latent_model_input = scheduler.scale_model_input(latent_model_input, t)
             #print("latent_model_input:", latent_model_input)
             # predict the noise residual
             noise_pred = self.unet([latent_model_input, float(t), text_embeddings])[self._unet_output]
@@ -219,7 +221,7 @@ class StableDiffusionEngine(DiffusionPipeline):
                 noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
-            latents = self.scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents), **extra_step_kwargs)["prev_sample"].numpy()
+            latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents), **extra_step_kwargs)["prev_sample"].numpy()
      
             if create_gif:
                 frames.append(latents)
@@ -250,7 +252,7 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         return image
     
-    def prepare_latents(self, image:PIL.Image.Image = None, latent_timestep:torch.Tensor = None):
+    def prepare_latents(self, image:PIL.Image.Image = None, latent_timestep:torch.Tensor = None, scheduler = LMSDiscreteScheduler):
         """
         Function for getting initial latents for starting generation
         
@@ -269,13 +271,13 @@ class StableDiffusionEngine(DiffusionPipeline):
         if image is None:
             print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
-            if isinstance(self.scheduler, LMSDiscreteScheduler):
+            if isinstance(scheduler, LMSDiscreteScheduler):
              
-                noise = noise * self.scheduler.sigmas[0].numpy()
+                noise = noise * scheduler.sigmas[0].numpy()
                 return noise, {}
-            elif isinstance(self.scheduler, EulerDiscreteScheduler):
+            elif isinstance(scheduler, EulerDiscreteScheduler):
               
-                noise = noise * self.scheduler.sigmas.max().numpy()
+                noise = noise * scheduler.sigmas.max().numpy()
                 return noise, {}
             else:
                 return noise, {}
@@ -289,7 +291,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
        
          
-        latents = self.scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
+        latents = scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
         return latents, meta
 
     def postprocess_image(self, image:np.ndarray, meta:Dict):
@@ -339,7 +341,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         #image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)   
 
 
-    def get_timesteps(self, num_inference_steps:int, strength:float):
+    def get_timesteps(self, num_inference_steps:int, strength:float, scheduler):
         """
         Helper function for getting scheduler timesteps for generation
         In case of image-to-image generation, it updates number of steps according to strength
@@ -356,6 +358,6 @@ class StableDiffusionEngine(DiffusionPipeline):
         init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
     
         t_start = max(num_inference_steps - init_timestep, 0)
-        timesteps = self.scheduler.timesteps[t_start:]
+        timesteps = scheduler.timesteps[t_start:]
 
         return timesteps, num_inference_steps - t_start 
