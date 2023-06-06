@@ -468,7 +468,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 device_name = config.get_property("device_name")
                 model_name = config.get_property("model_name")
                 
-                print("model_name-------",model_name)
+                
                              
                 try: 
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -485,6 +485,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server_path = os.path.join(config_path, server)
               
                 process = subprocess.Popen([python_path, server_path, model_name, device_name], close_fds=True)
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.bind((HOST, 65433))
+                s.listen()
+                while True:
+                    conn, addr = s.accept()
+                    with conn:
+                
+                        while True:
+                                
+                           data = conn.recv(1024)
+                           if data.decode() == "Ready":
+                               break
+
+                        break
+                    
                 config_path_output["process_pid"] = process.pid            
                 continue
                 

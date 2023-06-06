@@ -85,6 +85,9 @@ def run(model_name,device_name):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen()
+        s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s2.connect((HOST, 65433))
+        s2.sendall(b"Ready")
         print("Ready")
         while True:
             conn, addr = s.accept()
@@ -192,6 +195,7 @@ def run(model_name,device_name):
                                 os.remove(os.path.join(my_dir, f_name))
 
                     except Exception as error:
+                      
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:

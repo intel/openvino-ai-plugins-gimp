@@ -49,7 +49,7 @@ def scale_fit_to_window(dst_width:int, dst_height:int, image_width:int, image_he
     im_scale = min(dst_height / image_height, dst_width / image_width)
     return int(im_scale * image_width), int(im_scale * image_height)
 
-def preprocess(image: PIL.Image.Image):
+def preprocess(image: PIL.Image.Image, ht, wt):
     """
     Image preprocessing function. Takes image in PIL.Image format, resizes it to keep aspect ration and fits to model input window 512x512,
     then converts it to np.ndarray and adds padding with zeros on right or bottom side of image (depends from aspect ratio), after that
@@ -62,16 +62,16 @@ def preprocess(image: PIL.Image.Image):
        image (np.ndarray): preprocessed image tensor
        meta (Dict): dictionary with preprocessing metadata info
     """
-    print("FIRST image size", image.size )
+    #print("FIRST image size", image.size )
     src_width, src_height = image.size
     image = image.convert('RGB')
     dst_width, dst_height = scale_fit_to_window(
-        512, 512, src_width, src_height)
+        wt, ht, src_width, src_height)
     image = np.array(image.resize((dst_width, dst_height),
                      resample=PIL.Image.Resampling.LANCZOS))[None, :]
     print("2nd image size", image.size )
-    pad_width = 512 - dst_width
-    pad_height = 512 - dst_height
+    pad_width = wt - dst_width
+    pad_height = ht - dst_height
     pad = ((0, 0), (0, pad_height), (0, pad_width), (0, 0))
     image = np.pad(image, pad, mode="constant")
     image = image.astype(np.float32) / 255.0
@@ -281,7 +281,7 @@ class StableDiffusionEngine(DiffusionPipeline):
                 return noise, {}
             else:
                 return noise, {}
-        input_image, meta = preprocess(image)
+        input_image, meta = preprocess(image,self.height,self.width)
        
         moments = self.vae_encoder(input_image)[self._vae_e_output]
       
