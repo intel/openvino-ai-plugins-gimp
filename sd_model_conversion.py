@@ -15,6 +15,7 @@ import torch
 import numpy as np
 import sys
 import os
+import shutil
 
 #ov_version = sys.argv[1]
 
@@ -31,18 +32,59 @@ vae.eval()
 del pipe
 
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
-weight_path = os.path.join(install_location, "weights\stable-diffusion-ov\stable-diffusion-1.5")
+SD_path = os.path.join(install_location, "weights\stable-diffusion-ov\stable-diffusion-1.5")
 
-if not os.path.isdir(weight_path):
-        os.makedirs(weight_path)
-
-print("weight path is :", weight_path)
+choice = sys.argv[1]
 
 #if ov_version == "2022.3.0":
 
+
+
+wt = 512
+ht = 512
+
+  
+if choice == "1":
+    wt = 512
+    ht = 512
+    weight_path = os.path.join(SD_path, "square")
+    print("============SD-1.5 Square Model setup============----")
+elif choice == "2":
+    wt = 640
+    ht = 360
+    weight_path = os.path.join(SD_path, "landscape")
+    print("============SD-1.5 landscape Model setup============")
+elif choice == "3":
+    wt = 360
+    ht = 640
+    weight_path = os.path.join(SD_path, "portrait")
+    print("============SD-1.5 portrait Model setup============")
+elif choice == "4":
+    wt = 512
+    ht = 768
+    weight_path = os.path.join(SD_path, "portrait_512x768")
+    print("============SD-1.5 portrait_512x768 Model setup============")
+elif choice == "5":
+    wt =768
+    ht = 512
+    weight_path = os.path.join(SD_path, "landscape_768x512")
+    print("============SD-1.5 landscape_768x512 Model setup============")
+else:
+    wt = 512
+    ht = 512
+    weight_path = os.path.join(SD_path, "square")
+    print("SD-1.5 Square Model setup")
+    
+
+if not os.path.isdir(weight_path):
+        os.mkdir(weight_path)
+
+print("weight path is :", weight_path)
+    
+    
 TEXT_ENCODER_ONNX_PATH = Path(weight_path) / 'text_encoder.onnx'
-TEXT_ENCODER_OV_PATH = TEXT_ENCODER_ONNX_PATH.with_suffix('.xml')
-print("TEXT_ENCODER_ONNX_PATH:",TEXT_ENCODER_OV_PATH)
+TEXT_ENCODER_OV_PATH = Path(weight_path) / 'text_encoder.xml'
+print("TEXT_ENCODER_OV_PATH:",TEXT_ENCODER_OV_PATH)  
 
 
 def convert_encoder_onnx(xtext_encoder: StableDiffusionPipeline, onnx_path:Path):
@@ -90,7 +132,7 @@ gc.collect()
 #if ov_version == "2022.2.0":
 
 UNET_ONNX_PATH = Path(weight_path) / 'unet/unet.onnx'
-UNET_OV_PATH = UNET_ONNX_PATH.parents[1] / 'unet.xml'
+UNET_OV_PATH = Path(weight_path) / 'unet.xml'
 
 print("UNET PATH",UNET_OV_PATH)
 
@@ -108,7 +150,7 @@ def convert_unet_onnx(unet:StableDiffusionPipeline, onnx_path:Path):
     if not onnx_path.exists():
         # prepare inputs
         encoder_hidden_state = torch.ones((2, 77, 768))
-        latents_shape = (2, 4, 512 // 8, 512 // 8)
+        latents_shape = (2, 4, ht // 8, wt // 8)
         latents = torch.randn(latents_shape)
         t = torch.from_numpy(np.array(1, dtype=float))
 
@@ -131,7 +173,7 @@ if not UNET_OV_PATH.exists():
     del unet
     gc.collect()
    
-    os.system('mo --input_model %s --data_type=FP16 --output_dir %s' % (UNET_ONNX_PATH,weight_path))
+    os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (UNET_ONNX_PATH,weight_path))
     print('Unet successfully converted to IR')
 else:
     del unet
@@ -139,7 +181,7 @@ else:
 gc.collect()
 
 VAE_ENCODER_ONNX_PATH = Path(weight_path) / 'vae_encoder.onnx'
-VAE_ENCODER_OV_PATH = VAE_ENCODER_ONNX_PATH.with_suffix('.xml')
+VAE_ENCODER_OV_PATH = Path(weight_path) / 'vae_encoder.xml'
 
 
 def convert_vae_encoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
@@ -166,7 +208,7 @@ def convert_vae_encoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
     if not onnx_path.exists():
         vae_encoder = VAEEncoderWrapper(vae)
         vae_encoder.eval()
-        image = torch.zeros((1, 3, 512, 512))
+        image = torch.zeros((1, 3, ht, wt))
         with torch.no_grad():
             torch.onnx.export(vae_encoder, image, onnx_path, input_names=[
                               'init_image'], output_names=['image_latent'])
@@ -181,7 +223,7 @@ else:
     print(f"VAE encoder will be loaded from {VAE_ENCODER_OV_PATH}")
 
 VAE_DECODER_ONNX_PATH = Path(weight_path) /'vae_decoder.onnx'
-VAE_DECODER_OV_PATH = VAE_DECODER_ONNX_PATH.with_suffix('.xml')
+VAE_DECODER_OV_PATH = Path(weight_path) / 'vae_decoder.xml'
 
 
 def convert_vae_decoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
@@ -206,7 +248,7 @@ def convert_vae_decoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
 
     if not onnx_path.exists():
         vae_decoder = VAEDecoderWrapper(vae)
-        latents = torch.zeros((1, 4, 64, 64))
+        latents = torch.zeros((1, 4, ht//8, wt//8))
 
         vae_decoder.eval()
         with torch.no_grad():
@@ -223,3 +265,20 @@ else:
     print(f"VAE decoder will be loaded from {VAE_DECODER_OV_PATH}")
 
 del vae
+
+
+#cleanup
+if TEXT_ENCODER_ONNX_PATH.exists():
+    os.remove(TEXT_ENCODER_ONNX_PATH)
+    
+if UNET_ONNX_PATH.exists():
+    shutil.rmtree(Path(weight_path) / 'unet')
+    
+if VAE_ENCODER_ONNX_PATH.exists():
+    os.remove(VAE_ENCODER_ONNX_PATH)
+
+if VAE_DECODER_ONNX_PATH.exists():
+    os.remove(VAE_DECODER_ONNX_PATH)
+
+    
+sys.exit()
