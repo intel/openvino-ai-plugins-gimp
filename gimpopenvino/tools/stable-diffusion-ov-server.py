@@ -58,23 +58,28 @@ def run(model_name,device_name):
     #model_name = data["model_version"] # "SD_1.5" #For SD 1.4 version use "SD_1.4"
     #device_name = data["device_list"] # ["CPU","GPU.0","GPU.0"] #To run on iGPU change to "GPU". To run on dGPU change to "GPU.1"
    
+    log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
-        #device_name = ["CPU","GPU.1","GPU.1"]
-    elif model_name == "SD_1.5": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
-        #device_name = ["CPU","GPU.0","GPU.0"]   
+    elif model_name == "SD_1.5_portrait": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/portrait")
+    elif model_name == "SD_1.5_square": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/square")
+    elif model_name == "SD_1.5_landscape": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape")
+    elif model_name == "SD_1.5_portrait_512x768": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/portrait_512x768")
+    elif model_name == "SD_1.5_landscape_768x512": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")        
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         device_name = ["CPU","GPU","GPU"]
 
 
     log.info('Initializing Inference Engine...')
+    log.info('Model Path: %s',model_path )
+    log.info('device_name: %s',device_name)
 
-
-
-
-    #print("weight_path in run ",model_path)
  
 
     engine = StableDiffusionEngine(
@@ -99,6 +104,7 @@ def run(model_name,device_name):
                     
                     if data.decode() == "kill":
                         sys.exit()
+                 
                     print("Waiting")
                     if not data:
                         break
@@ -197,7 +203,9 @@ def run(model_name,device_name):
                     except Exception as error:
                       
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
-                            json.dump({"inference_status": "failed"}, file)
+                            data_output["inference_status"] = "failed"
+                            json.dump(data_output, file)
+                            #json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
                             traceback.print_exception("DEBUG THE ERROR", file=file)                            
 

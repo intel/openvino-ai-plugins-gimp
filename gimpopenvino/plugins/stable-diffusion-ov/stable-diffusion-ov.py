@@ -21,6 +21,9 @@ import os
 import sys
 import socket
 
+import glob
+from pathlib import Path
+
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 
@@ -82,13 +85,46 @@ class DeviceEnum:
         return tree_model
 
 
-model_name_enum = StringEnum(
-    "SD_1.4",
-    _("SD_1.4"),
-    "SD_1.5",
-    _("SD_1.5"),
+#model_name_enum = StringEnum(
+#    "SD_1.4",
+#    _("SD_1.4"),
+#    "SD_1.5",
+#    _("SD_1.5"),
 
-)
+#)
+
+
+def list_models(weight_path, SD):
+    model_list = []
+    if SD == "SD_1.4":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.4") 
+        text = Path(dir_path) / 'text_encoder.xml'
+        unet = Path(dir_path) / 'unet.xml'
+        vae = Path(dir_path) / 'vae_decoder.xml'
+        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+            if SD == "SD_1.4":
+                model = SD
+                model_list.append(model)
+        return model_list
+        
+    if SD == "SD_1.5":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5")
+     
+    for file in os.scandir(dir_path): #, recursive=True):
+        text = Path(file) / 'text_encoder.xml'
+        unet = Path(file) / 'unet.xml'
+        vae = Path(file) / 'vae_decoder.xml'
+        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+               
+                model = "SD_1.5_" + os.path.basename(file)
+                model_list.append(model)
+          
+            
+    return model_list
+       
+    
+        
+
 
 scheduler_name_enum = StringEnum(
     "LMSDiscreteScheduler",
@@ -186,7 +222,7 @@ def stablediffusion(procedure, image, drawable, prompt, negative_prompt, schedul
             "error",
             image_paths
         )
-        os.remove(sd_option_cache)
+        #os.remove(sd_option_cache)
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
@@ -217,6 +253,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path_output["plugin_path"] = os.path.join(config_path, client)
 
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
+        model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5")
+        
+        model_name_enum = DeviceEnum(model_list)
+        
+        
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
@@ -243,9 +284,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
-        dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        run_button = dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        #run_button.set_sensitive(False)
         
-
+ 
+            
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
         )
@@ -432,8 +475,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
  
         
         while True:
-            response = dialog.run()
-                 
+            response = dialog.run()                           
                 
             if response == Gtk.ResponseType.OK:
 
@@ -499,7 +541,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                                break
 
                         break
-                    
+                #run_button.set_sensitive(True)   
                 config_path_output["process_pid"] = process.pid            
                 continue
                 

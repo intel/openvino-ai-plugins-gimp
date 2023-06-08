@@ -27,45 +27,29 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 ### Windows
 1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone, run install script, copy weights:
-   ```
+2. Clone, run install script, copy weights
    :: clone this repo:
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    
-   :: run install script - this will create the virtual environment "gimpenv3" and install all required packages.
+   :: run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
    openvino-ai-plugins-gimp\install.bat
    
-   :: Copy the openvino models to user weights folder
-   Xcopy /E /I .\openvino-ai-plugins-gimp\weights %userprofile%\openvino-ai-plugins-gimp\weights\
-   ```
-4. Download Stable-Diffusion-1.4 models from https://huggingface.co/bes-dev/stable-diffusion-v1-4-openvino/tree/main and place it in <br> 
-```%userprofile%\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-1.4``` <br>
-5. Start the GIMP application, and add the gimpenv3 path that was printed at the end of the install script to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
-6. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
+   Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
+4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
-### Generate Stable-Diffusion-1.5 openvino model -- NEW !! (Still in active development)
-1. python -m venv model_conv <br>
-2. model_conv\Scripts\activate <br>
-3. python -m pip install --upgrade pip wheel setuptools <br>
-4. cd openvino-ai-plugins-gimp
-5. pip install -r model-requirements.txt  --> (Modify the openvino version if needed) <br>
-6. python sd_model_conversion.py <br>
 
-### Running Stable Diffusion model Server -- NEW !! (Still in active development)
-1. Open a new command window  <br>
-2. Run Stable Diffusion model Server : This is done to reduce the start-up latency in loading the models onto the devices & importing python packages upfront. <br>
-   ```<path\to\your>\gimpenv3\Scripts\python.exe <path\to\your\openvino-ai-plugins-gimp\gimpopenvino\tools\stable-diffusion-ov-server.py``` <br>
-   You will see the models being loaded and compiled, once its done "Waiting first" will be printed <br>
-   - In order to change the devices or switch between models, please modify L167/L168 in openvino-ai-plugins-gimp\gimpopenvino\tools\stable-diffusion-ov-server.py and restart the server <br>
-
-### OpenVINO™ Image Generator Plugin with Stable Diffusion - This GIF doesnt represent the current GUI
+### OpenVINO™ Image Generator Plugin with Stable Diffusion - This GIF doesn't represent the current GUI
 1. Create or choose a layer  <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
-3. Enter a prompt and other parameters <br>
+3. Choose the desired model and device from the drop down list.<br>
+4. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference" <br>
+3. Enter prompt and other parameters <br>
 4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Stable Diffusio Server output window) <br>
 6. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
+![](gifs/stable-diffusion.png)
 ![](gifs/stable-diffusion.webp)
 
 
