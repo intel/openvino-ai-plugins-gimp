@@ -13,17 +13,15 @@
 
 	echo -----------------------------------------------------------------------------------------------
 	echo -----------------------------------------------------------------------------------------------
-	
-	
-	
+
+
 	set /p model_setup= "Do you want to continue setting up the models for all the plugin now? Enter Y/N:  "
 	echo your choice %model_setup%
 	if %model_setup%==Y (
 		set "continue=y"
-		)
-	if %model_setup%==y (
+	) else if %model_setup%==y (
 		set "continue=y"
-		) else ( set "continue=n"
+	) else ( set "continue=n"
 		)
 		
 

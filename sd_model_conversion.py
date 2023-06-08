@@ -16,6 +16,8 @@ import numpy as np
 import sys
 import os
 import shutil
+from openvino.tools import mo
+from openvino.runtime import serialize
 
 #ov_version = sys.argv[1]
 
@@ -77,7 +79,7 @@ else:
     
 
 if not os.path.isdir(weight_path):
-        os.mkdir(weight_path)
+        os.makedirs(weight_path)
 
 print("weight path is :", weight_path)
     
@@ -121,7 +123,11 @@ def convert_encoder_onnx(xtext_encoder: StableDiffusionPipeline, onnx_path:Path)
 if not TEXT_ENCODER_OV_PATH.exists(): #--compress_to_fp16 --data_type=FP16
     
     convert_encoder_onnx(text_encoder, TEXT_ENCODER_ONNX_PATH)
-    os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (TEXT_ENCODER_ONNX_PATH,weight_path))
+    encoder_model = mo.convert_model(TEXT_ENCODER_ONNX_PATH, compress_to_fp16=True)
+    serialize(encoder_model, xml_path=os.path.join(weight_path, 'text_encoder.xml'))
+    #os.path.join(model, "vae_encoder.xml")
+    #os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (TEXT_ENCODER_ONNX_PATH,weight_path))
+   
     print('Text Encoder successfully converted to IR')
 else:
     print(f"Text encoder will be loaded from {TEXT_ENCODER_OV_PATH}")
@@ -173,7 +179,9 @@ if not UNET_OV_PATH.exists():
     del unet
     gc.collect()
    
-    os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (UNET_ONNX_PATH,weight_path))
+    #os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (UNET_ONNX_PATH,weight_path))
+    unet_model = mo.convert_model(UNET_ONNX_PATH, compress_to_fp16=True)
+    serialize(unet_model, xml_path=os.path.join(weight_path, 'unet.xml'))
     print('Unet successfully converted to IR')
 else:
     del unet
@@ -217,7 +225,9 @@ def convert_vae_encoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
 
 if not VAE_ENCODER_OV_PATH.exists():
     convert_vae_encoder_onnx(vae, VAE_ENCODER_ONNX_PATH)
-    os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (VAE_ENCODER_ONNX_PATH,weight_path))
+    #os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (VAE_ENCODER_ONNX_PATH,weight_path))
+    vae_encoder_model = mo.convert_model(VAE_ENCODER_ONNX_PATH, compress_to_fp16=True)
+    serialize(vae_encoder_model, xml_path=os.path.join(weight_path, 'vae_encoder.xml'))
     print('VAE encoder successfully converted to IR')
 else:
     print(f"VAE encoder will be loaded from {VAE_ENCODER_OV_PATH}")
@@ -259,7 +269,9 @@ def convert_vae_decoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
 
 if not VAE_DECODER_OV_PATH.exists():
     convert_vae_decoder_onnx(vae, VAE_DECODER_ONNX_PATH)
-    os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (VAE_DECODER_ONNX_PATH,weight_path))
+    #os.system('mo --input_model %s --compress_to_fp16 --output_dir %s' % (VAE_DECODER_ONNX_PATH,weight_path))
+    vae_decoder_model = mo.convert_model(VAE_DECODER_ONNX_PATH, compress_to_fp16=True)
+    serialize(vae_decoder_model, xml_path=os.path.join(weight_path, 'vae_decoder.xml'))
     print('VAE decoder successfully converted to IR')
 else:
     print(f"VAE decoder will be loaded from {VAE_DECODER_OV_PATH}")
