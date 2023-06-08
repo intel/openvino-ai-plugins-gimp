@@ -27,12 +27,12 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 ### Windows
 1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone, run install script, copy weights
-   :: clone this repo:
+2. Clone, run install script <br>
+   :: clone this repo: <br>
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    
-   :: run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
-   openvino-ai-plugins-gimp\install.bat
+   :: run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
+   openvino-ai-plugins-gimp\install.bat <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
    Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
