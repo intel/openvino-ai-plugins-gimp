@@ -27,12 +27,13 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 ### Windows
 1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone, run install script <br>
-   :: clone this repo: <br>
-   git clone https://github.com/intel/openvino-ai-plugins-gimp.git
+2. Clone, run install script: <br>
+
+   - clone this repo: <br>
+   ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git``` <br>
    
-   :: run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
-   openvino-ai-plugins-gimp\install.bat <br>
+    - run install script -> this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
+   ```openvino-ai-plugins-gimp\install.bat``` <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
    Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
@@ -45,7 +46,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 3. Choose the desired model and device from the drop down list.<br>
 4. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference" <br>
 3. Enter prompt and other parameters <br>
-4. Click on “Run Inference”. Wait for the total inference steps to get completed. (Can be viewed in Stable Diffusio Server output window) <br>
+4. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
 6. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 

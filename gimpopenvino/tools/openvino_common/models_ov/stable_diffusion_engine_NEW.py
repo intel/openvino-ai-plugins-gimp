@@ -147,7 +147,9 @@ class StableDiffusionEngine(DiffusionPipeline):
             guidance_scale = 7.5,
             eta = 0.0,
             create_gif = False,
-            model = None
+            model = None,
+            callback = None,
+            callback_userdata = None
     ):
         # extract condition
         text_input = self.tokenizer(
@@ -208,6 +210,9 @@ class StableDiffusionEngine(DiffusionPipeline):
             frames = []        
 
         for i, t in enumerate(self.progress_bar(timesteps)):
+            if callback:
+               callback(i, callback_userdata)
+
             # expand the latents if we are doing classifier free guidance
             latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
@@ -226,7 +231,8 @@ class StableDiffusionEngine(DiffusionPipeline):
             if create_gif:
                 frames.append(latents)
               
-
+        if callback:
+            callback(num_inference_steps, callback_userdata)
 
         # scale and decode the image latents with vae
         

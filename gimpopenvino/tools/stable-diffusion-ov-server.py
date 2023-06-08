@@ -39,7 +39,9 @@ from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
 
-
+def progress_callback(i, conn):
+    tosend = bytes(str(i), 'utf-8')
+    conn.sendall(tosend)
 
 
 def run(model_name,device_name): 
@@ -99,13 +101,15 @@ def run(model_name,device_name):
             with conn:
                 #print(f"Connected by {addr}")
                 while True:
-                    #print("Waiting")
+                    print("Waiting")
                     data = conn.recv(1024)
                     
                     if data.decode() == "kill":
                         sys.exit()
+                    if data.decode() == "ping":
+                        conn.sendall(data)
+                        continue
                  
-                    print("Waiting")
                     if not data:
                         break
                     try:    
@@ -180,7 +184,9 @@ def run(model_name,device_name):
                             guidance_scale = guidance_scale,
                             eta = 0.0,
                             create_gif = bool(create_gif),
-                            model = model_path
+                            model = model_path,
+                            callback = progress_callback,
+                            callback_userdata = conn
                         ) 
                         
                   
@@ -209,7 +215,7 @@ def run(model_name,device_name):
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
                             traceback.print_exception("DEBUG THE ERROR", file=file)                            
 
-                    conn.sendall(data)      
+                    conn.sendall(b"done")
                 
 
 if __name__ == "__main__":
