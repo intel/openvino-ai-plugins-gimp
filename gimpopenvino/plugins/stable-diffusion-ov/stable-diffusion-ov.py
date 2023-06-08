@@ -20,6 +20,7 @@ import json
 import os
 import sys
 import socket
+from enum import IntEnum
 
 import glob
 from pathlib import Path
@@ -93,6 +94,11 @@ class DeviceEnum:
 
 #)
 
+class SDDialogResponse(IntEnum):
+    LoadModelComplete = 777
+    RunInferenceComplete = 778
+    ProgressUpdate = 779
+
 
 def list_models(weight_path, SD):
     model_list = []
@@ -136,109 +142,195 @@ scheduler_name_enum = StringEnum(
     "DPMSolverMultistepScheduler",
     _("DPMSolverMultistepScheduler"),
 )
+class SDRunner:
+    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
+                  strength, seed, create_gif, progress_bar, config_path_output):
+        self.procedure = procedure
+        self.image = image
+        self.drawable = drawable
+        self.prompt = prompt
+        self.negative_prompt = negative_prompt
+        self.scheduler = scheduler
+        self.num_infer_steps = num_infer_steps
+        self.guidance_scale = guidance_scale
+        self.initial_image = initial_image
+        self.strength = strength
+        self.seed = seed
+        self.create_gif = create_gif
+        self.progress_bar = progress_bar
+        self.config_path_output = config_path_output
+        self.result = None
 
+    def run(self, dialog):
+        procedure = self.procedure
+        image = self.image
+        drawable = self.drawable
+        prompt = self.prompt
+        negative_prompt = self.negative_prompt
+        scheduler = self.scheduler
+        num_infer_steps = self.num_infer_steps
+        guidance_scale = self.guidance_scale
+        initial_image = self.initial_image
+        strength = self.strength
+        seed = self.seed
+        create_gif = self.create_gif
+        progress_bar = self.progress_bar
+        config_path_output = self.config_path_output
 
-def stablediffusion(procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
-                    strength, seed, create_gif, progress_bar, config_path_output):
-    # Save inference parameters and layers
-    weight_path = config_path_output["weight_path"]
-    python_path = config_path_output["python_path"]
-    plugin_path = config_path_output["plugin_path"]
+        # Save inference parameters and layers
+        weight_path = config_path_output["weight_path"]
+        python_path = config_path_output["python_path"]
+        plugin_path = config_path_output["plugin_path"]
 
-    Gimp.context_push()
-    image.undo_group_start()
+        Gimp.context_push()
+        image.undo_group_start()
 
-    save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+        save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
-    # Option Cache
-    sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
+        # Option Cache
+        sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
 
-    with open(sd_option_cache, "w") as file:
-        json.dump({"prompt": prompt,
-                   "negative_prompt": negative_prompt,
-                   "scheduler": scheduler,
-                   "num_infer_steps": num_infer_steps,
-                   "guidance_scale": guidance_scale,
-                   "initial_image": initial_image,
-                   "strength": strength,
-                   "seed": seed,
-                   "create_gif": create_gif,
-                   "inference_status": "started"}, file)
+        with open(sd_option_cache, "w") as file:
+            json.dump({"prompt": prompt,
+                       "negative_prompt": negative_prompt,
+                       "scheduler": scheduler,
+                       "num_infer_steps": num_infer_steps,
+                       "guidance_scale": guidance_scale,
+                       "initial_image": initial_image,
+                       "strength": strength,
+                       "seed": seed,
+                       "create_gif": create_gif,
+                       "inference_status": "started"}, file)
 
-    # Run inference and load as layer
-    subprocess.call([python_path, plugin_path])
+        # Run inference and load as layer
+        '''
+        subprocess.call([python_path, plugin_path])
+        '''
+        self.current_step = 0
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"go")
+            while True:
+                data = s.recv(1024)
+                response = data.decode()
+                if response == "done":
+                    break
+                elif response.isdigit():
+                    iteration = int(response)
+                    self.current_step = iteration
+                    dialog.response(SDDialogResponse.ProgressUpdate)
 
-    data_output = {}
+        data_output = {}
 
-    try:
-        with open(sd_option_cache, "r") as file:
-            data_output = json.load(file)
-            # json.dumps(data_output)
-    except:
-        print(f"ERROR : {sd_option_cache} not found")
-
-    image.undo_group_end()
-    Gimp.context_pop()
-
-    if data_output["inference_status"] == "success":
-        image_new = Gimp.Image.new(
-            data_output["src_width"], data_output["src_height"], 0
-        )
-
-        display = Gimp.Display.new(image_new)
-        result = Gimp.file_load(
-            Gimp.RunMode.NONINTERACTIVE,
-            Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
-        )
         try:
-            # 2.99.10
-            result_layer = result.get_active_layer()
+            with open(sd_option_cache, "r") as file:
+                data_output = json.load(file)
+                # json.dumps(data_output)
         except:
-            # > 2.99.10
-            result_layers = result.list_layers()
-            result_layer = result_layers[0]
+            print(f"ERROR : {sd_option_cache} not found")
 
-        copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-        copy.set_name("Stable Diffusion")
-        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
-        image_new.insert_layer(copy, None, -1)
-
-        Gimp.displays_flush()
         image.undo_group_end()
         Gimp.context_pop()
 
-        # Remove temporary layers that were saved
-        my_dir = os.path.join(weight_path, "..")
-        for f_name in os.listdir(my_dir):
-            if f_name.startswith("cache"):
-                os.remove(os.path.join(my_dir, f_name))
+        if data_output["inference_status"] == "success":
+            image_new = Gimp.Image.new(
+                data_output["src_width"], data_output["src_height"], 0
+            )
 
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+            display = Gimp.Display.new(image_new)
+            result = Gimp.file_load(
+                Gimp.RunMode.NONINTERACTIVE,
+                Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
+            )
+            try:
+                # 2.99.10
+                result_layer = result.get_active_layer()
+            except:
+                # > 2.99.10
+                result_layers = result.list_layers()
+                result_layer = result_layers[0]
 
-    else:
-        show_dialog(
-            "Inference not successful. See error_log.txt in GIMP-OpenVINO folder.",
-            "Error !",
-            "error",
-            image_paths
-        )
-        #os.remove(sd_option_cache)
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+            copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
+            copy.set_name("Stable Diffusion")
+            copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
+            image_new.insert_layer(copy, None, -1)
 
+            Gimp.displays_flush()
+            image.undo_group_end()
+            Gimp.context_pop()
+
+            # Remove temporary layers that were saved
+            my_dir = os.path.join(weight_path, "..")
+            for f_name in os.listdir(my_dir):
+                if f_name.startswith("cache"):
+                    os.remove(os.path.join(my_dir, f_name))
+
+            self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+            return self.result
+
+        else:
+            show_dialog(
+                "Inference not successful. See error_log.txt in GIMP-OpenVINO folder.",
+                "Error !",
+                "error",
+                image_paths
+            )
+            #os.remove(sd_option_cache)
+            return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+
+def is_server_running():
+    HOST = "127.0.0.1"  # The server's hostname or IP address
+    PORT = 65432  # The port used by the server
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"ping")
+            data = s.recv(1024)
+            if data.decode() == "ping":
+                return True
+    except:
+        return False
+
+    return False
+
+def async_load_models(python_path, server_path, device_name, model_name, dialog):
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((HOST, PORT))
+        s.sendall(b"kill")
+
+        print("stable-diffusion model server killed")
+    except:
+        print("No stable-diffusion model server found to kill")
+
+
+    process = subprocess.Popen([python_path, server_path, model_name, device_name], close_fds=True)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((HOST, 65433))
+    s.listen()
+    while True:
+        conn, addr = s.accept()
+        with conn:
+
+            while True:
+
+               data = conn.recv(1024)
+               if data.decode() == "Ready":
+                   break
+
+            break
+
+    dialog.response(SDDialogResponse.LoadModelComplete)
+
+def async_sd_run_func(runner, dialog):
+    print("Running SD async")
+    runner.run(dialog)
+    print("async SD done")
+    dialog.response(SDDialogResponse.RunInferenceComplete)
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    model_name = args.index(0)
-    device_name = args.index(1)
-    prompt = args.index(2)
-    scheduler = args.index(3)
-    negative_prompt = args.index(4)
-    num_infer_steps = args.index(5)
-    guidance_scale = args.index(6)
-    seed = args.index(7)
-    create_gif = args.index(8)
-    initial_image = args.index(9)
-    strength = args.index(10)
-
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
@@ -283,9 +375,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion...."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
-        dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
+        load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         run_button = dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
-        #run_button.set_sensitive(False)
+        run_button.set_sensitive(False)
         
  
             
@@ -429,6 +521,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(file_entry, 1, 8, 1, 1)
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
+        initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
             # print("initial_image",initial_image)
             file_entry.set_text(initial_image.get_path())
@@ -452,6 +545,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(spin, 1, 9, 1, 1)
         spin.show()
 
+        # status label
+        sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
+        grid.attach(sd_run_label, 1, 10, 1, 1)
+
+        # spinner
+        spinner = Gtk.Spinner()
+        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.RIGHT, 1, 1)
+
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
         # grid.attach(logo, 0, 0, 1, 1)
@@ -469,10 +570,17 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
+        if is_server_running():
+            run_button.set_sensitive(True)
+
         # Wait for user to click
         dialog.show()
      
- 
+        import threading
+        run_inference_thread = None
+        run_load_model_thread = None
+
+        runner = None
         
         while True:
             response = dialog.run()                           
@@ -496,59 +604,90 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     seed = None
                 create_gif = config.get_property("create_gif")
 
-                result = stablediffusion(
-                    procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
-                    strength, seed, create_gif, progress_bar, config_path_output
-                )
+                #runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
+                #strength, seed, create_gif, progress_bar, config_path_output)
+
+                #result = runner.run(dialog)
+                #result = stablediffusion(
+                #    procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
+                #    strength, seed, create_gif, progress_bar, config_path_output
+                #)
 
                 # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                    config.end_run(Gimp.PDBStatusType.SUCCESS)
-                return result
+                #if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
+                #    config.end_run(Gimp.PDBStatusType.SUCCESS)
+                #return result
+                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
+                strength, seed, create_gif, progress_bar, config_path_output)
+
+                sd_run_label.set_label("Running Stable Diffusion...")
+                sd_run_label.show()
+                spinner.start()
+                spinner.show()
+
+                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog))
+                run_inference_thread.start()
+                run_button.set_sensitive(False)
+                load_model_button.set_sensitive(False)
+                continue
             elif response == Gtk.ResponseType.APPLY:
+                #grey-out load & run buttons, show label & start spinner
+                load_model_button.set_sensitive(False)
+                run_button.set_sensitive(False)
+                sd_run_label.set_label("Loading Models...")
+                sd_run_label.show()
+                spinner.start()
+                spinner.show()
+
                 device_name = config.get_property("device_name")
                 model_name = config.get_property("model_name")
                 
-                
-                             
-                try: 
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect((HOST, PORT))
-                    s.sendall(b"kill")
-                        
-                    print("stable-diffusion model server killed")
-                except:
-                    print("No stable-diffusion model server found to kill")
-                    
-       
                 server = "stable-diffusion-ov-server.py"
-  
                 server_path = os.path.join(config_path, server)
-              
-                process = subprocess.Popen([python_path, server_path, model_name, device_name], close_fds=True)
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.bind((HOST, 65433))
-                s.listen()
-                while True:
-                    conn, addr = s.accept()
-                    with conn:
                 
-                        while True:
-                                
-                           data = conn.recv(1024)
-                           if data.decode() == "Ready":
-                               break
+                #def async_load_models(python_path, server_path, device_name, model_name, label, spinner, run_button, load_model_button):
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, device_name, model_name, dialog))
+                run_load_model_thread.start()
 
-                        break
-                #run_button.set_sensitive(True)   
-                config_path_output["process_pid"] = process.pid            
                 continue
                 
             elif response == Gtk.ResponseType.HELP:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git"
                 Gio.app_info_launch_default_for_uri(url, None)
                 continue
+            elif response == SDDialogResponse.LoadModelComplete:
+                print("model load complete.")
+                if run_load_model_thread:
+                    run_load_model_thread.join()
+                    run_load_model_thread = None
+
+                #re-enable load & run buttons, hide label & stop spinner
+                spinner.stop()
+                spinner.hide()
+                sd_run_label.hide()
+                run_button.set_sensitive(True)
+                load_model_button.set_sensitive(True)
+
+            elif response == SDDialogResponse.RunInferenceComplete:
+                print("run inference complete.")
+                if run_inference_thread:
+                    run_inference_thread.join()
+                    result = runner.result
+                    if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
+                        config.end_run(Gimp.PDBStatusType.SUCCESS)
+                    return result
+            elif response == SDDialogResponse.ProgressUpdate:
+                progress_string=""
+                if runner.current_step == runner.num_infer_steps:
+                    progress_string = "Running Stable Diffusion... Finalizing Generated Image"
+                else:
+                    progress_string = "Running Stable Diffusion... (Inference Step " + str(runner.current_step + 1) +  " / " + str(runner.num_infer_steps) + ")"
+
+                sd_run_label.set_label(progress_string)
+                if runner.num_infer_steps > 0:
+                    perc_complete = runner.current_step / runner.num_infer_steps
+                    progress_bar.set_fraction(perc_complete)
             else:
                 dialog.destroy()
                 return procedure.new_return_values(
