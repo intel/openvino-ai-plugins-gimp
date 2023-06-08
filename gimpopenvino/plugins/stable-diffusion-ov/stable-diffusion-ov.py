@@ -355,7 +355,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
         sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
-                                    initial_image="", strength=0.8, seed="", create_gif=False,
+                                    initial_image=None, strength=0.8, seed="", create_gif=False,
                                     inference_status="success", src_height=512, src_width=512,scheduler="")
 
         sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
@@ -524,7 +524,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
             # print("initial_image",initial_image)
-            file_entry.set_text(initial_image.get_path())
+            file_entry.set_text(initial_image) #.get_path())
         file_entry.show()
 
         file_chooser_dialog = Gtk.FileChooserDialog(
