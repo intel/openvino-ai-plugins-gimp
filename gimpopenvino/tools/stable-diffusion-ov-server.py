@@ -31,6 +31,9 @@ from diffusers.schedulers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscr
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
 
+import psutil
+import threading
+
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
@@ -44,7 +47,10 @@ def progress_callback(i, conn):
     conn.sendall(tosend)
 
 
-def run(model_name,device_name): 
+def run(model_name,device_name):
+
+
+
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
@@ -105,7 +111,7 @@ def run(model_name,device_name):
                     data = conn.recv(1024)
                     
                     if data.decode() == "kill":
-                        sys.exit()
+                        os._exit(0)
                     if data.decode() == "ping":
                         conn.sendall(data)
                         continue
@@ -216,17 +222,41 @@ def run(model_name,device_name):
                             traceback.print_exception("DEBUG THE ERROR", file=file)                            
 
                     conn.sendall(b"done")
-                
+
+
+def start():
+    model_name = sys.argv[1]
+    text_encoder_device = sys.argv[2]
+    unet_device = sys.argv[3]
+    vae_device = sys.argv[4]
+
+    device_name = [text_encoder_device, unet_device, vae_device]
+    run_thread = threading.Thread(target=run, args=(model_name, device_name))
+    run_thread.start()
+
+    #run(model_name,device_name)
+    print("Looking for GIMP process")
+    gimp_proc = None
+    for proc in psutil.process_iter():
+        if "gimp-2.99" in proc.name():
+            gimp_proc = proc
+            break;
+
+    print("Done looking for GIMP process")
+
+    if gimp_proc:
+        print("gimp-2.99 process found:", gimp_proc)
+        psutil.wait_procs([proc])
+        print("exiting..!")
+        os._exit(0)
+
+    else:
+        print("no gimp process found!")
+
+    run_thread.join()
+
 
 if __name__ == "__main__":
+   start()
    
-   
-   
-   model_name = sys.argv[1]
-   device_ = sys.argv[2]
-
-   device_name = [device_,device_,device_]   
-   run(model_name,device_name)
-   
-   print("Exiting Run")
    
