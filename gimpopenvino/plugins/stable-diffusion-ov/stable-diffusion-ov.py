@@ -306,7 +306,7 @@ def async_load_models(python_path, server_path, device_name, model_name, dialog)
         print("No stable-diffusion model server found to kill")
 
 
-    process = subprocess.Popen([python_path, server_path, model_name, device_name], close_fds=True)
+    process = subprocess.Popen([python_path, server_path, model_name, device_name[0], device_name[1], device_name[2]], close_fds=True)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((HOST, 65433))
     s.listen()
@@ -330,6 +330,9 @@ def async_sd_run_func(runner, dialog):
     print("async SD done")
     dialog.response(SDDialogResponse.RunInferenceComplete)
 
+def on_toggled(widget, dialog):
+    dialog.response(800)
+
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
@@ -348,7 +351,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5")
         
         model_name_enum = DeviceEnum(model_list)
-        
         
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
@@ -378,9 +380,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         run_button = dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
-        
- 
-            
+
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
         )
@@ -396,7 +396,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
         
-        
         # Model Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
         grid.attach(label, 0, 0, 1, 1)
@@ -408,14 +407,69 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         combo.show()
 
         # Device Name parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
-        grid.attach(label, 2, 0, 1, 1)
-        label.show()
-        combo = GimpUi.prop_string_combo_box_new(
+        basic_device_label = Gtk.Label.new_with_mnemonic(_("_Device"))
+        basic_device_combo = GimpUi.prop_string_combo_box_new(
             config, "device_name", device_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(combo, 3, 0, 1, 1)
-        combo.show()        
+
+        adv_text_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Text Device"))
+        adv_text_encoder_device_combo = GimpUi.prop_string_combo_box_new(
+            config, "text_encode_device_name", device_name_enum.get_tree_model(), 0, 1
+        )
+
+        adv_unet_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Unet Device"))
+        adv_unet_encoder_combo = GimpUi.prop_string_combo_box_new(
+            config, "unet_device_name", device_name_enum.get_tree_model(), 0, 1
+        )
+
+        adv_vae_decoder_device_label = Gtk.Label.new_with_mnemonic(_("_VAE Device"))
+        adv_vae_decoder_device_combo = GimpUi.prop_string_combo_box_new(
+            config, "vae_decoder_device_name", device_name_enum.get_tree_model(), 0, 1
+        )
+
+        adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_device_selection",
+                                                  _("_Advanced Device Selection"))
+        adv_checkbox.connect("toggled", on_toggled, dialog)
+        adv_checkbox.show()
+
+        # Scheduler Name parameter
+        scheduler_label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
+        scheduler_label.show()
+        scheduler_combo = GimpUi.prop_string_combo_box_new(
+            config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
+        )
+        scheduler_combo.show()
+
+        def populate_advanced_devices():
+            grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
+            grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
+            grid.attach(adv_unet_encoder_device_label, 2, 1, 1, 1)
+            grid.attach(adv_unet_encoder_combo,        3, 1, 1, 1)
+            grid.attach(adv_vae_decoder_device_label,  2, 2, 1, 1)
+            grid.attach(adv_vae_decoder_device_combo,  3, 2, 1, 1)
+            grid.attach(adv_checkbox,                  3, 3, 1, 1)
+            grid.attach(scheduler_label,               2, 4, 1, 1)
+            grid.attach(scheduler_combo,               3, 4, 1, 1)
+            adv_text_encoder_device_label.show()
+            adv_text_encoder_device_combo.show()
+            adv_unet_encoder_device_label.show()
+            adv_unet_encoder_combo.show()
+            adv_vae_decoder_device_label.show()
+            adv_vae_decoder_device_combo.show()
+
+        def populate_basic_devices():
+            grid.attach(basic_device_label, 2, 0, 1, 1)
+            grid.attach(basic_device_combo, 3, 0, 1, 1)
+            grid.attach(adv_checkbox,       3, 1, 1, 1)
+            grid.attach(scheduler_label,    2, 2, 1, 1)
+            grid.attach(scheduler_combo,    3, 2, 1, 1)
+            basic_device_label.show()
+            basic_device_combo.show()
+
+        if adv_checkbox.get_active():
+            populate_advanced_devices()
+        else:
+            populate_basic_devices()
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -431,61 +485,51 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
         
-        # Scheduler Name parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
-        grid.attach(label, 2, 1, 1, 1)
-        label.show()
-        combo = GimpUi.prop_string_combo_box_new(
-            config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
-        )
-        grid.attach(combo, 3, 1, 1, 1)
-        combo.show()        
+        negative_prompt_text_label = _("Negative Prompt")
+        negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
+        grid.attach(negative_prompt_label, 0, 2, 1, 1)
+        vbox.pack_start(negative_prompt_label, False, False, 1)
+        negative_prompt_label.show()
 
         # Negative Prompt text
         negative_prompt_text = Gtk.Entry.new()
-        grid.attach(negative_prompt_text, 1, 3, 1, 1)
+        grid.attach(negative_prompt_text, 1, 2, 1, 1)
         negative_prompt_text.set_width_chars(60)
         negative_prompt_text.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["negative_prompt"], -1))
         negative_prompt_text.show()
 
-        negative_prompt_text_label = _("Negative Prompt")
-        negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
-        grid.attach(negative_prompt_label, 0, 3, 1, 1)
-        vbox.pack_start(negative_prompt_label, False, False, 1)
-        negative_prompt_label.show()
-
         # num_infer_steps parameter
         label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-        grid.attach(label, 0, 4, 1, 1)
+        grid.attach(label, 0, 3, 1, 1)
         label.show()
         spin = GimpUi.prop_spin_button_new(
             config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
-        grid.attach(spin, 1, 4, 1, 1)
+        grid.attach(spin, 1, 3, 1, 1)
         spin.show()
 
         # guidance_scale parameter
         label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
-        grid.attach(label, 0, 5, 1, 1)
+        grid.attach(label, 0, 4, 1, 1)
         label.show()
         spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
-        grid.attach(spin, 1, 5, 1, 1)
+        grid.attach(spin, 1, 4, 1, 1)
         spin.show()
 
         # seed
         seed = Gtk.Entry.new()
-        grid.attach(seed, 1, 6, 1, 1)
+        grid.attach(seed, 1, 5, 1, 1)
         seed.set_width_chars(40)
         seed.set_placeholder_text(_("If left blank, random seed will be set.."))
-        # seed.set_text("Person|Cars")
+
         seed.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["seed"], -1))
         seed.show()
 
         seed_text = _("Seed")
         seed_label = Gtk.Label(label=seed_text)
-        grid.attach(seed_label, 0, 6, 1, 1)
+        grid.attach(seed_label, 0, 5, 1, 1)
         vbox.pack_start(seed_label, False, False, 1)
         seed_label.show()
 
@@ -500,7 +544,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
             )
         )
-        grid.attach(spin, 1, 7, 1, 1)
+        grid.attach(spin, 1, 6, 1, 1)
         spin.show()
 
         # UI to browse Initial Image
@@ -513,12 +557,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             file_chooser_dialog.hide()
 
         file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image (Optional)..."))
-        grid.attach(file_chooser_button, 0, 8, 1, 1)
+        grid.attach(file_chooser_button, 0, 7, 1, 1)
         file_chooser_button.show()
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
-        grid.attach(file_entry, 1, 8, 1, 1)
+        grid.attach(file_entry, 1, 7, 1, 1)
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
@@ -537,17 +581,17 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Initial_image strength parameter
         label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
-        grid.attach(label, 0, 9, 1, 1)
+        grid.attach(label, 0, 8, 1, 1)
         label.show()
         spin = GimpUi.prop_spin_button_new(
             config, "strength", step_increment=0.1, page_increment=0.1, digits=1
         )
-        grid.attach(spin, 1, 9, 1, 1)
+        grid.attach(spin, 1, 8, 1, 1)
         spin.show()
 
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
-        grid.attach(sd_run_label, 1, 10, 1, 1)
+        grid.attach(sd_run_label, 1, 9, 1, 1)
 
         # spinner
         spinner = Gtk.Spinner()
@@ -604,20 +648,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     seed = None
                 create_gif = config.get_property("create_gif")
 
-                #runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
-                #strength, seed, create_gif, progress_bar, config_path_output)
-
-                #result = runner.run(dialog)
-                #result = stablediffusion(
-                #    procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
-                #    strength, seed, create_gif, progress_bar, config_path_output
-                #)
-
-                # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
-                # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                #if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                #    config.end_run(Gimp.PDBStatusType.SUCCESS)
-                #return result
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, create_gif, progress_bar, config_path_output)
 
@@ -640,7 +670,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 spinner.start()
                 spinner.show()
 
-                device_name = config.get_property("device_name")
+                if adv_checkbox.get_active():
+                    device_name = [config.get_property("text_encode_device_name"), config.get_property("unet_device_name"), config.get_property("vae_decoder_device_name")]
+                else:
+                    device = config.get_property("device_name")
+                    device_name = [device, device, device]
+
                 model_name = config.get_property("model_name")
                 
                 server = "stable-diffusion-ov-server.py"
@@ -688,6 +723,34 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 if runner.num_infer_steps > 0:
                     perc_complete = runner.current_step / runner.num_infer_steps
                     progress_bar.set_fraction(perc_complete)
+            elif response == 800:
+                if adv_checkbox.get_active():
+                    grid.remove(basic_device_label)
+                    basic_device_label.hide()
+                    grid.remove(basic_device_combo)
+                    basic_device_combo.hide()
+                    grid.remove(adv_checkbox)
+                    grid.remove(scheduler_label)
+                    grid.remove(scheduler_combo)
+                    populate_advanced_devices()
+                else:
+                    grid.remove(adv_text_encoder_device_label)
+                    grid.remove(adv_text_encoder_device_combo)
+                    grid.remove(adv_unet_encoder_device_label)
+                    grid.remove(adv_unet_encoder_combo)
+                    grid.remove(adv_vae_decoder_device_label)
+                    grid.remove(adv_vae_decoder_device_combo)
+                    grid.remove(adv_checkbox)
+                    grid.remove(scheduler_label)
+                    grid.remove(scheduler_combo)
+                    adv_text_encoder_device_label.hide()
+                    adv_text_encoder_device_combo.hide()
+                    adv_unet_encoder_device_label.hide()
+                    adv_unet_encoder_combo.hide()
+                    adv_vae_decoder_device_label.hide()
+                    adv_vae_decoder_device_combo.hide()
+                    populate_basic_devices()
+
             else:
                 dialog.destroy()
                 return procedure.new_return_values(
@@ -733,7 +796,35 @@ class StableDiffusion(Gimp.PlugIn):
             "Scheduler Name: 'LMSDiscreteScheduler', 'PNDMScheduler','EulerDiscreteScheduler'",
             "LMSDiscreteScheduler",
             GObject.ParamFlags.READWRITE,
-        ),         
+        ),
+        "text_encode_device_name": (
+            str,
+            _("Text Encoder Device Name"),
+            "Device Name: 'CPU', 'GPU'",
+            "CPU",
+            GObject.ParamFlags.READWRITE,
+        ),
+        "unet_device_name": (
+            str,
+            _("Unet Device Name"),
+            "Device Name: 'CPU', 'GPU'",
+            "CPU",
+            GObject.ParamFlags.READWRITE,
+        ),
+        "vae_decoder_device_name": (
+            str,
+            _("VAE Decoder Device Name"),
+            "Device Name: 'CPU', 'GPU'",
+            "CPU",
+            GObject.ParamFlags.READWRITE,
+        ),
+        "advanced_device_selection": (
+            bool,
+            _("_Advanced Device Selection"),
+            "Advanced Device Selection",
+            False,
+            GObject.ParamFlags.READWRITE,
+        ),
 
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
 
@@ -779,7 +870,14 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "create_gif")
             procedure.add_argument_from_property(self, "model_name")
             procedure.add_argument_from_property(self, "scheduler") 
-            procedure.add_argument_from_property(self, "device_name")            
+            procedure.add_argument_from_property(self, "device_name")
+            procedure.add_argument_from_property(self, "text_encode_device_name")
+            procedure.add_argument_from_property(self, "unet_device_name")
+            procedure.add_argument_from_property(self, "vae_decoder_device_name")
+            procedure.add_argument_from_property(self, "advanced_device_selection")
+
+
+
 
         return procedure
 
