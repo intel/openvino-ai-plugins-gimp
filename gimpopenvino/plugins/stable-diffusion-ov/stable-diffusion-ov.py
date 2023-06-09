@@ -400,11 +400,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
         grid.attach(label, 0, 0, 1, 1)
         label.show()
-        combo = GimpUi.prop_string_combo_box_new(
+        model_combo = GimpUi.prop_string_combo_box_new(
             config, "model_name", model_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(combo, 1, 0, 1, 1)
-        combo.show()
+        grid.attach(model_combo, 1, 0, 1, 1)
+        model_combo.show()
 
         # Device Name parameter
         basic_device_label = Gtk.Label.new_with_mnemonic(_("_Device"))
@@ -439,6 +439,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
         )
         scheduler_combo.show()
+
+
 
         def populate_advanced_devices():
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
@@ -614,8 +616,52 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
+        model_name = None
+        device_text = None
+        device_unet = None
+        device_vae = None
         if is_server_running():
             run_button.set_sensitive(True)
+            model_name = config.get_property("model_name")
+            if adv_checkbox.get_active():
+                device_text = config.get_property("text_encode_device_name")
+                device_unet = config.get_property("unet_device_name")
+                device_vae = config.get_property("vae_decoder_device_name")
+            else:
+                device = config.get_property("device_name")
+                device_text = device
+                device_unet = device
+                device_vae = device
+
+        # called when model or device drop down lists are changed.
+        # The idea here is that we want to disable the run button
+        # if model / devices are changed from what is currently loaded.
+        def model_sensitive_combo_changed(widget):
+            model_name_tmp = config.get_property("model_name")
+            if adv_checkbox.get_active():
+                device_text_tmp = config.get_property("text_encode_device_name")
+                device_unet_tmp = config.get_property("unet_device_name")
+                device_vae_tmp = config.get_property("vae_decoder_device_name")
+            else:
+                device_tmp = config.get_property("device_name")
+                device_text_tmp = device_tmp
+                device_unet_tmp = device_tmp
+                device_vae_tmp = device_tmp
+            if model_name_tmp==model_name and device_text_tmp==device_text and device_unet_tmp==device_unet and device_vae_tmp==device_vae:
+                run_button.set_sensitive(True)
+            else:
+                run_button.set_sensitive(False)
+
+
+
+        model_combo.connect("changed", model_sensitive_combo_changed)
+        basic_device_combo.connect("changed", model_sensitive_combo_changed)
+        adv_text_encoder_device_combo.connect("changed", model_sensitive_combo_changed)
+        adv_unet_encoder_combo.connect("changed", model_sensitive_combo_changed)
+        adv_vae_decoder_device_combo.connect("changed", model_sensitive_combo_changed)
+        adv_checkbox.connect("toggled", model_sensitive_combo_changed)
+
+
 
         # Wait for user to click
         dialog.show()
@@ -630,6 +676,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             response = dialog.run()                           
                 
             if response == Gtk.ResponseType.OK:
+
+                model_combo.set_sensitive(False)
+                basic_device_combo.set_sensitive(False)
+                adv_text_encoder_device_combo.set_sensitive(False)
+                adv_unet_encoder_combo.set_sensitive(False)
+                adv_vae_decoder_device_combo.set_sensitive(False)
+                adv_checkbox.set_sensitive(False)
 
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
@@ -662,6 +715,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 load_model_button.set_sensitive(False)
                 continue
             elif response == Gtk.ResponseType.APPLY:
+                model_combo.set_sensitive(False)
+                basic_device_combo.set_sensitive(False)
+                adv_text_encoder_device_combo.set_sensitive(False)
+                adv_unet_encoder_combo.set_sensitive(False)
+                adv_vae_decoder_device_combo.set_sensitive(False)
+                adv_checkbox.set_sensitive(False)
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
                 run_button.set_sensitive(False)
@@ -671,9 +730,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 spinner.show()
 
                 if adv_checkbox.get_active():
-                    device_name = [config.get_property("text_encode_device_name"), config.get_property("unet_device_name"), config.get_property("vae_decoder_device_name")]
+                    device_text = config.get_property("text_encode_device_name")
+                    device_unet = config.get_property("unet_device_name")
+                    device_vae = config.get_property("vae_decoder_device_name")
+                    device_name = [device_text, device_unet, device_vae]
                 else:
                     device = config.get_property("device_name")
+                    device_text = device
+                    device_unet = device
+                    device_vae = device
                     device_name = [device, device, device]
 
                 model_name = config.get_property("model_name")
@@ -703,6 +768,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 sd_run_label.hide()
                 run_button.set_sensitive(True)
                 load_model_button.set_sensitive(True)
+                model_combo.set_sensitive(True)
+                basic_device_combo.set_sensitive(True)
+                adv_text_encoder_device_combo.set_sensitive(True)
+                adv_unet_encoder_combo.set_sensitive(True)
+                adv_vae_decoder_device_combo.set_sensitive(True)
+                adv_checkbox.set_sensitive(True)
 
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
