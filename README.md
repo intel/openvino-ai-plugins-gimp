@@ -41,7 +41,8 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 ### Linux (Tested on Ubuntu 22.04)
 1. Install flatpak distribution of GIMP development package -- instructions here: [GIMP Development Downloads](https://www.gimp.org/downloads/devel/) <br>
-2. Clone, run install script, copy weights:
+2. Clone, run install script, copy weights: <br>
+
    ```
    # clone this repo:
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git 
