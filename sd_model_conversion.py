@@ -18,13 +18,18 @@ import os
 import shutil
 from openvino.tools import mo
 from openvino.runtime import serialize
+import platform
+
 
 #ov_version = sys.argv[1]
 
 #print("ov_version",ov_version)
 pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to("cpu")
 
-sd_mo_path=r'model_conv\Scripts\mo.exe'
+if platform.system() == "Linux":
+	sd_mo_path=os.path.join(".", "model_conv/bin/mo")
+else:
+	sd_mo_path=r'model_conv\Scripts\mo.exe'
 
 text_encoder = pipe.text_encoder
 text_encoder.eval()
@@ -36,7 +41,7 @@ vae.eval()
 del pipe
 
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
-SD_path = os.path.join(install_location, "weights\stable-diffusion-ov\stable-diffusion-1.5")
+SD_path = os.path.join(install_location, "weights", "stable-diffusion-ov", "stable-diffusion-1.5")
 
 choice = sys.argv[1]
 
@@ -141,11 +146,11 @@ gc.collect()
 
 #if ov_version == "2022.2.0":
 
-UNET_ONNX_PATH = Path(weight_path) / 'unet/unet.onnx'
+UNET_ONNX_PATH = Path(weight_path) / 'unet' / 'unet.onnx'
 UNET_OV_PATH = Path(weight_path) / 'unet.xml'
 
 print("UNET PATH",UNET_OV_PATH)
-
+print("UNET_ONNX_PATH", UNET_ONNX_PATH)
 
 def convert_unet_onnx(unet:StableDiffusionPipeline, onnx_path:Path):
     """

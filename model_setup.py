@@ -5,11 +5,14 @@ import shutil
 from pathlib import Path
 
 
-other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp\weights")
-src_dir = r"openvino-ai-plugins-gimp\weights"
+other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+src_dir = os.path.join(".", "openvino-ai-plugins-gimp", "weights")  #r"openvino-ai-plugins-gimp\weights"
 test_path = os.path.join(other_models, "superresolution-ov")
 
+
+
 for folder in os.scandir(src_dir):
+    
     model = os.path.basename(folder)
     model_path = os.path.join(other_models, model)
     if not os.path.isdir(model_path):
@@ -26,7 +29,7 @@ choice = input("Do you want to download openvino stable-diffusion-1.4 model? Ent
 if choice == "Y" or choice == "y":
 
     install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
-    SD_path = os.path.join(install_location, "weights\stable-diffusion-ov\stable-diffusion-1.4")
+    SD_path = os.path.join(install_location, "weights", "stable-diffusion-ov", "stable-diffusion-1.4")
 
     if os.path.isdir(SD_path):
          shutil.rmtree(SD_path)
