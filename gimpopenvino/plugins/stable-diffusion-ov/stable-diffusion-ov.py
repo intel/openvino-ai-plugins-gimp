@@ -103,7 +103,7 @@ class SDDialogResponse(IntEnum):
 def list_models(weight_path, SD):
     model_list = []
     if SD == "SD_1.4":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.4") 
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
@@ -114,7 +114,7 @@ def list_models(weight_path, SD):
         return model_list
         
     if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
      
     for file in os.scandir(dir_path): #, recursive=True):
         text = Path(file) / 'text_encoder.xml'
