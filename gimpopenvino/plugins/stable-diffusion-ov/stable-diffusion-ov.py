@@ -297,30 +297,28 @@ def is_server_running():
 def async_load_models(python_path, server_path, device_name, model_name, dialog):
 
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((HOST, PORT))
-        s.sendall(b"kill")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"kill")
 
-        print("stable-diffusion model server killed")
+            print("stable-diffusion model server killed")
     except:
         print("No stable-diffusion model server found to kill")
 
 
     process = subprocess.Popen([python_path, server_path, model_name, device_name[0], device_name[1], device_name[2]], close_fds=True)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, 65433))
-    s.listen()
-    while True:
-        conn, addr = s.accept()
-        with conn:
-
-            while True:
-
-               data = conn.recv(1024)
-               if data.decode() == "Ready":
-                   break
-
-            break
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((HOST, 65433))
+        s.listen()
+        while True:
+            conn, addr = s.accept()
+            with conn:
+                while True:
+                    data = conn.recv(1024)
+                    if data.decode() == "Ready":
+                        break
+                break
 
     dialog.response(SDDialogResponse.LoadModelComplete)
 
