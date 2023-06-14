@@ -32,13 +32,25 @@ Please raise a PR for any new features, modifactions or bug fixes.
    - clone this repo: <br>
    ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git``` <br>
    
-    - run install script -> this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
+    - run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
    ```openvino-ai-plugins-gimp\install.bat``` <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
    Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
 4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
+### Linux (Tested on Ubuntu 22.04)
+1. Install flatpak distribution of GIMP development package -- instructions here: [GIMP Development Downloads](https://www.gimp.org/downloads/devel/) <br>
+2. Clone, run install script, copy weights:
+   ```
+   # clone this repo:
+   git clone https://github.com/intel/openvino-ai-plugins-gimp.git 
+
+   # run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup 
+   openvino-ai-plugins-gimp/install.sh
+   ```
+3. Start the GIMP application (```flatpak run org.gimp.GIMP```), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
+4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion - This GIF doesn't represent the current GUI
 1. Create or choose a layer  <br>
