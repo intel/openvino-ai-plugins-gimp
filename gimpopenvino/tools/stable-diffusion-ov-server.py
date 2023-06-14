@@ -246,10 +246,14 @@ def start():
     print("Done looking for GIMP process")
 
     if gimp_proc:
-        print("gimp-2.99 process found:", gimp_proc)
-        psutil.wait_procs([proc])
-        print("exiting..!")
-        os._exit(0)
+        try:
+            print("gimp-2.99 process found:", gimp_proc)
+            psutil.wait_procs([proc])
+        except:
+            print("wait procs failed!")
+        finally:
+            print("exiting..!")
+            os._exit(0)
 
     else:
         print("no gimp process found!")
