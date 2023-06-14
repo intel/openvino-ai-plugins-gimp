@@ -22,7 +22,7 @@ if [ $model_setup == Y ] || [ $model_setup == y ]
 then
 	echo **** OpenVINO MODEL SETUP STARTED ****
 	source gimpenv3/bin/activate
-	python3 openvino-ai-plugins-gimp/model_setup.py
+	python3 ${THIS_DIR}/model_setup.py
 	deactivate
 	echo "-----------------------------------------------------------------------------------------------"
 	echo "**** OPENVINO STABLE DIFFUSION 1.5 MODELS SETUP ****"
@@ -31,9 +31,9 @@ then
 	python3 -m virtualenv model_conv
 	source model_conv/bin/activate
 	pip3 install --upgrade "pip" "wheel" "setuptools" | grep -v "already satisfied"
-	pip3 install -r "openvino-ai-plugins-gimp/model-requirements.txt" | grep -v "already satisfied"
+	pip3 install -r "${THIS_DIR}/model-requirements.txt" | grep -v "already satisfied"
 	
-	python3 openvino-ai-plugins-gimp/choose_sd_model.py
+	python3 ${THIS_DIR}/choose_sd_model.py
 	echo "**** OPENVINO STABLE DIFFUSION 1.5 MODELS COMPLETE ****"
 	deactivate
 	
