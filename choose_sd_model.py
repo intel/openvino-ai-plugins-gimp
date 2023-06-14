@@ -1,10 +1,15 @@
 
 import subprocess
 import os
+import platform
+
+if platform.system() == "Linux":
+	sd_python_path=os.path.join(".", "model_conv/bin/python3")
+else:
+	sd_python_path=r'model_conv\Scripts\python.exe'
 
 
-sd_python_path=r'model_conv\Scripts\python.exe'
-chose_model=r'openvino-ai-plugins-gimp\sd_model_conversion.py'
+chose_model=os.path.join(".", "openvino-ai-plugins-gimp", "sd_model_conversion.py")  #r'openvino-ai-plugins-gimp\sd_model_conversion.py'
 
 print("=========Chose SD-1.5 models to download and convert=========")
 print("1 - Square (512x512 output image) ")
@@ -16,28 +21,31 @@ print("6 - ALL the above SD-1.5 models ")
 print("7 - Only Square, Landscape, Portrait")
 print("8 - Skip All SD-1.5 Model setup ")   
     
-choice = input("Enter the Number for the model you want to download & convert: ")
+while True:
+    choice = input("Enter the Number for the model you want to download & convert: ")
 
-
-if choice=="6":
-    for i in range(1,6):
-        command = sd_python_path + ' ' + chose_model + ' ' + str(i)
-        os.system(command)
-
-elif choice=="7":
-    for i in range(1,4):
-        command = sd_python_path + ' ' + chose_model + ' ' + str(i)
-        os.system(command)
-
-elif choice=="8":
-    print("Exiting SD-1.5 Model setup.........")
-
-else:
-    try:
+    if choice=="6":
+        for i in range(1,6):
+            command = sd_python_path + ' ' + chose_model + ' ' + str(i)
+            os.system(command)
+        break
+    elif choice=="7":
+        for i in range(1,4):
+            command = sd_python_path + ' ' + chose_model + ' ' + str(i)
+            os.system(command)
+        break
+    elif choice=="8":
+        print("Exiting SD-1.5 Model setup.........")
+        break
+    elif choice in ["1","2","3","4","5"]:
         command = sd_python_path + ' ' + chose_model + ' ' + choice
         os.system(command)
-    except:
-        print("Wrong option selected. Exiting...")
+        break
+  
+    else:
+        print("Wrong option selected.")
+        
+			
     
 
 

@@ -103,7 +103,7 @@ class SDDialogResponse(IntEnum):
 def list_models(weight_path, SD):
     model_list = []
     if SD == "SD_1.4":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.4") 
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
@@ -114,7 +114,7 @@ def list_models(weight_path, SD):
         return model_list
         
     if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
      
     for file in os.scandir(dir_path): #, recursive=True):
         text = Path(file) / 'text_encoder.xml'
@@ -297,30 +297,28 @@ def is_server_running():
 def async_load_models(python_path, server_path, device_name, model_name, dialog):
 
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((HOST, PORT))
-        s.sendall(b"kill")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"kill")
 
-        print("stable-diffusion model server killed")
+            print("stable-diffusion model server killed")
     except:
         print("No stable-diffusion model server found to kill")
 
 
     process = subprocess.Popen([python_path, server_path, model_name, device_name[0], device_name[1], device_name[2]], close_fds=True)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, 65433))
-    s.listen()
-    while True:
-        conn, addr = s.accept()
-        with conn:
-
-            while True:
-
-               data = conn.recv(1024)
-               if data.decode() == "Ready":
-                   break
-
-            break
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((HOST, 65433))
+        s.listen()
+        while True:
+            conn, addr = s.accept()
+            with conn:
+                while True:
+                    data = conn.recv(1024)
+                    if data.decode() == "Ready":
+                        break
+                break
 
     dialog.response(SDDialogResponse.LoadModelComplete)
 

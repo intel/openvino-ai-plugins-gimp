@@ -96,6 +96,7 @@ def run(model_name,device_name):
     )    
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
         s.listen()
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -245,10 +246,14 @@ def start():
     print("Done looking for GIMP process")
 
     if gimp_proc:
-        print("gimp-2.99 process found:", gimp_proc)
-        psutil.wait_procs([proc])
-        print("exiting..!")
-        os._exit(0)
+        try:
+            print("gimp-2.99 process found:", gimp_proc)
+            psutil.wait_procs([proc])
+        except:
+            print("wait procs failed!")
+        finally:
+            print("exiting..!")
+            os._exit(0)
 
     else:
         print("no gimp process found!")
