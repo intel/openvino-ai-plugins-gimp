@@ -30,7 +30,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 2. Clone, run install script: <br>
 
    - clone this repo: <br>
-   ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git``` <br>
+   ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git -b version_1_3``` <br>
    
     - run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
    ```openvino-ai-plugins-gimp\install.bat``` <br>
@@ -45,7 +45,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
    ```
    # clone this repo:
-   git clone https://github.com/intel/openvino-ai-plugins-gimp.git 
+   git clone https://github.com/intel/openvino-ai-plugins-gimp.git -b version_1_3
 
    # run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup 
    openvino-ai-plugins-gimp/install.sh
