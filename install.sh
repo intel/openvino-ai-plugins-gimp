@@ -14,7 +14,9 @@ echo **** openvino-ai-plugins-gimp Setup Ended ****
 echo "-----------------------------------------------------------------------------------------------"
 echo "-----------------------------------------------------------------------------------------------"
 
+
 read -p "Do you want to continue setting up the models for all the plugin now? Enter Y/N:  " model_setup
+model_setup=${model_setup:=n}
 
 echo "your choice " $model_setup
 
