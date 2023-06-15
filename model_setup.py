@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
-src_dir = os.path.join(".", "openvino-ai-plugins-gimp", "weights")  #r"openvino-ai-plugins-gimp\weights"
+src_dir = os.path.join(os.path.dirname(__file__), "weights")  #r"openvino-ai-plugins-gimp\weights"
 test_path = os.path.join(other_models, "superresolution-ov")
 
 

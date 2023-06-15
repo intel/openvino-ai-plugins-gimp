@@ -9,7 +9,7 @@ else:
 	sd_python_path=r'model_conv\Scripts\python.exe'
 
 
-chose_model=os.path.join(".", "openvino-ai-plugins-gimp", "sd_model_conversion.py")  #r'openvino-ai-plugins-gimp\sd_model_conversion.py'
+chose_model=os.path.join(os.path.dirname(__file__), "sd_model_conversion.py")  #r'openvino-ai-plugins-gimp\sd_model_conversion.py'
 
 print("=========Chose SD-1.5 models to download and convert=========")
 print("1 - Square (512x512 output image) ")
