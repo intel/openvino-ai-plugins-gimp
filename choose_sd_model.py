@@ -4,12 +4,11 @@ import os
 import platform
 
 if platform.system() == "Linux":
-	sd_python_path=os.path.join(".", "model_conv/bin/python3")
+    sd_python_path=os.path.join(".", "model_conv/bin/python3")
+    chose_model=os.path.join(os.path.dirname(__file__), "sd_model_conversion.py")
 else:
-	sd_python_path=r'model_conv\Scripts\python.exe'
-
-
-chose_model=os.path.join(os.path.dirname(__file__), "sd_model_conversion.py")  #r'openvino-ai-plugins-gimp\sd_model_conversion.py'
+    sd_python_path=r'model_conv\Scripts\python.exe'
+    chose_model=r'openvino-ai-plugins-gimp\sd_model_conversion.py'
 
 print("=========Chose SD-1.5 models to download and convert=========")
 print("1 - Square (512x512 output image) ")
@@ -26,20 +25,22 @@ while True:
 
     if choice=="6":
         for i in range(1,6):
-            command = sd_python_path + ' ' + chose_model + ' ' + str(i)
-            os.system(command)
+            
+            subprocess.call([sd_python_path, chose_model, str(i)])
+            
         break
     elif choice=="7":
         for i in range(1,4):
-            command = sd_python_path + ' ' + chose_model + ' ' + str(i)
-            os.system(command)
+       
+            subprocess.call([sd_python_path, chose_model, str(i)])
         break
     elif choice=="8":
         print("Exiting SD-1.5 Model setup.........")
         break
     elif choice in ["1","2","3","4","5"]:
-        command = sd_python_path + ' ' + chose_model + ' ' + choice
-        os.system(command)
+      
+        subprocess.call([sd_python_path, chose_model, choice])
+    
         break
   
     else:

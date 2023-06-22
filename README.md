@@ -39,7 +39,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
    Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
 4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
-### Linux (Tested on Ubuntu 22.04)
+### Linux (Tested on Ubuntu 20.04)
 1. Install flatpak distribution of GIMP development package -- instructions here: [GIMP Development Downloads](https://www.gimp.org/downloads/devel/) <br>
 2. Clone, run install script, copy weights: <br>
 
