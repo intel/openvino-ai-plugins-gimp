@@ -54,6 +54,25 @@ class StringEnum:
         for i in range(len(self.keys)):
             tree_model.append([self.keys[i], self.values[i]])
         return tree_model
+        
+        
+class DeviceEnum:
+
+
+    def __init__(self, supported_devices):
+        self.keys = []
+        self.values = [] 
+        for i in supported_devices:
+            
+            self.keys.append(i)
+            self.values.append(i)
+
+    def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
+        tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+        for i in range(len(self.keys)):
+            tree_model.append([self.keys[i], self.values[i]])
+        return tree_model
 
 
 model_name_enum = StringEnum(
@@ -63,12 +82,6 @@ model_name_enum = StringEnum(
     _("sr_1033"),
 )
 
-device_name_enum = StringEnum(
-    "CPU",
-    _("CPU"),
-    "GPU",
-    _("GPU"),
-)
 
 
 
@@ -118,7 +131,13 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
                 Gimp.RunMode.NONINTERACTIVE,
                 Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
             )
-            result_layer = result.get_active_layer()
+            try:
+                # 2.99.10
+                result_layer = result.get_active_layer()
+            except:
+                # > 2.99.10
+                result_layers = result.list_layers()
+                result_layer = result_layers[0]
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
             copy.set_name("SuperResolution")
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
@@ -161,6 +180,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             config_path_output = json.load(file)
         python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "superresolution-ov.py")
+        
+        device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
@@ -287,11 +308,18 @@ class Superresolution(Gimp.PlugIn):
     }
 
     ## GimpPlugIn virtual methods ##
+
     def do_query_procedures(self):
-        self.set_translation_domain(
-            "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-        )
+        try:
+            self.set_translation_domain(
+                 "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
+            )
+        except:
+            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
         return ["superresolution-ov"]
+
+    def do_set_i18n(self, procname):
+        return True, 'gimp30-python', None
 
     def do_create_procedure(self, name):
         procedure = None

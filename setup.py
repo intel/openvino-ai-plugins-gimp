@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 
 here = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(here, "README.md"), "r") as fh:
+with open(os.path.join(here, "README.md"), "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 setup(
@@ -39,7 +39,8 @@ setup(
         "timm==0.4.5",
         "transformers",
         "diffusers",
-        "openvino==2022.3.0"
+        "openvino==2022.3.0",
+        "psutil"
         
         
     ]
