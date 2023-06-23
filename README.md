@@ -26,8 +26,19 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ## Installation Steps
 
 ### Windows
+Skip steps 1 and 2 if you already have Python3 and Git on Windows
+
+#### 1. Install Python
+- Download a Python installer from python.org. Choose Python 3.7, 3.8, 3.9 or 3.10 and make sure to pick a 64 bit version. For example, this 3.8 installer: https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe <br>
+- Double click on the installer to run it, and follow the steps in the installer. Check the box to add Python to your PATH, and to install py. At the end of the installer, there is an option to disable the PATH length limit. It is recommended to click this. <br>
+
+#### 2. Install Git
+- Download [GIT](https://git-scm.com/)
+
+#### 3. Install the GIMP Plugin
+
 1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone, run install script: <br>
+2. Clone and run install script: <br>
 
    - clone this repo: <br>
    ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git``` <br>

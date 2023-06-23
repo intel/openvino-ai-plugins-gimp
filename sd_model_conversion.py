@@ -8,7 +8,7 @@
 
 
 
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, StableDiffusionInpaintPipeline
 import gc
 from pathlib import Path
 import torch
@@ -25,24 +25,13 @@ import subprocess
 #ov_version = sys.argv[1]
 
 #print("ov_version",ov_version)
-pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to("cpu")
+install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
+SD_path = os.path.join(install_location, "weights", "stable-diffusion-ov", "stable-diffusion-1.5")
 
 if platform.system() == "Linux":
 	sd_mo_path=os.path.join(".", "model_conv/bin/mo")
 else:
 	sd_mo_path=r'model_conv\Scripts\mo.exe'
-
-text_encoder = pipe.text_encoder
-text_encoder.eval()
-unet = pipe.unet
-unet.eval()
-vae = pipe.vae
-vae.eval()
-
-del pipe
-
-install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
-SD_path = os.path.join(install_location, "weights", "stable-diffusion-ov", "stable-diffusion-1.5")
 
 choice = sys.argv[1]
 
@@ -52,7 +41,7 @@ choice = sys.argv[1]
 
 wt = 512
 ht = 512
-
+channel = 4
   
 if choice == "1":
     wt = 512
@@ -79,11 +68,37 @@ elif choice == "5":
     ht = 512
     weight_path = os.path.join(SD_path, "landscape_768x512")
     print("============SD-1.5 landscape_768x512 Model setup============")
+elif choice == "6":
+    wt = 512
+    ht = 512
+    channel = 9
+    weight_path = os.path.join(SD_path, "..", "stable-diffusion-1.5-inpainting")
+    print("============SD-1.5 Inpainting Model setup============")
+    
+
 else:
     wt = 512
     ht = 512
     weight_path = os.path.join(SD_path, "square")
     print("SD-1.5 Square Model setup")
+    
+if channel == 9:
+    pipe = StableDiffusionInpaintPipeline.from_pretrained("runwayml/stable-diffusion-inpainting").to("cpu")
+    pipeline_name = StableDiffusionInpaintPipeline
+
+else:    
+    pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to("cpu")
+    pipeline_name = StableDiffusionPipeline
+
+
+text_encoder = pipe.text_encoder
+text_encoder.eval()
+unet = pipe.unet
+unet.eval()
+vae = pipe.vae
+vae.eval()
+
+del pipe
     
 
 if not os.path.isdir(weight_path):
@@ -97,7 +112,7 @@ TEXT_ENCODER_OV_PATH = Path(weight_path) / 'text_encoder.xml'
 print("TEXT_ENCODER_OV_PATH:",TEXT_ENCODER_OV_PATH)  
 
 
-def convert_encoder_onnx(xtext_encoder: StableDiffusionPipeline, onnx_path:Path):
+def convert_encoder_onnx(xtext_encoder: pipeline_name, onnx_path:Path):
     """
     Convert Text Encoder model to ONNX. 
     Function accepts pipeline, prepares example inputs for ONNX conversion via torch.export, 
@@ -153,7 +168,7 @@ UNET_OV_PATH = Path(weight_path) / 'unet.xml'
 print("UNET PATH",UNET_OV_PATH)
 print("UNET_ONNX_PATH", UNET_ONNX_PATH)
 
-def convert_unet_onnx(unet:StableDiffusionPipeline, onnx_path:Path):
+def convert_unet_onnx(unet:pipeline_name, onnx_path:Path):
     """
     Convert Unet model to ONNX, then IR format. 
     Function accepts pipeline, prepares example inputs for ONNX conversion via torch.export, 
@@ -166,7 +181,8 @@ def convert_unet_onnx(unet:StableDiffusionPipeline, onnx_path:Path):
     if not onnx_path.exists():
         # prepare inputs
         encoder_hidden_state = torch.ones((2, 77, 768))
-        latents_shape = (2, 4, ht // 8, wt // 8)
+        
+        latents_shape = (2, channel, ht // 8, wt // 8)
         latents = torch.randn(latents_shape)
         t = torch.from_numpy(np.array(1, dtype=float))
 
@@ -206,7 +222,7 @@ VAE_ENCODER_ONNX_PATH = Path(weight_path) / 'vae_encoder.onnx'
 VAE_ENCODER_OV_PATH = Path(weight_path) / 'vae_encoder.xml'
 
 
-def convert_vae_encoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
+def convert_vae_encoder_onnx(vae: pipeline_name, onnx_path: Path):
     """
     Convert VAE model to ONNX, then IR format. 
     Function accepts pipeline, creates wrapper class for export only necessary for inference part, 
@@ -255,7 +271,7 @@ VAE_DECODER_ONNX_PATH = Path(weight_path) /'vae_decoder.onnx'
 VAE_DECODER_OV_PATH = Path(weight_path) / 'vae_decoder.xml'
 
 
-def convert_vae_decoder_onnx(vae: StableDiffusionPipeline, onnx_path: Path):
+def convert_vae_decoder_onnx(vae: pipeline_name, onnx_path: Path):
     """
     Convert VAE model to ONNX, then IR format. 
     Function accepts pipeline, creates wrapper class for export only necessary for inference part, 
