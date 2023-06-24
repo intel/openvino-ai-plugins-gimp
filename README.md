@@ -33,7 +33,7 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 - Double click on the installer to run it, and follow the steps in the installer. Check the box to add Python to your PATH, and to install py. At the end of the installer, there is an option to disable the PATH length limit. It is recommended to click this. <br>
 
 #### 2. Install Git
-- Download [GIT](https://git-scm.com/)
+- Download and install [GIT](https://git-scm.com/)
 
 #### 3. Install the GIMP Plugin
 

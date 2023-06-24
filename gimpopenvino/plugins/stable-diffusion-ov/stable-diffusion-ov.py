@@ -190,7 +190,7 @@ class SDRunner:
         Gimp.context_push()
         image.undo_group_start()
 
-        save_image(image, drawable, os.path.join(weight_path, "..", "cache_draw.png"))
+        #save_image(image, drawable, os.path.join(weight_path, "..", "cache_draw.png"))
 
 
         # Option Cache
@@ -361,7 +361,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if n_layers == 2 :
             for index, drawables in enumerate(list_layers):
                 save_image(image, [drawables], os.path.join(config_path_output["weight_path"],  "..", "cache" + str(index) + ".png"))
+        if n_layers == 1:
+            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
 
+            
         if n_layers == 2:
             model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting")
         else:
@@ -570,7 +573,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(spin, 1, 6, 1, 1)
         spin.show()
 
-        # UI to browse Initial Image
+        # UI to browse Initial Image      
+
         def choose_file(widget):
             if file_chooser_dialog.run() == Gtk.ResponseType.OK:
                 if file_chooser_dialog.get_file() is not None:
@@ -579,20 +583,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
             file_chooser_dialog.hide()
 
-        file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image (Optional)..."))
-        grid.attach(file_chooser_button, 0, 7, 1, 1)
-        file_chooser_button.show()
+        file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
+
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
-        grid.attach(file_entry, 1, 7, 1, 1)
+        
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
             # print("initial_image",initial_image)
             file_entry.set_text(initial_image) #.get_path())
-        file_entry.show()
+        
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -602,19 +605,78 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         file_chooser_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         file_chooser_dialog.add_button("_OK", Gtk.ResponseType.OK)
 
+
         # Initial_image strength parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
-        grid.attach(label, 0, 8, 1, 1)
-        label.show()
+        strength_label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
+        invisible_label1 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label2 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label3 = Gtk.Label.new_with_mnemonic(_("_"))
+        
         spin = GimpUi.prop_spin_button_new(
             config, "strength", step_increment=0.1, page_increment=0.1, digits=1
         )
-        grid.attach(spin, 1, 8, 1, 1)
-        spin.show()
-
+  
+      
+        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_inital_image", 
+                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))
+   
         # status label
-        sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
-        grid.attach(sd_run_label, 1, 9, 1, 1)
+
+
+        def populate_init_image_section():
+
+            grid.attach(file_chooser_button, 0, 8, 1, 1)
+            file_chooser_button.show()
+            grid.attach(file_entry, 1, 8, 1, 1)
+            file_entry.show()
+            grid.attach(strength_label, 0, 9, 1, 1)
+            strength_label.show()
+            grid.attach(spin, 1, 9, 1, 1)
+            spin.show() 
+                 
+    
+        if n_layers == 1:
+            grid.attach(initialImage_checkbox, 1, 7, 1, 1)
+            initialImage_checkbox.show()
+            grid.attach(invisible_label1,1, 8, 1, 1)
+            grid.attach(invisible_label2,1, 9, 1, 1)
+            #grid.attach(invisible_label3,0, 10, 1, 1)
+            invisible_label1.show()
+            invisible_label2.show()
+            #invisible_label3.show()            
+            if initialImage_checkbox.get_active():
+                populate_init_image_section()     
+        
+        def initImage_toggled(widget):
+            if initialImage_checkbox.get_active():
+                invisible_label1.hide()
+                invisible_label2.hide()
+                invisible_label3.hide()
+                populate_init_image_section()
+            else:
+                file_chooser_button.hide()
+                file_entry.hide()
+                strength_label.hide()
+                spin.hide()
+                grid.attach(invisible_label1,1, 8, 1, 1)
+                grid.attach(invisible_label2,1, 9, 1, 1)
+                #grid.attach(invisible_label3,0, 10, 1, 1)
+                invisible_label1.show()
+                invisible_label2.show()
+                #invisible_label3.show()
+               
+
+
+
+             
+                
+
+
+        initialImage_checkbox.connect("toggled", initImage_toggled)
+            
+
+        sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
+        grid.attach(sd_run_label, 1, 12, 1, 1)
 
         # spinner
         spinner = Gtk.Spinner()
@@ -712,10 +774,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 guidance_scale = config.get_property("guidance_scale")
                 strength = config.get_property("strength")
 
-                if len(file_entry.get_text()) != 0:
-                    initial_image = file_entry.get_text()
+                if initialImage_checkbox.get_active() and n_layers == 1:
+                    if len(file_entry.get_text()) != 0:
+                        initial_image = file_entry.get_text()
+                    else:
+                        initial_image = os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png")
                 else:
                     initial_image = None
+
                 if len(seed.get_text()) != 0:
                     seed = seed.get_text()
                 else:
@@ -918,6 +984,16 @@ class StableDiffusion(Gimp.PlugIn):
             GObject.ParamFlags.READWRITE,
         ),
 
+        "use_inital_image": (
+            bool,
+            _("_Use Inital Image (Default: Open Image in Canvas"),
+            "Use Inital Image (Default: Open Image in Canvas",
+            False,
+            GObject.ParamFlags.READWRITE,
+        ),
+
+
+
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
 
     }
@@ -969,6 +1045,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "unet_device_name")
             procedure.add_argument_from_property(self, "vae_decoder_device_name")
             procedure.add_argument_from_property(self, "advanced_device_selection")
+            procedure.add_argument_from_property(self, "use_inital_image")
 
 
 
