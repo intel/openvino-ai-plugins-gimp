@@ -45,6 +45,7 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    
     - run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
    ```openvino-ai-plugins-gimp\install.bat``` <br>
+   *You can re-run "run install script" step later to install & setup models that you may have missed.* <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
    Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
