@@ -90,7 +90,7 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 4. Follow steps 2,3,4,5 from section A. Please note that you will only see "SD_1.5_Inpainting" in model options if you added a mask layer to your image. <br>
 5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
 
-If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
+*If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback* <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
 ![](gifs/stable-diffusion.png)
