@@ -300,6 +300,23 @@ def is_server_running():
 
     return False
 
+
+
+def get_loaded_model_name():
+    HOST = "127.0.0.1"  # The server's hostname or IP address
+    PORT = 65432  # The port used by the server
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"model_name")
+            data = s.recv(1024)
+            return data.decode()
+    except:
+        return None
+
+
+
 def async_load_models(python_path, server_path, device_name, model_name, dialog):
 
     try:
@@ -355,14 +372,26 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         list_layers = []
         list_layers = image.get_layers()
-        n_layers = len(list_layers)
-        print("N LAYERS", n_layers)
-
-        if n_layers == 2 :
-            for index, drawables in enumerate(list_layers):
-                save_image(image, [drawables], os.path.join(config_path_output["weight_path"],  "..", "cache" + str(index) + ".png"))
-        if n_layers == 1:
+        #n_layers = len(list_layers)
+        #print("N LAYERS", n_layers)
+        
+        if list_layers[0].get_mask() == None:
+            n_layers = 1
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+        else:
+            n_layers = 2
+            mask = list_layers[0].get_mask()
+            save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+
+
+
+        #if n_layers == 2 :
+        #    for index, drawables in enumerate(list_layers):
+               
+        #        save_image(image, [drawables], os.path.join(config_path_output["weight_path"],  "..", "cache" + str(index) + ".png"))
+        #if n_layers == 1:
+        #    save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
 
             
         if n_layers == 2:
@@ -427,6 +456,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         model_combo = GimpUi.prop_string_combo_box_new(
             config, "model_name", model_name_enum.get_tree_model(), 0, 1
         )
+        if model_combo.get_active() == None and len(model_list) > 0:
+            model_combo.set_active(model_list[0])
+    
         grid.attach(model_combo, 1, 0, 1, 1)
         model_combo.show()
 
@@ -617,7 +649,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
   
       
-        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_inital_image", 
+        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image", 
                                     _("_Use Inital Image (Default: Selected layer in Canvas)"))
    
         # status label
@@ -704,17 +736,26 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_unet = None
         device_vae = None
         if is_server_running():
-            run_button.set_sensitive(True)
-            model_name = config.get_property("model_name")
-            if adv_checkbox.get_active():
-                device_text = config.get_property("text_encode_device_name")
-                device_unet = config.get_property("unet_device_name")
-                device_vae = config.get_property("vae_decoder_device_name")
+            
+            model_name_tmp = config.get_property("model_name")
+          
+            loaded_model_name = get_loaded_model_name()
+            if model_name_tmp == loaded_model_name:
+                model_name = model_name_tmp
+                run_button.set_sensitive(True)
+                if adv_checkbox.get_active():
+                    device_text = config.get_property("text_encode_device_name")
+                    device_unet = config.get_property("unet_device_name")
+                    device_vae = config.get_property("vae_decoder_device_name")
+                else:
+                    device = config.get_property("device_name")
+                    device_text = device
+                    device_unet = device
+                    device_vae = device
             else:
-                device = config.get_property("device_name")
-                device_text = device
-                device_unet = device
-                device_vae = device
+                run_button.set_sensitive(False)
+
+            
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -984,10 +1025,10 @@ class StableDiffusion(Gimp.PlugIn):
             GObject.ParamFlags.READWRITE,
         ),
 
-        "use_inital_image": (
+        "use_initial_image": (
             bool,
-            _("_Use Inital Image (Default: Open Image in Canvas"),
-            "Use Inital Image (Default: Open Image in Canvas",
+            _("_Use Initial Image (Default: Open Image in Canvas"),
+            "Use Initial Image (Default: Open Image in Canvas",
             False,
             GObject.ParamFlags.READWRITE,
         ),
@@ -1045,7 +1086,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "unet_device_name")
             procedure.add_argument_from_property(self, "vae_decoder_device_name")
             procedure.add_argument_from_property(self, "advanced_device_selection")
-            procedure.add_argument_from_property(self, "use_inital_image")
+            procedure.add_argument_from_property(self, "use_initial_image")
 
 
 

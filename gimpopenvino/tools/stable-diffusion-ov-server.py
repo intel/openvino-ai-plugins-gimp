@@ -125,6 +125,10 @@ def run(model_name,device_name):
                     if data.decode() == "ping":
                         conn.sendall(data)
                         continue
+                    if data.decode() == "model_name":
+                        tosend = bytes(model_name, 'utf-8')
+                        conn.sendall(tosend)
+                        continue                       
                  
                     if not data:
                         break

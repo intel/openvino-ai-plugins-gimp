@@ -9,7 +9,7 @@ This branch is currently under development. <br>Dedicated for GIMP 3, Python 3 a
 [2] Style-Transfer <br>
 [3] Inpainting <br>
 [4] Semantic-Segmentation <br>
-[5] Stable-Diffusion <br>
+[5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape & portrait), SD 1.5 Inpainting) <br>
 
 # Objectives
 [1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
@@ -58,20 +58,37 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    # clone this repo:
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
 
-   # run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup 
+   # run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. 
    openvino-ai-plugins-gimp/install.sh
    ```
+   You can re-run this step later to install & setup models that you may have missed.
 3. Start the GIMP application (```flatpak run org.gimp.GIMP```), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
 4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
 ### OpenVINO™ Image Generator Plugin with Stable Diffusion - This GIF doesn't represent the current GUI
+#### A. Prompt to Image 
 1. Create or choose a layer  <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the desired model and device from the drop down list.<br>
 4. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference" <br>
-3. Enter prompt and other parameters <br>
-4. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
-6. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
+5. Enter prompt and other parameters <br>
+6. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+
+#### B. Image to Image
+1. Create or choose a layer or open an image  <br>
+2. Follow steps 2,3,4,5 from section A. <br> 
+3. Select "Use Initial Image"
+4. By default the opened image in canvas will be used as initial image to the model. You can also select a different image by browsing from files.
+5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+
+#### C. Stable-Diffusion-1.5 Inpainting - Make sure to download and convert the model during install process. 
+1. Choose a layer or Open an image of size 512x512. (Currently works best with this resolution) <br>
+2. Use "Free select tool" to select the area in your image that you wish to change. <br>
+3. Right click on you image and click on "Add layer mask". Then choose "Selection" in "Initalize layer Mask to". This should create a mask with your selection.
+4. Follow steps 2,3,4,5 from section A. Please note that you will only see "SD_1.5_Inpainting" in model options if you added a mask layer to your image. <br>
+5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+
+If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 
 ![](gifs/stable-diffusion.png)
