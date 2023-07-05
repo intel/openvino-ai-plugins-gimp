@@ -371,7 +371,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         list_layers = []
-        list_layers = image.get_layers()
+        try:
+            list_layers = image.get_layers()
+        except:
+            list_layers = image.list_layers()
         #n_layers = len(list_layers)
         #print("N LAYERS", n_layers)
         
