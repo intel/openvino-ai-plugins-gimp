@@ -38,6 +38,7 @@ plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino
 sys.path.extend([plugin_loc])
 
 from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
+from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
@@ -78,7 +79,10 @@ def run(model_name,device_name):
     elif model_name == "SD_1.5_portrait_512x768": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/portrait_512x768")
     elif model_name == "SD_1.5_landscape_768x512": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")        
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")   
+    elif model_name == "SD_1.5_Inpainting": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
+             
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         device_name = ["CPU","GPU","GPU"]
@@ -88,12 +92,17 @@ def run(model_name,device_name):
     log.info('Model Path: %s',model_path )
     log.info('device_name: %s',device_name)
 
- 
-
-    engine = StableDiffusionEngine(
+    if model_name ==  "SD_1.5_Inpainting":
+        engine = StableDiffusionEngineInpainting(
         model = model_path,
         device = device_name
-    )    
+    ) 
+
+    else:
+        engine = StableDiffusionEngine(
+            model = model_path,
+            device = device_name
+        )    
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -116,6 +125,10 @@ def run(model_name,device_name):
                     if data.decode() == "ping":
                         conn.sendall(data)
                         continue
+                    if data.decode() == "model_name":
+                        tosend = bytes(model_name, 'utf-8')
+                        conn.sendall(tosend)
+                        continue                       
                  
                     if not data:
                         break
@@ -133,6 +146,7 @@ def run(model_name,device_name):
                         strength = data_output["strength"]
                         seed = data_output["seed"]
                         create_gif = data_output["create_gif"]
+                     
                         
                         
                         if scheduler == "LMSDiscreteScheduler":
@@ -179,22 +193,41 @@ def run(model_name,device_name):
                             ran_seed = random.randrange(4294967294) #4294967294 
                             np.random.seed(int(ran_seed))
                             log.info('Random Seed: %s',ran_seed)
-                        
-                        
-                        output = engine(
-                            prompt = prompt,
-                            negative_prompt = negative_prompt,
-                            init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
-                            scheduler = scheduler,
-                            strength = strength,
-                            num_inference_steps = num_infer_steps,
-                            guidance_scale = guidance_scale,
-                            eta = 0.0,
-                            create_gif = bool(create_gif),
-                            model = model_path,
-                            callback = progress_callback,
-                            callback_userdata = conn
+                                                
+                        if model_name ==  "SD_1.5_Inpainting":
+          
+                            
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                image = Image.open(os.path.join(weight_path, "..", "cache1.png")),
+                                mask_image = Image.open(os.path.join(weight_path, "..", "cache0.png")),
+                                scheduler = scheduler,
+                                strength = strength,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
                         ) 
+
+                        else:
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
+                                scheduler = scheduler,
+                                strength = strength,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                            ) 
                         
                   
                         cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])

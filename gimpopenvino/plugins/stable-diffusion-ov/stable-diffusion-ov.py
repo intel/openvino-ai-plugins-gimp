@@ -86,13 +86,7 @@ class DeviceEnum:
         return tree_model
 
 
-#model_name_enum = StringEnum(
-#    "SD_1.4",
-#    _("SD_1.4"),
-#    "SD_1.5",
-#    _("SD_1.5"),
 
-#)
 
 class SDDialogResponse(IntEnum):
     LoadModelComplete = 777
@@ -102,15 +96,21 @@ class SDDialogResponse(IntEnum):
 
 def list_models(weight_path, SD):
     model_list = []
+    flag = False
     if SD == "SD_1.4":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
+        flag = True
+
+    if SD == "SD_1.5_Inpainting":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
+        flag = True
+        
+    if flag:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
-            if SD == "SD_1.4":
-                model = SD
-                model_list.append(model)
+                model_list.append(SD)
         return model_list
         
     if SD == "SD_1.5":
@@ -141,12 +141,16 @@ scheduler_name_enum = StringEnum(
     _("EulerDiscreteScheduler"),
     "DPMSolverMultistepScheduler",
     _("DPMSolverMultistepScheduler"),
+    
 )
+
+
 class SDRunner:
-    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
+    def __init__ (self, procedure, image, n_drawables, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
                   strength, seed, create_gif, progress_bar, config_path_output):
         self.procedure = procedure
         self.image = image
+        self.n_drawables = n_drawables
         self.drawable = drawable
         self.prompt = prompt
         self.negative_prompt = negative_prompt
@@ -163,6 +167,7 @@ class SDRunner:
 
     def run(self, dialog):
         procedure = self.procedure
+        n_drawables = self.n_drawables
         image = self.image
         drawable = self.drawable
         prompt = self.prompt
@@ -181,11 +186,12 @@ class SDRunner:
         weight_path = config_path_output["weight_path"]
         python_path = config_path_output["python_path"]
         plugin_path = config_path_output["plugin_path"]
-
+       
         Gimp.context_push()
         image.undo_group_start()
 
-        save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+        #save_image(image, drawable, os.path.join(weight_path, "..", "cache_draw.png"))
+
 
         # Option Cache
         sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
@@ -261,9 +267,9 @@ class SDRunner:
 
             # Remove temporary layers that were saved
             my_dir = os.path.join(weight_path, "..")
-            for f_name in os.listdir(my_dir):
-                if f_name.startswith("cache"):
-                    os.remove(os.path.join(my_dir, f_name))
+            #for f_name in os.listdir(my_dir):
+            #    if f_name.startswith("cache"):
+            #        os.remove(os.path.join(my_dir, f_name))
 
             self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
             return self.result
@@ -293,6 +299,23 @@ def is_server_running():
         return False
 
     return False
+
+
+
+def get_loaded_model_name():
+    HOST = "127.0.0.1"  # The server's hostname or IP address
+    PORT = 65432  # The port used by the server
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            s.sendall(b"model_name")
+            data = s.recv(1024)
+            return data.decode()
+    except:
+        return None
+
+
 
 def async_load_models(python_path, server_path, device_name, model_name, dialog):
 
@@ -346,9 +369,42 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config_path_output["plugin_path"] = os.path.join(config_path, client)
 
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
-        model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5")
+
+        list_layers = []
+        try:
+            list_layers = image.get_layers()
+        except:
+            list_layers = image.list_layers()
+        #n_layers = len(list_layers)
+        #print("N LAYERS", n_layers)
+        
+        if list_layers[0].get_mask() == None:
+            n_layers = 1
+            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+        else:
+            n_layers = 2
+            mask = list_layers[0].get_mask()
+            save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+
+
+
+        #if n_layers == 2 :
+        #    for index, drawables in enumerate(list_layers):
+               
+        #        save_image(image, [drawables], os.path.join(config_path_output["weight_path"],  "..", "cache" + str(index) + ".png"))
+        #if n_layers == 1:
+        #    save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+
+            
+        if n_layers == 2:
+            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting")
+        else:
+            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5")
         
         model_name_enum = DeviceEnum(model_list)
+      
+            
         
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
@@ -367,6 +423,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
+
+
 
         GimpUi.init("stable-diffusion-ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property(
@@ -401,6 +459,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         model_combo = GimpUi.prop_string_combo_box_new(
             config, "model_name", model_name_enum.get_tree_model(), 0, 1
         )
+        if model_combo.get_active() == None and len(model_list) > 0:
+            model_combo.set_active(model_list[0])
+    
         grid.attach(model_combo, 1, 0, 1, 1)
         model_combo.show()
 
@@ -547,7 +608,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(spin, 1, 6, 1, 1)
         spin.show()
 
-        # UI to browse Initial Image
+        # UI to browse Initial Image      
+
         def choose_file(widget):
             if file_chooser_dialog.run() == Gtk.ResponseType.OK:
                 if file_chooser_dialog.get_file() is not None:
@@ -556,20 +618,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
             file_chooser_dialog.hide()
 
-        file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image (Optional)..."))
-        grid.attach(file_chooser_button, 0, 7, 1, 1)
-        file_chooser_button.show()
+        file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
+
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
-        grid.attach(file_entry, 1, 7, 1, 1)
+        
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
             # print("initial_image",initial_image)
             file_entry.set_text(initial_image) #.get_path())
-        file_entry.show()
+        
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -579,19 +640,78 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         file_chooser_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         file_chooser_dialog.add_button("_OK", Gtk.ResponseType.OK)
 
+
         # Initial_image strength parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
-        grid.attach(label, 0, 8, 1, 1)
-        label.show()
+        strength_label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
+        invisible_label1 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label2 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label3 = Gtk.Label.new_with_mnemonic(_("_"))
+        
         spin = GimpUi.prop_spin_button_new(
             config, "strength", step_increment=0.1, page_increment=0.1, digits=1
         )
-        grid.attach(spin, 1, 8, 1, 1)
-        spin.show()
-
+  
+      
+        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image", 
+                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))
+   
         # status label
-        sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
-        grid.attach(sd_run_label, 1, 9, 1, 1)
+
+
+        def populate_init_image_section():
+
+            grid.attach(file_chooser_button, 0, 8, 1, 1)
+            file_chooser_button.show()
+            grid.attach(file_entry, 1, 8, 1, 1)
+            file_entry.show()
+            grid.attach(strength_label, 0, 9, 1, 1)
+            strength_label.show()
+            grid.attach(spin, 1, 9, 1, 1)
+            spin.show() 
+                 
+    
+        if n_layers == 1:
+            grid.attach(initialImage_checkbox, 1, 7, 1, 1)
+            initialImage_checkbox.show()
+            grid.attach(invisible_label1,1, 8, 1, 1)
+            grid.attach(invisible_label2,1, 9, 1, 1)
+            #grid.attach(invisible_label3,0, 10, 1, 1)
+            invisible_label1.show()
+            invisible_label2.show()
+            #invisible_label3.show()            
+            if initialImage_checkbox.get_active():
+                populate_init_image_section()     
+        
+        def initImage_toggled(widget):
+            if initialImage_checkbox.get_active():
+                invisible_label1.hide()
+                invisible_label2.hide()
+                invisible_label3.hide()
+                populate_init_image_section()
+            else:
+                file_chooser_button.hide()
+                file_entry.hide()
+                strength_label.hide()
+                spin.hide()
+                grid.attach(invisible_label1,1, 8, 1, 1)
+                grid.attach(invisible_label2,1, 9, 1, 1)
+                #grid.attach(invisible_label3,0, 10, 1, 1)
+                invisible_label1.show()
+                invisible_label2.show()
+                #invisible_label3.show()
+               
+
+
+
+             
+                
+
+
+        initialImage_checkbox.connect("toggled", initImage_toggled)
+            
+
+        sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
+        grid.attach(sd_run_label, 1, 12, 1, 1)
 
         # spinner
         spinner = Gtk.Spinner()
@@ -619,17 +739,26 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_unet = None
         device_vae = None
         if is_server_running():
-            run_button.set_sensitive(True)
-            model_name = config.get_property("model_name")
-            if adv_checkbox.get_active():
-                device_text = config.get_property("text_encode_device_name")
-                device_unet = config.get_property("unet_device_name")
-                device_vae = config.get_property("vae_decoder_device_name")
+            
+            model_name_tmp = config.get_property("model_name")
+          
+            loaded_model_name = get_loaded_model_name()
+            if model_name_tmp == loaded_model_name:
+                model_name = model_name_tmp
+                run_button.set_sensitive(True)
+                if adv_checkbox.get_active():
+                    device_text = config.get_property("text_encode_device_name")
+                    device_unet = config.get_property("unet_device_name")
+                    device_vae = config.get_property("vae_decoder_device_name")
+                else:
+                    device = config.get_property("device_name")
+                    device_text = device
+                    device_unet = device
+                    device_vae = device
             else:
-                device = config.get_property("device_name")
-                device_text = device
-                device_unet = device
-                device_vae = device
+                run_button.set_sensitive(False)
+
+            
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -689,17 +818,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 guidance_scale = config.get_property("guidance_scale")
                 strength = config.get_property("strength")
 
-                if len(file_entry.get_text()) != 0:
-                    initial_image = file_entry.get_text()
+                if initialImage_checkbox.get_active() and n_layers == 1:
+                    if len(file_entry.get_text()) != 0:
+                        initial_image = file_entry.get_text()
+                    else:
+                        initial_image = os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png")
                 else:
                     initial_image = None
+
                 if len(seed.get_text()) != 0:
                     seed = seed.get_text()
                 else:
                     seed = None
                 create_gif = config.get_property("create_gif")
 
-                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
+                runner = SDRunner(procedure, image, n_drawables, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, create_gif, progress_bar, config_path_output)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
@@ -831,7 +964,7 @@ class StableDiffusion(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
         "num_infer_steps": (
-        int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32,
+        int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:32)", 1, 500, 20,
         GObject.ParamFlags.READWRITE,),
         "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "_Guidance Scale (Default:7.5)", 1.0, 20.0, 7.5,
                            GObject.ParamFlags.READWRITE,),
@@ -895,6 +1028,16 @@ class StableDiffusion(Gimp.PlugIn):
             GObject.ParamFlags.READWRITE,
         ),
 
+        "use_initial_image": (
+            bool,
+            _("_Use Initial Image (Default: Open Image in Canvas"),
+            "Use Initial Image (Default: Open Image in Canvas",
+            False,
+            GObject.ParamFlags.READWRITE,
+        ),
+
+
+
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
 
     }
@@ -921,6 +1064,8 @@ class StableDiffusion(Gimp.PlugIn):
                 self, name, Gimp.PDBProcType.PLUGIN, run, None
             )
             procedure.set_image_types("*")
+            #procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLES)
+            #procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE)
             procedure.set_documentation(
                 N_("stable-diffusion on the current layer."),
                 globals()[
@@ -944,6 +1089,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "unet_device_name")
             procedure.add_argument_from_property(self, "vae_decoder_device_name")
             procedure.add_argument_from_property(self, "advanced_device_selection")
+            procedure.add_argument_from_property(self, "use_initial_image")
 
 
 
