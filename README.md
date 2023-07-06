@@ -29,7 +29,7 @@ Please raise a PR for any new features, modifactions or bug fixes.
 Skip steps 1 and 2 if you already have Python3 and Git on Windows
 
 #### 1. Install Python
-- Download a Python installer from python.org. Choose Python 3.7, 3.8, 3.9 or 3.10 and make sure to pick a 64 bit version. For example, this 3.8 installer: https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe <br>
+- Download a Python installer from python.org. Choose Python 3.7, 3.8, 3.9 and make sure to pick a 64 bit version. For example, this 3.9.13 installer: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe <br>
 - Double click on the installer to run it, and follow the steps in the installer. Check the box to add Python to your PATH, and to install py. At the end of the installer, there is an option to disable the PATH length limit. It is recommended to click this. <br>
 
 #### 2. Install Git
