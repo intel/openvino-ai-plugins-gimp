@@ -28,7 +28,7 @@ import subprocess
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
 SD_path = os.path.join(install_location, "weights", "stable-diffusion-ov", "stable-diffusion-1.5")
 
-if platform.system() == "Linux":
+if platform.system() != "Windows":
 	sd_mo_path=os.path.join(".", "model_conv/bin/mo")
 else:
 	sd_mo_path=r'model_conv\Scripts\mo.exe'
