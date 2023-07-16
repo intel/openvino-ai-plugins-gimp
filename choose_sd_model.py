@@ -3,7 +3,7 @@ import subprocess
 import os
 import platform
 
-if platform.system() == "Linux":
+if platform.system() != "Windows":
     sd_python_path=os.path.join(".", "model_conv/bin/python3")
     chose_model=os.path.join(os.path.dirname(__file__), "sd_model_conversion.py")
 else:
