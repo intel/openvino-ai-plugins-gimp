@@ -26,7 +26,7 @@ import random
 from PIL import Image
 
 # scheduler
-from diffusers.schedulers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler,EulerAncestralDiscreteScheduler,DDIMScheduler
+from diffusers.schedulers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler,EulerAncestralDiscreteScheduler,DDIMScheduler, UniPCMultistepScheduler
 # utils 
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
@@ -39,6 +39,7 @@ sys.path.extend([plugin_loc])
 
 from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
 from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
+from  models_ov.controlnet_openpose import ControlNetOpenPose
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
@@ -82,6 +83,8 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")   
     elif model_name == "SD_1.5_Inpainting": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
+    elif model_name == "controlnet_openpose": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
              
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
@@ -96,7 +99,14 @@ def run(model_name,device_name):
         engine = StableDiffusionEngineInpainting(
         model = model_path,
         device = device_name
-    ) 
+    )
+
+    elif model_name == "controlnet_openpose":
+        engine = ControlNetOpenPose(
+        model = model_path,
+        device = device_name
+    )
+        
 
     else:
         engine = StableDiffusionEngine(
@@ -112,6 +122,7 @@ def run(model_name,device_name):
         s2.connect((HOST, 65433))
         s2.sendall(b"Ready")
         print("Ready")
+   
         while True:
             conn, addr = s.accept()
             with conn:
@@ -123,7 +134,7 @@ def run(model_name,device_name):
                     if data.decode() == "kill":
                         os._exit(0)
                     if data.decode() == "ping":
-                        conn.sendall(data)
+                        conn.sendall(data)                   
                         continue
                     if data.decode() == "model_name":
                         tosend = bytes(model_name, 'utf-8')
@@ -166,7 +177,11 @@ def run(model_name,device_name):
                                 beta_schedule="scaled_linear",
                                 skip_prk_steps = True,
                                 
-                            ) 
+                            )
+                        
+                        elif scheduler == "UniPCMultistepScheduler":
+                            log.info('UniPCMultistepScheduler')
+                            scheduler =  UniPCMultistepScheduler.from_pretrained(os.path.join(weight_path, "stable-diffusion-ov" , "UniPCMultistepScheduler_config"))
                           
                         else:
                              log.info('EulerDiscreteScheduler...')
@@ -211,7 +226,26 @@ def run(model_name,device_name):
                                 model = model_path,
                                 callback = progress_callback,
                                 callback_userdata = conn
-                        ) 
+                        )
+
+                        elif model_name ==  "controlnet_openpose":
+          
+                            
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                image = Image.open(init_image),
+                                
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )
+
+                                               
 
                         else:
                             output = engine(
@@ -230,9 +264,14 @@ def run(model_name,device_name):
                             ) 
                         
                   
-                        cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
+                        if model_name == "controlnet_openpose":
+                            output.save(os.path.join(weight_path, "..", "cache.png"))
+                            src_width,src_height = output.size
+                        else:
+                            cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
+                            src_height,src_width, _ = output.shape
                       
-                        src_height,src_width, _ = output.shape
+                        
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
 

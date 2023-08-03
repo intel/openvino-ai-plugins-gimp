@@ -44,6 +44,7 @@ scikit-image>=0.19.2
 setuptools>=56.0.0
 
 
-
-diffusers[torch]>=0.9.0
+diffusers==0.14.0
 huggingface-hub>=0.9.1
+
+controlnet-aux>=0.0.6

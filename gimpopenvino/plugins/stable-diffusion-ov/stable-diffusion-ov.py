@@ -97,6 +97,7 @@ class SDDialogResponse(IntEnum):
 def list_models(weight_path, SD):
     model_list = []
     flag = False
+    flag_openpose = False
     if SD == "SD_1.4":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         flag = True
@@ -104,6 +105,23 @@ def list_models(weight_path, SD):
     if SD == "SD_1.5_Inpainting":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
         flag = True
+    if SD == "controlnet_openpose":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
+        flag_openpose = True
+        print("flag_openpose", flag_openpose)
+        
+    if flag_openpose:
+        text = Path(dir_path) / 'text_encoder.xml'
+        unet = Path(dir_path) / 'unet_controlnet.xml'
+        vae = Path(dir_path) / 'vae_decoder.xml'
+       
+        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+                print("ALL OKAY !?")
+                model_list.append(SD)
+        
+        return model_list   
+        
+        
         
     if flag:
         text = Path(dir_path) / 'text_encoder.xml'
@@ -139,8 +157,8 @@ scheduler_name_enum = StringEnum(
     _("PNDMScheduler"),
     "EulerDiscreteScheduler",
     _("EulerDiscreteScheduler"),
-    "DPMSolverMultistepScheduler",
-    _("DPMSolverMultistepScheduler"),
+    "UniPCMultistepScheduler",
+    _("UniPCMultistepScheduler"),
     
 )
 
@@ -371,7 +389,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         list_layers = []
-        list_layers = image.get_layers()
+        try:
+            list_layers = image.get_layers()
+        except:
+            list_layers = image.list_layers()
         #n_layers = len(list_layers)
         #print("N LAYERS", n_layers)
         
@@ -397,7 +418,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if n_layers == 2:
             model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting")
         else:
-            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5")
+            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose")
         
         model_name_enum = DeviceEnum(model_list)
       
