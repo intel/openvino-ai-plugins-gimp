@@ -21,8 +21,7 @@ from transformers import CLIPTokenizer
 import torch
 
 from diffusers.pipeline_utils import DiffusionPipeline
-from diffusers import UniPCMultistepScheduler
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler,EulerAncestralDiscreteScheduler
+from diffusers import UniPCMultistepScheduler,DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
 import cv2
 import os
 import sys
@@ -119,7 +118,6 @@ def preprocess(image: PIL.Image.Image):
     """
 
     src_width, src_height = image.size
-    #image = image.convert('RGB')
     dst_width, dst_height = scale_fit_to_window(
         512, 512, src_width, src_height)
     image = np.array(image.resize((dst_width, dst_height),
@@ -130,7 +128,6 @@ def preprocess(image: PIL.Image.Image):
     pad = ((0, 0), (0, pad_height), (0, pad_width), (0, 0))
     image = np.pad(image, pad, mode="constant")
     image = image.astype(np.float32) / 255.0
-    #image = 2.0 * image - 1.0
     image = image.transpose(0, 3, 1, 2)
 
     return image, pad
@@ -155,39 +152,28 @@ def randn_tensor(
 
     return latents
 
-class ControlNetOpenPose(DiffusionPipeline):
+class ControlNetOpenPoseInternal(DiffusionPipeline):
     def __init__(
             self,
-             #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
             model="runwayml/stable-diffusion-v1-5",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU"],
+            device=["CPU","CPU","CPU","CPU"],
+            blobs=False,
+            swap=False
             ):
 
+        super().__init__()
+        self.vae_scale_factor = 8
+        self.set_progress_bar_config(disable=False)
+        
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
         except:
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
-            
-        super().__init__()
-        self.vae_scale_factor = 8
-        self.set_progress_bar_config(disable=False)
 
-        # self.swap = swap
-        # models
-        #controlnet = ControlNetModel.from_pretrained("C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\models--lllyasviel--control_v11p_sd15_openpose", torch_dtype=torch.float32) #lllyasviel/control_v11p_sd15_openpose"
-        #pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        #    "runwayml/stable-diffusion-v1-5", controlnet=controlnet
-        #) 
-        
-        #scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-        #scheduler.save_config("C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\scheduler_config")
-
-        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"..","UniPCMultistepScheduler_config"))
-        
-        #"C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\scheduler_config")
-        #del pipe
+        self.swap = swap
+   
         
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
@@ -197,7 +183,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         OPENPOSE_OV_PATH = os.path.join(model, "openpose.xml")
         self.pose_estimator = OpenposeDetector.from_pretrained(os.path.join(model, "lllyasviel_ControlNet"))
         
-        #"C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\models--lllyasviel--ControlNet") #"lllyasviel/ControlNet")
+       
         
         ov_openpose = OpenPoseOVModel(self.core, OPENPOSE_OV_PATH, device="CPU")
         self.pose_estimator.body_estimation.model = ov_openpose
@@ -207,14 +193,17 @@ class ControlNetOpenPose(DiffusionPipeline):
 
         #self.vae_scale_factor = 8
         # self.scheduler = scheduler
-        controlnet = os.path.join(model, "controlnet-pose.xml")
-        text_encoder = os.path.join(model, "text_encoder.xml")
-        unet = os.path.join(model, "unet_controlnet.xml")
-        #unet_neg = os.path.join(model, "unet_controlnet.xml")
-        vae_decoder = os.path.join(model, "vae_decoder.xml")
+        controlnet = os.path.join(model, "controlnet-pose_fp16.xml")
+        text_encoder = os.path.join(model, "text_encoder_fp16.xml")
+        unet_int8_model = os.path.join(model, "unet_controlnet_int8_sq_0.15_sym_tp_input.xml")
+        unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
+        vae_decoder = os.path.join(model, "vae_decoder_fp16.xml")
+        
+        self.vpu_flag = False
+        self.vpu_flag_neg = False
 
         ####################
-        self.load_models(self.core, device, controlnet, text_encoder, unet, vae_decoder)
+        self.load_models(self.core, device, controlnet, text_encoder, unet_time_proj_model, unet_int8_model, vae_decoder, blobs, model)
         # self.set_progress_bar_config(disable=True)
 
         # encoder
@@ -223,20 +212,19 @@ class ControlNetOpenPose(DiffusionPipeline):
         self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
         
         self.height = self.unet.input(0).shape[2] * 8
-        self.width = self.unet.input(0).shape[3] * 8    
+        self.width = self.unet.input(0).shape[3] * 8  
+        print("All models loaded")
+        
+        print("create infer request")
 
-        #if self.unet.input("sample").shape[1] == 4:
-        #    self.height = self.unet.input("sample").shape[2] * 8
-        #    self.width = self.unet.input("sample").shape[3] * 8
-        #else:
+        self.infer_request_neg = self.unet_neg.create_infer_request()
+        self.infer_request = self.unet.create_infer_request()
+        self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
+        print("create infer request created")        
+        
 
-        #    self.height = self.unet.input("sample").shape[1] * 8
-        #    self.width = self.unet.input("sample").shape[2] * 8
 
-        #self.infer_request_neg = self.unet_neg.create_infer_request()
-        #self.infer_request = self.unet.create_infer_request()
-
-    def load_models(self, core: Core, device: str, controlnet:Model, text_encoder: Model, unet: Model, vae_decoder: Model):
+    def load_models(self, core: Core, device: str, controlnet:Model, text_encoder: Model, unet_time_proj_model:Model, unet_int8_model: Model, vae_decoder: Model, blobs: bool, model: str):
         """
         Function for loading models on device using OpenVINO
         
@@ -255,21 +243,68 @@ class ControlNetOpenPose(DiffusionPipeline):
         self.text_encoder_out = self.text_encoder.output(0)
         print("text encoder loaded in:", time.time() - start)
         start = time.time()
-        self.controlnet = core.compile_model(controlnet, device[2])
+        
+        self.controlnet = core.compile_model(controlnet, "GPU")
         print("controlnet loaded in:", time.time() - start)
         start = time.time()
-        self.unet = core.compile_model(unet, device[1])
-        self.unet_out = self.unet.output(0)
-        #self.unet_neg = core.compile_model(unet_neg, device[2])
-        #self.unet_neg_out = self.unet_neg.output(0)
+        
+        print(" compile unet_time_proj")
+        self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
+        
+        if blobs:
+            if device[1] == "VPUX" or device[2] == "VPUX":
+                device_vpu = "VPUX"
+                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_vpu + ".blob"
+                print("Loading unet blob on vpux:",blob_name)
+                start = time.time()
+                with open(os.path.join(model, blob_name), "rb") as f:
+                    self.unet_vpux = self.core.import_model(f.read(), device_vpu)
+                print("unet loaded on vpux in:", time.time() - start)
+                
+            if device[1] == "GPU" or device[2] == "GPU":
+                print("compiling start on GPU")
+                start = time.time()
+                self.unet_gpu = self.core.compile_model(os.path.join(model, unet_int8_model), "GPU")
+                print("compiling done on GPU in", time.time() - start)
+                
+            if device[1] == "CPU" or device[2] == "CPU":
+                print("compiling start on CPU")
+                start = time.time()
+                self.unet_cpu = self.core.compile_model(os.path.join(model, unet_int8_model), "CPU")
+                print("compiling done on CPU in", time.time() - start)
+
+            
+            # Positive prompt
+            if device[1] == "VPUX":
+                self.unet = self.unet_vpux
+                self.vpu_flag = True
+            elif device[1] == "GPU":
+                self.unet = self.unet_gpu
+            else:
+                self.unet = self.unet_cpu
+
+            # Negative prompt:
+            if device[2] == "VPUX":
+                self.unet_neg = self.unet_vpux
+                self.vpu_flag_neg = True
+            elif device[2] == "GPU":
+                self.unet_neg = self.unet_gpu
+            else:
+                self.unet_neg = self.unet_cpu
+
+        else:
+
+            self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
+            self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
+
         print("unet loaded in:", time.time() - start)
         start = time.time()
-        self.vae_decoder = core.compile_model(vae_decoder, device[2])
+        self.vae_decoder = core.compile_model(vae_decoder, device[3])
         self.vae_decoder_out = self.vae_decoder.output(0)
         print("vae decoder loaded in:", time.time() - start)
         
       
-        
+
         
 
     def __call__(
@@ -277,6 +312,7 @@ class ControlNetOpenPose(DiffusionPipeline):
             prompt,
             image: Image.Image=None,
             negative_prompt=None,
+            scheduler=None,
             num_inference_steps = 32,
             guidance_scale = 7.5,
             controlnet_conditioning_scale: float = 1.0,
@@ -287,6 +323,8 @@ class ControlNetOpenPose(DiffusionPipeline):
             callback_userdata = None#,
             #scheduler=None,
     ):
+        
+        
         do_classifier_free_guidance = guidance_scale > 1.0
         # 2. Encode input prompt
         text_embeddings = self._encode_prompt(prompt, negative_prompt=negative_prompt)
@@ -303,8 +341,8 @@ class ControlNetOpenPose(DiffusionPipeline):
         
           
         height, width = pose.shape[-2:]
-        if do_classifier_free_guidance:
-            pose = np.concatenate(([pose] * 2))
+        #if do_classifier_free_guidance:
+            #pose = np.concatenate(([pose] * 2))
         
         
         # 4. set timesteps
@@ -312,8 +350,8 @@ class ControlNetOpenPose(DiffusionPipeline):
         
         #print("self.scheduler",self.scheduler)
         
-        self.scheduler.set_timesteps(num_inference_steps)
-        timesteps = self.scheduler.timesteps
+        scheduler.set_timesteps(num_inference_steps)
+        timesteps = scheduler.timesteps
         
 
 
@@ -325,7 +363,7 @@ class ControlNetOpenPose(DiffusionPipeline):
 
         # get the initial random noise unless the user supplied it
         
-        latents = self.prepare_latents(batch_size,num_channels_latents,height,width) #,self.scheduler)
+        latents = self.prepare_latents(batch_size,num_channels_latents,height,width,scheduler)
 
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
@@ -335,95 +373,135 @@ class ControlNetOpenPose(DiffusionPipeline):
     
         if create_gif:
             frames = []
+        
 
+            
 
         # 7. Denoising loop
-        # num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
-        # with self.progress_bar(total=num_inference_steps) as progress_bar:
-        #    for i, t in enumerate(timesteps):
-        num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
+
+        num_warmup_steps = len(timesteps) - num_inference_steps * scheduler.order
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
 
-        #for i, t in enumerate(self.progress_bar(timesteps)):
+    
                 if callback:
                    callback(i, callback_userdata)
 
-            # expand the latents if we are doing classifier free guidance
-            #noise_pred = []
-                latent_model_input = np.concatenate(
-                    [latents] * 2) if do_classifier_free_guidance else latents
-                latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-                #print("latent_model_input", latent_model_input)
+                noise_pred = []
+                latent_model_input = latents
+                latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+      
                 
-                #print("TTTTTTTTTTTTTTTTTTTTTTTT :", t)
-                #print("text_embeddings:", text_embeddings)
-                #print("pose-------",pose)
+                result_neg = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[0], axis=0), pose])
+               
                 
-                result = self.controlnet([latent_model_input, t, text_embeddings, pose])
-                #print("result", result)
-                down_and_mid_blok_samples = [sample * controlnet_conditioning_scale for _, sample in result.items()]
-                
-                # predict the noise residual
-                noise_pred = self.unet([latent_model_input, t, text_embeddings, *down_and_mid_blok_samples])[self.unet_out]
-                #print("noise_pred:", noise_pred)
+                tensor_dict_neg = {}
+              
+                for k,v in result_neg.items():
+                    tensor_name = next(iter(k.names))
+                  
+                    tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * v 
 
+
+                result = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[1], axis=0), pose])
+          
+                
+                tensor_dict = {}
+               
+                for k,v in result.items():
+                    tensor_name = next(iter(k.names))
+                    #print("tensor_name--", tensor_name)
+                    tensor_dict[tensor_name] = controlnet_conditioning_scale * v 
+                    
+                time_proj_dict = {"timestep" : t}
+                self.infer_request_time_proj.start_async(time_proj_dict)
+                self.infer_request_time_proj.wait()
+                time_proj = self.infer_request_time_proj.get_output_tensor(0).data.astype(np.float32) 
+                
+                ##### NEGATIVE PIPELINE #####
+                input_dict_neg = {"sample":latent_model_input, "time_proj": time_proj, "encoder_hidden_states":np.expand_dims(text_embeddings[0], axis=0)}
+                input_dict_neg.update(tensor_dict_neg)
+                
+                if self.vpu_flag_neg:
+                    input_dict_neg_final = {k: v for k, v in sorted(input_dict_neg.items(), key=lambda x: x[0])}
+                else:
+                    input_dict_neg_final = input_dict_neg
+                
+                self.infer_request_neg.start_async(input_dict_neg_final)
+                self.infer_request_neg.wait()
+                
+                ##### POSITIVE PIPELINE #####
+                input_dict = {"sample":latent_model_input, "time_proj": time_proj, "encoder_hidden_states":np.expand_dims(text_embeddings[1], axis=0)}
+                input_dict.update(tensor_dict)
+                if self.vpu_flag:
+                    input_dict_final = {k: v for k, v in sorted(input_dict.items(), key=lambda x: x[0])}
+                else:
+                    input_dict_final = input_dict
+
+                self.infer_request.start_async(input_dict_final)
+                self.infer_request.wait()                    
+                
+                noise_pred_neg = self.infer_request_neg.get_output_tensor(0)
+                noise_pred_pos = self.infer_request.get_output_tensor(0) 
+
+                noise_pred.append(noise_pred_neg.data.astype(np.float32))
+                noise_pred.append(noise_pred_pos.data.astype(np.float32))  
 
                 # perform guidance
                 if do_classifier_free_guidance:
                     noise_pred_uncond, noise_pred_text = noise_pred[0], noise_pred[1]
-                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)   
+                    
                     
                 # compute the previous noisy sample x_t -> x_t-1
-                latents = self.scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents)).prev_sample.numpy()
+                latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents)).prev_sample.numpy()
                 #print("latents", latents)
 
                 if create_gif:
                     frames.append(latents)
+                # update progress
+                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % scheduler.order == 0):
+                    progress_bar.update()                    
 
         if callback:
               callback(num_inference_steps, callback_userdata)
 
-        # decode_latents
-        # scale and decode the image latents with vae
-
         # 8. Post-processing
         image = self.decode_latents(latents, pad)  
         output_type = "pil"
-        #print("output_type",output_type)
-     
-        
+   
         # 9. Convert to PIL
         if output_type == "pil":
             image = self.numpy_to_pil(image)
             image = [img.resize((orig_width, orig_height), Image.Resampling.LANCZOS) for img in image]
-            #image[0].save("C:\\Users\\lab_admin\\Desktop\\openpose-result.png") 
+         
         else:
             image = [cv2.resize(img, (orig_width, orig_width))
                      for img in image]
          
-        #image[0].save("C:\\Users\\lab_admin\\Desktop\\openpose-result.png")  
+
 
              
 
         if create_gif:
             gif_folder=os.path.join(model,"../../../gif")
             print("gif_folder:",gif_folder)
-            #if not os.path.exists(gif_folder):
-                #os.makedirs(gif_folder)
-            #for i in range(0,len(frames)):
-            #    image = self.vae_decoder(frames[i]*(1/0.18215))[self._vae_d_output]
-            #    image = self.postprocess_image(image, meta)
-            #    output = gif_folder + "/" + str(i).zfill(3) +".png"
-            #    cv2.imwrite(output, image)
-            #with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
-            #    json.dump({"prompt": prompt}, file)
-            #frames_image =  [Image.open(image) for image in glob.glob(f"{gif_folder}/*.png")]
-            #frame_one = frames_image[0]
-            #gif_file=os.path.join(gif_folder,"stable_diffusion.gif")
-            #frame_one.save(gif_file, format="GIF", append_images=frames_image, save_all=True, duration=100, loop=0)
+            if not os.path.exists(gif_folder):
+                os.makedirs(gif_folder)
+            for i in range(0,len(frames)):
+                image = self.decode_latents(frames[i], pad)  
+                image = self.numpy_to_pil(image)
+                image = [img.resize((orig_width, orig_height), Image.Resampling.LANCZOS) for img in image]                
+                output = gif_folder + "/" + str(i).zfill(3) +".png"
+                image[0].save(output)
+         
+            with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
+                json.dump({"prompt": prompt}, file)
+            frames_image =  [Image.open(image) for image in glob.glob(f"{gif_folder}/*.png")]
+            frame_one = frames_image[0]
+            gif_file=os.path.join(gif_folder,"stable_diffusion.gif")
+            frame_one.save(gif_file, format="GIF", append_images=frames_image, save_all=True, duration=100, loop=0)
 
-        #print("type(engine image) = ", type(image))
 
         return image[0]
         
@@ -517,7 +595,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         #print("Inside decode", image.shape)
         return image    
 
-    def prepare_latents(self,batch_size:int, num_channels_latents:int,height:int, width:int): #, scheduler):
+    def prepare_latents(self,batch_size,num_channels_latents,height, width,scheduler): #, scheduler):
         """
         Preparing noise to image generation. If initial latents are not provided, they will be generated randomly, 
         then prepared latents scaled by the standard deviation required by the scheduler
@@ -532,28 +610,20 @@ class ControlNetOpenPose(DiffusionPipeline):
         shape = (batch_size, num_channels_latents, height // 8, width // 8)
        
         latents = randn_tensor(shape, np.float32)
-       
-
+ 
         # scale the initial noise by the standard deviation required by the scheduler
-        
-        
-        
-        
-        #if isinstance(scheduler, LMSDiscreteScheduler):
+        if isinstance(scheduler, LMSDiscreteScheduler):
             
-        #    latents = latents * scheduler.sigmas[0].numpy()
-        #elif isinstance(scheduler, EulerDiscreteScheduler):
+            latents = latents * scheduler.sigmas[0].numpy()
+        elif isinstance(scheduler, EulerDiscreteScheduler):
             
-        #    latents = latents * scheduler.sigmas.max().numpy()
-        #elif isinstance(scheduler, UniPCMultistepScheduler):
-        #    print("scheduler.init_noise_sigma:",scheduler.init_noise_sigma)
-        #    latents = latents * scheduler.init_noise_sigma.numpy() 
-            
-        #else:
-        latents = latents * self.scheduler.init_noise_sigma
+            latents = latents * scheduler.sigmas.max().numpy()
+        else:
+            latents = latents * scheduler.init_noise_sigma
 
-    
+        #latents = latents * self.scheduler.init_noise_sigma.numpy()
         return latents
+
         
 
 
