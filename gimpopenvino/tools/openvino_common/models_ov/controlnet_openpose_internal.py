@@ -254,7 +254,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         if blobs:
             if device[1] == "VPUX" or device[2] == "VPUX":
                 device_vpu = "VPUX"
-                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_vpu + ".blob"
+                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-opt-fp32.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_vpu + ".blob"
                 print("Loading unet blob on vpux:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
@@ -428,7 +428,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                     input_dict_neg_final = input_dict_neg
                 
                 self.infer_request_neg.start_async(input_dict_neg_final)
-                self.infer_request_neg.wait()
+                
                 
                 ##### POSITIVE PIPELINE #####
                 input_dict = {"sample":latent_model_input, "time_proj": time_proj, "encoder_hidden_states":np.expand_dims(text_embeddings[1], axis=0)}
@@ -439,6 +439,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                     input_dict_final = input_dict
 
                 self.infer_request.start_async(input_dict_final)
+                self.infer_request_neg.wait()
                 self.infer_request.wait()                    
                 
                 noise_pred_neg = self.infer_request_neg.get_output_tensor(0)
