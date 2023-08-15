@@ -193,7 +193,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
 
         #self.vae_scale_factor = 8
         # self.scheduler = scheduler
-        controlnet = os.path.join(model, "controlnet-pose_fp16.xml")
+        controlnet = os.path.join(model, "controlnet-pose.xml") #"controlnet-pose_fp16.xml")
         text_encoder = os.path.join(model, "text_encoder_fp16.xml")
         unet_int8_model = os.path.join(model, "unet_controlnet_int8_sq_0.15_sym_tp_input.xml")
         unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
@@ -341,8 +341,8 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         
           
         height, width = pose.shape[-2:]
-        #if do_classifier_free_guidance:
-            #pose = np.concatenate(([pose] * 2))
+        if do_classifier_free_guidance:
+            pose = np.concatenate(([pose] * 2))
         
         
         # 4. set timesteps
@@ -390,28 +390,49 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 noise_pred = []
                 latent_model_input = latents
                 latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-      
                 
-                result_neg = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[0], axis=0), pose])
-               
-                
+                latent_model_input_2 = np.concatenate(
+                    [latents] * 2) if do_classifier_free_guidance else latents    
+                    
+                latent_model_input_2 = scheduler.scale_model_input(latent_model_input_2, t)
+
+
+       
+                result = self.controlnet([latent_model_input_2, t, text_embeddings, pose])  
+
                 tensor_dict_neg = {}
-              
-                for k,v in result_neg.items():
-                    tensor_name = next(iter(k.names))
-                  
-                    tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * v 
-
-
-                result = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[1], axis=0), pose])
-          
-                
                 tensor_dict = {}
-               
+
                 for k,v in result.items():
                     tensor_name = next(iter(k.names))
                     #print("tensor_name--", tensor_name)
-                    tensor_dict[tensor_name] = controlnet_conditioning_scale * v 
+                    vneg = np.expand_dims(v[0], axis=0)
+                    tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * vneg #.astype(np.float32)
+                    
+                    vpos = np.expand_dims(v[1], axis=0)
+                    tensor_dict[tensor_name] = controlnet_conditioning_scale * vpos #.astype(np.float32)                  
+      
+                
+                #result_neg = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[0], axis=0), pose])
+               
+                
+                #tensor_dict_neg = {}
+              
+                #for k,v in result_neg.items():
+                 #   tensor_name = next(iter(k.names))
+                  
+                 #   tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * v 
+
+
+                #result = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[1], axis=0), pose])
+          
+                
+                #tensor_dict = {}
+               
+                #for k,v in result.items():
+                #    tensor_name = next(iter(k.names))
+                    #print("tensor_name--", tensor_name)
+                #    tensor_dict[tensor_name] = controlnet_conditioning_scale * v 
                     
                 time_proj_dict = {"timestep" : t}
                 self.infer_request_time_proj.start_async(time_proj_dict)
