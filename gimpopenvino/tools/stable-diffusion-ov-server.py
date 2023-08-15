@@ -44,6 +44,14 @@ from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineI
 from  models_ov.controlnet_openpose import ControlNetOpenPose
 from  models_ov.controlnet_openpose_internal import ControlNetOpenPoseInternal
 
+
+#### Super-Res ###
+from openvino.inference_engine import IECore
+from models_ov.SuperResolution import SuperResolution
+from pipelines import get_user_config, AsyncPipeline
+########################
+
+
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
 
@@ -139,6 +147,19 @@ def run(model_name,device_name):
             model = model_path,
             device = [device_name[0], device_name[1], device_name[3]]
         )
+        
+    #### Super-Res #####
+    ie = IECore()
+
+    plugin_config = get_user_config("CPU", '', None)
+    model_path = os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml") #os.path.join(weight_path, "superresolution-ov", "realesrgan.xml")
+    model_name_sr = "sr_1033"
+    print("Loading SR model")
+    model_sr = SuperResolution(ie, model_path, (512,512,3), model_name_sr)
+    pipeline_sr = AsyncPipeline(ie, model_sr, plugin_config, "CPU", 1)
+    print("SR model Loaded")
+    #######
+     
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
@@ -180,7 +201,8 @@ def run(model_name,device_name):
                         guidance_scale = data_output["guidance_scale"]
                         strength = data_output["strength"]
                         seed = data_output["seed"]
-                        create_gif = data_output["create_gif"]
+                        create_gif = False #data_output["create_gif"]
+                        enable_sr = data_output["enable_sr"]
                         
                         
                         if scheduler == "LMSDiscreteScheduler":
@@ -314,6 +336,34 @@ def run(model_name,device_name):
                         else:
                             cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
                             src_height,src_width, _ = output.shape
+                            
+                        if enable_sr:
+                             frame = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
+                             if pipeline_sr.is_ready():
+                                start_time = perf_counter()
+                                pipeline_sr.submit_data(frame, 0, {'frame': frame, 'start_time': start_time})
+                             else:
+                               # Wait for empty request
+                                pipeline_sr.await_any()
+
+                             if pipeline_sr.callback_exceptions:
+                                        raise pipeline_sr.callback_exceptions[0]
+
+                             pipeline_sr.await_all()
+                                # Process all completed requests
+                             results = pipeline_sr.get_result(0)
+                             while results is None:
+                                    log.info("WAIT for results")
+                             if results:
+                                    log.info('We got some results')
+                                   
+                                    result_frame, frame_meta = results
+                                    input_frame = frame_meta['frame']
+                                    
+                             result_frame = cv2.resize(result_frame, (0, 0), fx=4 / 3, fy=4 / 3)
+                                        
+                             cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), result_frame[:, :, ::-1])
+                             src_height,src_width, _ = result_frame.shape
                             
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
