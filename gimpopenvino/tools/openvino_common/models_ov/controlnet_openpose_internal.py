@@ -220,6 +220,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         self.infer_request_neg = self.unet_neg.create_infer_request()
         self.infer_request = self.unet.create_infer_request()
         self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
+        self.infer_request_controlnet = self.controlnet.create_infer_request()
         print("create infer request created")        
         
 
@@ -398,7 +399,9 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
 
 
        
-                result = self.controlnet([latent_model_input_2, t, text_embeddings, pose])  
+                #result = self.controlnet([latent_model_input_2, t, text_embeddings, pose])  
+                controlnet_dict = {"sample":latent_model_input_2, "timestep":t, "encoder_hidden_states":text_embeddings, "controlnet_cond":pose}
+                result = self.infer_request_controlnet.infer(controlnet_dict, share_outputs = True)
 
                 tensor_dict_neg = {}
                 tensor_dict = {}
@@ -407,10 +410,10 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                     tensor_name = next(iter(k.names))
                     #print("tensor_name--", tensor_name)
                     vneg = np.expand_dims(v[0], axis=0)
-                    tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * vneg #.astype(np.float32)
+                    tensor_dict_neg[tensor_name] = vneg #controlnet_conditioning_scale * vneg #.astype(np.float32)
                     
                     vpos = np.expand_dims(v[1], axis=0)
-                    tensor_dict[tensor_name] = controlnet_conditioning_scale * vpos #.astype(np.float32)                  
+                    tensor_dict[tensor_name] = vpos #controlnet_conditioning_scale * vpos #.astype(np.float32)                  
       
                 
                 #result_neg = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[0], axis=0), pose])
@@ -435,7 +438,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 #    tensor_dict[tensor_name] = controlnet_conditioning_scale * v 
                     
                 time_proj_dict = {"timestep" : t}
-                self.infer_request_time_proj.start_async(time_proj_dict)
+                self.infer_request_time_proj.start_async(time_proj_dict,share_inputs = True)
                 self.infer_request_time_proj.wait()
                 time_proj = self.infer_request_time_proj.get_output_tensor(0).data.astype(np.float32) 
                 
@@ -448,7 +451,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 else:
                     input_dict_neg_final = input_dict_neg
                 
-                self.infer_request_neg.start_async(input_dict_neg_final)
+                self.infer_request_neg.start_async(input_dict_neg_final, share_inputs = True)
                 
                 
                 ##### POSITIVE PIPELINE #####
@@ -459,7 +462,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 else:
                     input_dict_final = input_dict
 
-                self.infer_request.start_async(input_dict_final)
+                self.infer_request.start_async(input_dict_final,share_inputs = True)
                 self.infer_request_neg.wait()
                 self.infer_request.wait()                    
                 
