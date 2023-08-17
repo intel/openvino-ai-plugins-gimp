@@ -9,7 +9,7 @@ This branch is currently under development. <br>Dedicated for GIMP 3, Python 3 a
 [2] Style-Transfer <br>
 [3] Inpainting <br>
 [4] Semantic-Segmentation <br>
-[5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape & portrait), SD 1.5 Inpainting) <br>
+[5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape & portrait), SD 1.5 Inpainting, SD 1.5 Controlnet-Openpose) <br>
 
 # Objectives
 [1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
@@ -86,9 +86,21 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 #### C. Stable-Diffusion-1.5 Inpainting - Make sure to download and convert the model during install process. 
 1. Choose a layer or Open an image of size 512x512. (Currently works best with this resolution) <br>
 2. Use "Free select tool" to select the area in your image that you wish to change. <br>
-3. Right click on you image and click on "Add layer mask". Then choose "Selection" in "Initalize layer Mask to". This should create a mask with your selection.
+3. Right click on your image and click on "Add layer mask". Then choose "Selection" in "Initalize layer Mask to". This should create a mask with your selection.
 4. Follow steps 2,3,4,5 from section A. Please note that you will only see "SD_1.5_Inpainting" in model options if you added a mask layer to your image. <br>
 5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+
+
+#### D. Stable-Diffusion-1.5 Controlnet-Openpose - Make sure to download and convert the model during install process. 
+1. Open an image with some pose that you want to see in new image. <br>
+2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
+3. Choose the controlnet_openpose model and device from the drop down list.<br>
+4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail. 
+5. Follow steps 4,5 from section A. <br>
+5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+
+![](gifs/controlnet-openpose.png)
+
 
 *If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback* <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
