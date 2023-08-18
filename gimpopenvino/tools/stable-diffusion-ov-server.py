@@ -152,10 +152,10 @@ def run(model_name,device_name):
     ie = IECore()
 
     plugin_config = get_user_config("CPU", '', None)
-    model_path = os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml") #os.path.join(weight_path, "superresolution-ov", "realesrgan.xml")
-    model_name_sr = "sr_1033"
+    model_path = os.path.join(weight_path, "superresolution-ov", "realesrgan.xml") #os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1032.xml")#os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml") #os.path.join(weight_path, "superresolution-ov", "realesrgan.xml")
+    model_name_sr = "esrgan" #"sr_1033" #"esrgan"
     print("Loading SR model")
-    model_sr = SuperResolution(ie, model_path, (512,512,3), model_name_sr)
+    model_sr = SuperResolution(ie, model_path, (350,560,3), model_name_sr)
     pipeline_sr = AsyncPipeline(ie, model_sr, plugin_config, "CPU", 1)
     print("SR model Loaded")
     #######
@@ -328,7 +328,7 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                             ) 
                         end_time = time.time()
-                        print("Image generated in ", end_time - start_time, " seconds.")
+                        print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
                   
                         if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_internal":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
@@ -338,6 +338,7 @@ def run(model_name,device_name):
                             src_height,src_width, _ = output.shape
                             
                         if enable_sr:
+                             s_time = time.time()
                              frame = cv2.imread(os.path.join(weight_path, "..", "cache.png"))[:, :, ::-1]
                              if pipeline_sr.is_ready():
                                 start_time = perf_counter()
@@ -360,11 +361,12 @@ def run(model_name,device_name):
                                     result_frame, frame_meta = results
                                     input_frame = frame_meta['frame']
                                     
-                             result_frame = cv2.resize(result_frame, (0, 0), fx=4 / 3, fy=4 / 3)
+                             #result_frame = cv2.resize(result_frame, (0, 0), fx=4 / 3, fy=4 / 3)
                                         
                              cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), result_frame[:, :, ::-1])
                              src_height,src_width, _ = result_frame.shape
-                            
+                             print("Image generated after SuperResolution in ", time.time() - s_time, " seconds.")
+                        
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
 
