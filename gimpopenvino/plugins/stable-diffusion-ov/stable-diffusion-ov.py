@@ -305,10 +305,10 @@ class SDRunner:
             Gimp.context_pop()
 
             # Remove temporary layers that were saved
-            my_dir = os.path.join(weight_path, "..")
-            for f_name in os.listdir(my_dir):
-                if f_name.startswith("cache"):
-                    os.remove(os.path.join(my_dir, f_name))
+            #my_dir = os.path.join(weight_path, "..")
+            #for f_name in os.listdir(my_dir):
+            #    if f_name.startswith("cache"):
+            #        os.remove(os.path.join(my_dir, f_name))
 
             self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
             return self.result
