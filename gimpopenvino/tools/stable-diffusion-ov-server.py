@@ -41,6 +41,8 @@ from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
 from  models_ov.stable_diffusion_engine_v1_5_vision_NEW import StableDiffusionEngineInternal
 
 from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
+from  models_ov.stable_diffusion_engine_inpainting_internal import StableDiffusionEngineInpaintingInternal
+
 from  models_ov.controlnet_openpose import ControlNetOpenPose
 from  models_ov.controlnet_openpose_internal import ControlNetOpenPoseInternal
 
@@ -67,7 +69,11 @@ def run(model_name,device_name):
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
-
+    for i in range(len(device_name)):
+        
+        if device_name[i] == "NPU":
+            device_name[i] = "VPUX"
+            
     import json
 
    
@@ -85,7 +91,11 @@ def run(model_name,device_name):
     elif model_name == "SD_1.5_landscape_768x512": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")
     elif model_name == "SD_1.5_Inpainting": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting") 
+    elif model_name == "SD_1.5_Inpainting_internal": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting-internal") 
+        blobs = True
+  
     elif model_name == "controlnet_openpose": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")        
     elif model_name == "SD_1.5_internal_blobs_new": 
@@ -134,6 +144,13 @@ def run(model_name,device_name):
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
     )
+    
+    elif model_name == "SD_1.5_Inpainting_internal":
+        log.info('Internal Inpainting device_name: %s',device_name)
+        engine = StableDiffusionEngineInpaintingInternal(
+        model = model_path,
+        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        blobs = blobs)
 
     elif model_name == "controlnet_openpose":
         engine = ControlNetOpenPose(
@@ -156,7 +173,7 @@ def run(model_name,device_name):
     model_path = os.path.join(weight_path, "superresolution-ov", "realesrgan.xml") #os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1032.xml")#os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml") #os.path.join(weight_path, "superresolution-ov", "realesrgan.xml")
     model_name_sr = "esrgan" #"sr_1033" #"esrgan"
     print("Loading SR model")
-    model_sr = SuperResolution(ie, model_path, (350,560,3), model_name_sr)
+    model_sr = SuperResolution(ie, model_path, (350,620,3), model_name_sr)
     pipeline_sr = AsyncPipeline(ie, model_sr, plugin_config, device_sr, 1)
     print("SR model Loaded")
     #######
@@ -262,7 +279,8 @@ def run(model_name,device_name):
                         import time
                         start_time = time.time()
                         
-                        if model_name ==  "SD_1.5_Inpainting":
+                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_internal":
+                            print("-------In Inpainting-------")
                                      
                             output = engine(
                                 prompt = prompt,
@@ -279,6 +297,7 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
+                      
 
                         elif model_name ==  "controlnet_openpose":
           

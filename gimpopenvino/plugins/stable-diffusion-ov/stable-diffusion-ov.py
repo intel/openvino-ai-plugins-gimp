@@ -88,8 +88,9 @@ class DeviceEnum:
     def get_tree_model_no_vpu(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+       
         for i in range(len(self.keys)):
-            if self.keys[i] != "VPUX":
+            if self.keys[i] != "NPU":
                 tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
@@ -149,6 +150,12 @@ def list_models(weight_path, SD):
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
+        
+    if SD ==  "SD_1.5_Inpainting_internal":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-inpainting-internal")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list         
 
     if SD ==  "controlnet_openpose_internal":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-openpose-internal")
@@ -390,8 +397,18 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         python_path = config_path_output["python_path"]
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(config_path, client)
+        
+        supported_devices = []
+        for device in config_path_output["supported_devices"]:
+           if device == "VPU" or device == "VPUX":
+                if "NPU" not in supported_devices:
+                    supported_devices.append("NPU")
+           else:
+                supported_devices.append(device)
+                
 
-        device_name_enum = DeviceEnum(config_path_output["supported_devices"])
+
+        device_name_enum = DeviceEnum(supported_devices) #config_path_output["supported_devices"])
         
         list_layers = []
         try:
@@ -411,7 +428,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting")
+            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") + list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_internal")
         else:
             model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_internal_blobs_new") + list_models(config_path_output["weight_path"],"controlnet_openpose_internal")
         
@@ -553,7 +570,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
+            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -802,7 +819,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
                     device_pos_unet = config.get_property("unet_positive_device_name")
                     device_neg_unet = config.get_property("unet_negative_device_name")
                 else:
@@ -823,7 +840,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -940,7 +957,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if adv_checkbox.get_active():
                     device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
+                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
                         device_pos_unet = config.get_property("unet_positive_device_name")
                         device_neg_unet = config.get_property("unet_negative_device_name")
                     else:
