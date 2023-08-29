@@ -291,7 +291,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         # 3. Preprocess image
         image = image.convert("RGB")
         pose = self.pose_estimator(image)
-        pose.save("C:\\Users\\lab_admin\\Desktop\\pose.png")
+    
         
         orig_width, orig_height = pose.size
         
@@ -393,7 +393,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         if output_type == "pil":
             image = self.numpy_to_pil(image)
             image = [img.resize((orig_width, orig_height), Image.Resampling.LANCZOS) for img in image]
-            image[0].save("C:\\Users\\lab_admin\\Desktop\\openpose-result.png") 
+            
         else:
             image = [cv2.resize(img, (orig_width, orig_width))
                      for img in image]
