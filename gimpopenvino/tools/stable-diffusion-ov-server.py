@@ -23,6 +23,9 @@ from time import perf_counter
 
 import random
 
+import datetime
+import shutil
+
 from PIL import Image
 
 # scheduler
@@ -384,6 +387,7 @@ def run(model_name,device_name):
                              #result_frame = cv2.resize(result_frame, (0, 0), fx=4 / 3, fy=4 / 3)
                                         
                              cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), result_frame[:, :, ::-1])
+                             shutil.copy2(os.path.join(weight_path, "..", "cache.png"), os.path.join(weight_path, "..", str(datetime.datetime.now()).replace(" ", "_").replace(":", "") + ".png"))
                              src_height,src_width, _ = result_frame.shape
                              print("Image generated after SuperResolution in ", time.time() - s_time, " seconds.")
                         
