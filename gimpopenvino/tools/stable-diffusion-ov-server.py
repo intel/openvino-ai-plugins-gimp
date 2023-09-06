@@ -170,14 +170,16 @@ def run(model_name,device_name):
         
     #### Super-Res #####
     ie = IECore()
+  
     device_sr = "GPU"
+    
 
     plugin_config = get_user_config(device_sr, '', None)
     model_path = os.path.join(weight_path, "superresolution-ov", "realesrgan.xml") #os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1032.xml")#os.path.join(weight_path, "superresolution-ov", "single-image-super-resolution-1033.xml") #os.path.join(weight_path, "superresolution-ov", "realesrgan.xml")
     model_name_sr = "esrgan" #"sr_1033" #"esrgan"
     print("Loading SR model")
     model_sr = SuperResolution(ie, model_path, (350,620,3), model_name_sr)
-    pipeline_sr = AsyncPipeline(ie, model_sr, plugin_config, device_sr, 1)
+    pipeline_sr = AsyncPipeline(ie, model_sr, model_path, plugin_config, device_sr, 1)
     print("SR model Loaded")
     #######
      
