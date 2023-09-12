@@ -334,7 +334,17 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         # 3. Preprocess image
         image = image.convert("RGB")
         pose = self.pose_estimator(image)
-        #pose.save("C:\\Users\\lab_admin\\Desktop\\pose.png")
+        #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test_before.png"))
+        
+        #Adding Padding - Assumption: Input image is square and result image is landscape
+        pose_npy = np.asarray(pose)
+
+        pose_npy = np.pad(pose_npy, ((0, 0), (154, 154), (0, 0)))
+        pose_pad = Image.fromarray(np.uint8(pose_npy))
+        pose = pose_pad 
+         
+        #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test.png"))
+        #print("POSE SAVED")
         
         orig_width, orig_height = pose.size
         
@@ -416,26 +426,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                     tensor_dict[tensor_name] = vpos #controlnet_conditioning_scale * vpos #.astype(np.float32)                  
       
                 
-                #result_neg = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[0], axis=0), pose])
-               
-                
-                #tensor_dict_neg = {}
-              
-                #for k,v in result_neg.items():
-                 #   tensor_name = next(iter(k.names))
-                  
-                 #   tensor_dict_neg[tensor_name] = controlnet_conditioning_scale * v 
-
-
-                #result = self.controlnet([latent_model_input, t, np.expand_dims(text_embeddings[1], axis=0), pose])
-          
-                
-                #tensor_dict = {}
-               
-                #for k,v in result.items():
-                #    tensor_name = next(iter(k.names))
-                    #print("tensor_name--", tensor_name)
-                #    tensor_dict[tensor_name] = controlnet_conditioning_scale * v 
+            
                     
                 time_proj_dict = {"timestep" : t}
                 self.infer_request_time_proj.start_async(time_proj_dict,share_inputs = True)
