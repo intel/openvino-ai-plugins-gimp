@@ -43,9 +43,12 @@ def run(frame, model_path, device, model_name):
      plugin_config = get_user_config(device, '', None)
      log.info('Loading network: %s',model_name)
      log.info('Device: %s',device)
+     log.info('frame.shape: %s',frame.shape)
+     
      
      model = SuperResolution(ie, model_path, frame.shape, model_name)
-     pipeline = AsyncPipeline(ie, model, plugin_config, device, 1)
+     pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
+
 
      log.info('Starting inference...')
 
