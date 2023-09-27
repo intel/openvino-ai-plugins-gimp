@@ -163,6 +163,10 @@ class ControlNetOpenPose(DiffusionPipeline):
             tokenizer="openai/clip-vit-large-patch14",
             device=["CPU","CPU","CPU"],
             ):
+            
+        super().__init__()    
+            
+        self.set_progress_bar_config(disable=False)    
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
@@ -170,20 +174,11 @@ class ControlNetOpenPose(DiffusionPipeline):
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 
-        # self.swap = swap
-        # models
-        #controlnet = ControlNetModel.from_pretrained("C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\models--lllyasviel--control_v11p_sd15_openpose", torch_dtype=torch.float32) #lllyasviel/control_v11p_sd15_openpose"
-        #pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        #    "runwayml/stable-diffusion-v1-5", controlnet=controlnet
-        #) 
-        
-        #scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-        #scheduler.save_config("C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\scheduler_config")
+
 
         self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"..","UniPCMultistepScheduler_config"))
         
-        #"C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\scheduler_config")
-        #del pipe
+    
         
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
@@ -193,7 +188,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         OPENPOSE_OV_PATH = os.path.join(model, "openpose.xml")
         self.pose_estimator = OpenposeDetector.from_pretrained(os.path.join(model, "lllyasviel_ControlNet"))
         
-        #"C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights\\stable-diffusion-ov\\controlnet-openpose\\models--lllyasviel--ControlNet") #"lllyasviel/ControlNet")
+    
         
         ov_openpose = OpenPoseOVModel(self.core, OPENPOSE_OV_PATH, device="CPU")
         self.pose_estimator.body_estimation.model = ov_openpose
@@ -201,17 +196,16 @@ class ControlNetOpenPose(DiffusionPipeline):
 
 
 
-        #self.vae_scale_factor = 8
-        # self.scheduler = scheduler
+   
         controlnet = os.path.join(model, "controlnet-pose.xml")
         text_encoder = os.path.join(model, "text_encoder.xml")
         unet = os.path.join(model, "unet_controlnet.xml")
-        #unet_neg = os.path.join(model, "unet_controlnet.xml")
+
         vae_decoder = os.path.join(model, "vae_decoder.xml")
 
         ####################
         self.load_models(self.core, device, controlnet, text_encoder, unet, vae_decoder)
-        # self.set_progress_bar_config(disable=True)
+        
 
         # encoder
         self.vae_encoder = None
@@ -221,17 +215,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         self.height = self.unet.input(0).shape[2] * 8
         self.width = self.unet.input(0).shape[3] * 8    
 
-        #if self.unet.input("sample").shape[1] == 4:
-        #    self.height = self.unet.input("sample").shape[2] * 8
-        #    self.width = self.unet.input("sample").shape[3] * 8
-        #else:
-
-        #    self.height = self.unet.input("sample").shape[1] * 8
-        #    self.width = self.unet.input("sample").shape[2] * 8
-
-        #self.infer_request_neg = self.unet_neg.create_infer_request()
-        #self.infer_request = self.unet.create_infer_request()
-
+ 
     def load_models(self, core: Core, device: str, controlnet:Model, text_encoder: Model, unet: Model, vae_decoder: Model):
         """
         Function for loading models on device using OpenVINO
@@ -352,9 +336,7 @@ class ControlNetOpenPose(DiffusionPipeline):
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
                 #print("latent_model_input", latent_model_input)
                 
-                #print("TTTTTTTTTTTTTTTTTTTTTTTT :", t)
-                #print("text_embeddings:", text_embeddings)
-                #print("pose-------",pose)
+             
                 
                 result = self.controlnet([latent_model_input, t, text_embeddings, pose])
                 #print("result", result)
@@ -376,6 +358,10 @@ class ControlNetOpenPose(DiffusionPipeline):
 
                 if create_gif:
                     frames.append(latents)
+                    
+                # update progress
+                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
+                    progress_bar.update()                    
 
         if callback:
               callback(num_inference_steps, callback_userdata)

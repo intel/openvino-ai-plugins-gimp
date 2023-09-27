@@ -18,6 +18,7 @@ import logging
 import threading
 from collections import deque
 from typing import Dict, Set
+import os
 
 
 def parse_devices(device_string):
@@ -81,9 +82,12 @@ def get_user_config(flags_d: str, flags_nstreams: str, flags_nthreads: int)-> Di
 
 
 class AsyncPipeline:
-    def __init__(self, ie, model, plugin_config, device='CPU', max_num_requests=1):
+    def __init__(self, ie, model, model_path, plugin_config, device='CPU', max_num_requests=1):
         self.model = model
         self.logger = logging.getLogger()
+        
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
+        self.logger.info('Model Cached')        
 
         self.logger.info('Loading network to {} plugin...'.format(device))
         self.exec_net = ie.load_network(network=self.model.net, device_name=device,
