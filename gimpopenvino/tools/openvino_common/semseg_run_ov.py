@@ -120,7 +120,7 @@ def run(frame, model_path, device):
     model, visualizer = get_model(ie, model_path)
     log.info('Loading network: %s',model_path )
     log.info('Device: %s',device)   
-    pipeline = AsyncPipeline(ie, model, plugin_config, device, 1)
+    pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
     log.info('Starting inference...')
 
     if pipeline.is_ready():
