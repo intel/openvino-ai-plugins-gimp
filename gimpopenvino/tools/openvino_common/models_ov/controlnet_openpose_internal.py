@@ -199,8 +199,8 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
         vae_decoder = os.path.join(model, "vae_decoder_fp16.xml")
         
-        self.vpu_flag = False
-        self.vpu_flag_neg = False
+        self.npu_flag = False
+        self.npu_flag_neg = False
 
         ####################
         self.load_models(self.core, device, controlnet, text_encoder, unet_time_proj_model, unet_int8_model, vae_decoder, blobs, model)
@@ -253,14 +253,14 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
         
         if blobs:
-            if device[1] == "VPUX" or device[2] == "VPUX":
-                device_vpu = "VPUX"
-                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-opt-fp32.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_vpu + ".blob"
-                print("Loading unet blob on vpux:",blob_name)
+            if device[1] == "NPU" or device[2] == "NPU":
+                device_npu = "NPU"
+                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-opt-fp32.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+                print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet_vpux = self.core.import_model(f.read(), device_vpu)
-                print("unet loaded on vpux in:", time.time() - start)
+                    self.unet_npu = self.core.import_model(f.read(), device_npu)
+                print("unet loaded on npu in:", time.time() - start)
                 
             if device[1] == "GPU" or device[2] == "GPU":
                 print("compiling start on GPU")
@@ -276,18 +276,18 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
 
             
             # Positive prompt
-            if device[1] == "VPUX":
-                self.unet = self.unet_vpux
-                self.vpu_flag = True
+            if device[1] == "NPU":
+                self.unet = self.unet_npu
+                self.npu_flag = True
             elif device[1] == "GPU":
                 self.unet = self.unet_gpu
             else:
                 self.unet = self.unet_cpu
 
             # Negative prompt:
-            if device[2] == "VPUX":
-                self.unet_neg = self.unet_vpux
-                self.vpu_flag_neg = True
+            if device[2] == "NPU":
+                self.unet_neg = self.unet_npu
+                self.npu_flag_neg = True
             elif device[2] == "GPU":
                 self.unet_neg = self.unet_gpu
             else:
@@ -437,7 +437,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 input_dict_neg = {"sample":latent_model_input, "time_proj": time_proj, "encoder_hidden_states":np.expand_dims(text_embeddings[0], axis=0)}
                 input_dict_neg.update(tensor_dict_neg)
                 
-                if self.vpu_flag_neg:
+                if self.npu_flag_neg:
                     input_dict_neg_final = {k: v for k, v in sorted(input_dict_neg.items(), key=lambda x: x[0])}
                 else:
                     input_dict_neg_final = input_dict_neg
@@ -448,7 +448,7 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
                 ##### POSITIVE PIPELINE #####
                 input_dict = {"sample":latent_model_input, "time_proj": time_proj, "encoder_hidden_states":np.expand_dims(text_embeddings[1], axis=0)}
                 input_dict.update(tensor_dict)
-                if self.vpu_flag:
+                if self.npu_flag:
                     input_dict_final = {k: v for k, v in sorted(input_dict.items(), key=lambda x: x[0])}
                 else:
                     input_dict_final = input_dict

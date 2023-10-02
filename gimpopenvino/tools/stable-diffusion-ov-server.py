@@ -72,11 +72,7 @@ def run(model_name,device_name):
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
-    for i in range(len(device_name)):
-        
-        if device_name[i] == "NPU":
-            device_name[i] = "VPUX"
-            
+
     import json
 
    
@@ -102,13 +98,13 @@ def run(model_name,device_name):
     elif model_name == "controlnet_openpose": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")        
     elif model_name == "SD_1.5_internal_blobs_new": 
-        print("IN LATEST VPU CONFIG")
+        print("IN LATEST NPU CONFIG")
 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-internal-blobs-NEW")
         blobs = True
         swap = True
     elif model_name=="controlnet_openpose_internal":
-        print("IN LATEST VPU CONFIG")
+        print("IN LATEST NPU CONFIG")
 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose-internal")
         blobs = True

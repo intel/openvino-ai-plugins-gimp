@@ -205,14 +205,14 @@ class StableDiffusionEngineInpaintingInternal(DiffusionPipeline):
 
 
         if blobs:
-            if device[1] == "VPUX" or device[2] == "VPUX":
-                device_vpu = "VPUX"
+            if device[1] == "NPU" or device[2] == "NPU":
+                device_npu = "NPU"
                 blob_name = "unet_int8_sq_0.15_tp_input.blob"
-                print("Loading unet blob on vpux:",blob_name)
+                print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet_vpux = self.core.import_model(f.read(), device_vpu)
-                print("unet loaded on vpux in:", time.time() - start)
+                    self.unet_npu = self.core.import_model(f.read(), device_npu)
+                print("unet loaded on npu in:", time.time() - start)
                 
             if device[1] == "GPU" or device[2] == "GPU":
                 print("compiling start on GPU")
@@ -228,16 +228,16 @@ class StableDiffusionEngineInpaintingInternal(DiffusionPipeline):
 
 
             # Positive prompt
-            if device[1] == "VPUX":
-                self.unet = self.unet_vpux
+            if device[1] == "NPU":
+                self.unet = self.unet_npu
             elif device[1] == "GPU":
                 self.unet = self.unet_gpu
             else:
                 self.unet = self.unet_cpu
 
             # Negative prompt:
-            if device[2] == "VPUX":
-                self.unet_neg = self.unet_vpux
+            if device[2] == "NPU":
+                self.unet_neg = self.unet_npu
             elif device[2] == "GPU":
                 self.unet_neg = self.unet_gpu
             else:

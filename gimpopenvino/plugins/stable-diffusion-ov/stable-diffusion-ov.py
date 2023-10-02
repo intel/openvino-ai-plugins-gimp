@@ -85,7 +85,7 @@ class DeviceEnum:
             tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
-    def get_tree_model_no_vpu(self):
+    def get_tree_model_no_npu(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
        
@@ -400,7 +400,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         
         supported_devices = []
         for device in config_path_output["supported_devices"]:
-           if device == "VPU" or device == "VPUX":
+           if device == "NPU":
                 if "NPU" not in supported_devices:
                     supported_devices.append("NPU")
            else:
@@ -492,22 +492,22 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # Device Name parameter
         basic_device_label = Gtk.Label.new_with_mnemonic(_("_Device"))
         basic_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "device_name", device_name_enum.get_tree_model_no_vpu(), 0, 1
+            config, "device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
         )
 
         adv_text_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Text Device"))
         adv_text_encoder_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "text_encode_device_name", device_name_enum.get_tree_model_no_vpu(), 0, 1
+            config, "text_encode_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
         )
 
         adv_unet_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Unet Device"))
         adv_unet_encoder_combo = GimpUi.prop_string_combo_box_new(
-            config, "unet_device_name", device_name_enum.get_tree_model_no_vpu(), 0, 1
+            config, "unet_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
         )
 
         adv_vae_decoder_device_label = Gtk.Label.new_with_mnemonic(_("_VAE Device"))
         adv_vae_decoder_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "vae_decoder_device_name", device_name_enum.get_tree_model_no_vpu(), 0, 1
+            config, "vae_decoder_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
         )
 
         adv_unet_positive_device_label = Gtk.Label.new_with_mnemonic(_("_Unet + Device"))

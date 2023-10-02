@@ -127,14 +127,14 @@ class StableDiffusionEngineInternal(DiffusionPipeline):
 
 
         if blobs:
-            if device[1] == "VPUX" or device[2] == "VPUX":
-                device_vpu = "VPUX"
-                blob_name = "unet" + "_" + device_vpu + ".blob"
-                print("Loading unet blob on vpux:",blob_name)
+            if device[1] == "NPU" or device[2] == "NPU":
+                device_npu = "NPU"
+                blob_name = "unet" + "_" + device_npu + ".blob"
+                print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet_vpux = self.core.import_model(f.read(), device_vpu)
-                print("unet loaded on vpux in:", time.time() - start)
+                    self.unet_npu = self.core.import_model(f.read(), device_npu)
+                print("unet loaded on npu in:", time.time() - start)
                 
             if device[1] == "GPU" or device[2] == "GPU":
                 print("compiling start on GPU")
@@ -150,16 +150,16 @@ class StableDiffusionEngineInternal(DiffusionPipeline):
 
 
             # Positive prompt
-            if device[1] == "VPUX":
-                self.unet = self.unet_vpux
+            if device[1] == "NPU":
+                self.unet = self.unet_npu
             elif device[1] == "GPU":
                 self.unet = self.unet_gpu
             else:
                 self.unet = self.unet_cpu
 
             # Negative prompt:
-            if device[2] == "VPUX":
-                self.unet_neg = self.unet_vpux
+            if device[2] == "NPU":
+                self.unet_neg = self.unet_npu
             elif device[2] == "GPU":
                 self.unet_neg = self.unet_gpu
             else:
@@ -293,7 +293,7 @@ class StableDiffusionEngineInternal(DiffusionPipeline):
 
 
         #if self.swap:
-        #    print("Alternating between -prompt and +prompt on GPU and VPUX")
+        #    print("Alternating between -prompt and +prompt on GPU and NPU")
 
         for i, t in enumerate(self.progress_bar(timesteps)):
             if callback:
@@ -341,7 +341,7 @@ class StableDiffusionEngineInternal(DiffusionPipeline):
 
 
 
-             #Alternating between -prompt and +prompt on iGPI and VPUX
+             #Alternating between -prompt and +prompt on iGPI and NPU
             if self.swap:
 
                 if i % 2 == 0:
