@@ -25,26 +25,28 @@ while True:
     print("5 - Landscape_768x512 (768x512 output image),  will take time since model is large ")
     print("6 - SD-1.5 Inapinting model (512x512 output image) ")
     print("7 - SD-1.5 Controlnet-Openpose model (512x512 output image) ")
-    print("8 - ALL the above SD-1.5 models ")
-    print("9 - Only Square, Landscape, Portrait")
-    print("10 - Skip All SD-1.5 Model setup ") 
+    print("8 - SD-1.5 Controlnet-CannyEdge model (512x512 output image) ")
+    print("9 - ALL the above SD-1.5 models ")
+    print("10 - Only Square, Landscape, Portrait")
+    print("11 - Skip All SD-1.5 Model setup ") 
     choice = input("Enter the Number for the model you want to download & convert: ")
 
     # setup all the SD1.5 models
-    if choice=="8":
+    if choice=="9":
         for i in range(1,7):
             
             subprocess.call([sd_python_path, chose_model, str(i)])
         
         subprocess.call([sd_python_path, chose_model_controlnet, "7"])    
+        subprocess.call([sd_python_path, chose_model_controlnet, "8"]) 
         break
     # setup only square, landscape and Portrait
-    elif choice=="9":
+    elif choice=="10":
         for i in range(1,4):
        
             subprocess.call([sd_python_path, chose_model, str(i)])
-        break
-    elif choice=="10":
+        
+    elif choice=="11":
         print("Exiting SD-1.5 Model setup.........")
         break
     elif choice in ["1","2","3","4","5","6"]:
@@ -53,8 +55,11 @@ while True:
     elif choice == "7":
   
         subprocess.call([sd_python_path, chose_model_controlnet, choice]) 
+    elif choice == "8":
+  
+        subprocess.call([sd_python_path, chose_model_controlnet, choice])        
     
-        #break
+       
   
     else:
         print("Wrong option selected.")
