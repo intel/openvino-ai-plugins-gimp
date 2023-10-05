@@ -9,7 +9,7 @@ This branch is currently under development. <br>Dedicated for GIMP 3, Python 3 a
 [2] Style-Transfer <br>
 [3] Inpainting <br>
 [4] Semantic-Segmentation <br>
-[5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape & portrait), SD 1.5 Inpainting, SD 1.5 Controlnet-Openpose) <br>
+[5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape & portrait), SD 1.5 Inpainting, SD 1.5 Controlnet-OpenPose, SD 1.5 Controlnet-CannyEdge) <br>
 
 # Objectives
 [1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
@@ -100,6 +100,15 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
 
 ![](gifs/controlnet-openpose.png)
+
+
+#### E. Stable-Diffusion-1.5 Controlnet-CannyEdge - Make sure to download and convert the model during install process. 
+1. Open an image that you want to use for generating the new image. <br>
+2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
+3. Choose the controlnet_canny model and device from the drop down list.<br>
+4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail. 
+5. Follow steps 4,5 from section A. <br>
+5. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
 
 
 *If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback* <br>

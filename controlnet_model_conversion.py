@@ -55,10 +55,7 @@ if choice == "7":
     ht = 512
     weight_path = os.path.join(SD_path, "controlnet-openpose")
     
-    
-    
-    
-    
+       
     controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_openpose", torch_dtype=torch.float32)
     
     pipe = StableDiffusionControlNetPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", controlnet=controlnet)
@@ -103,33 +100,56 @@ if choice == "7":
             
         print('OpenPose successfully converted to IR')
     else:
-        print(f"OpenPose will be loaded from {OPENPOSE_OV_PATH}")    
+        print(f"OpenPose will be loaded from {OPENPOSE_OV_PATH}") 
+
+    if not os.path.isdir(weight_path):
+            os.makedirs(weight_path)
+
+    print("weight path is :", weight_path)
+
+
+    CONTROLNET_ONNX_PATH = Path(weight_path) / 'controlnet-pose.onnx'
+    CONTROLNET_OV_PATH = Path(weight_path) / 'controlnet-pose.xml'        
 
   
-#elif choice == "2":
-#    wt = 640
-#    ht = 360
-#    weight_path = os.path.join(SD_path, "landscape")
-#    print("============SD-1.5 landscape Model setup============")
-#elif choice == "3":
-#    wt = 360
-#    ht = 640
-#    weight_path = os.path.join(SD_path, "portrait")
-#    print("============SD-1.5 portrait Model setup============")
+if choice == "8":
+    print("============SD-1.5 Controlnet-Canny Model setup============----")
+    wt = 512
+    ht = 512
+    weight_path = os.path.join(SD_path, "controlnet-canny")
+    
+       
+    controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_canny", torch_dtype=torch.float32)
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        "runwayml/stable-diffusion-v1-5", controlnet=controlnet
+    )
+    
+    
+    if not os.path.isdir(os.path.join(SD_path,"UniPCMultistepScheduler_config")):
+        print("Saving scheduler config") # TODO: change
+        pipe = StableDiffusionControlNetPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", controlnet=controlnet)
+        scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+        scheduler.save_config(os.path.join(SD_path,"UniPCMultistepScheduler_config"))               
+    
+    if not os.path.isdir(weight_path):
+            os.makedirs(weight_path)
+
+    print("weight path is :", weight_path)
+
+
+    CONTROLNET_ONNX_PATH = Path(weight_path) / 'controlnet-canny.onnx'
+    CONTROLNET_OV_PATH = Path(weight_path) / 'controlnet-canny.xml'     
 
 else:
     print("============Select option 7============----")
+    
+  
 
     
 
-if not os.path.isdir(weight_path):
-        os.makedirs(weight_path)
-
-print("weight path is :", weight_path)
 
 
-CONTROLNET_ONNX_PATH = Path(weight_path) / 'controlnet-pose.onnx'
-CONTROLNET_OV_PATH = Path(weight_path) / 'controlnet-pose.xml' 
+
 UNET_ONNX_PATH = Path(weight_path) / 'unet_controlnet' / 'unet_controlnet.onnx'
 UNET_OV_PATH = Path(weight_path) / 'unet_controlnet.xml'
 

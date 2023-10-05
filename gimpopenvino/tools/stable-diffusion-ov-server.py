@@ -40,6 +40,7 @@ sys.path.extend([plugin_loc])
 from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
 from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
 from  models_ov.controlnet_openpose import ControlNetOpenPose
+from  models_ov.controlnet_canny_edge import ControlNetCannyEdge
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
@@ -85,6 +86,9 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
     elif model_name == "controlnet_openpose": 
         model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
+        
+    elif model_name == "controlnet_canny": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny")        
              
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
@@ -106,6 +110,12 @@ def run(model_name,device_name):
         model = model_path,
         device = device_name
     )
+    
+    elif model_name == "controlnet_canny":
+        engine = ControlNetCannyEdge(
+        model = model_path,
+        device = device_name
+    )    
         
 
     else:
@@ -228,7 +238,7 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
 
-                        elif model_name ==  "controlnet_openpose":
+                        elif model_name ==  "controlnet_openpose":    #TODO: Add all scheduler support
           
                             
                             output = engine(
@@ -245,6 +255,22 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
 
+                        elif model_name ==  "controlnet_canny":
+          
+                            
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                image = Image.open(init_image),
+                                
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )
                                                
 
                         else:
@@ -264,7 +290,7 @@ def run(model_name,device_name):
                             ) 
                         
                   
-                        if model_name == "controlnet_openpose":
+                        if model_name == "controlnet_openpose" or model_name == "controlnet_canny":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:
