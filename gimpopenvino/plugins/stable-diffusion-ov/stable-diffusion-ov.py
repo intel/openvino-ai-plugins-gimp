@@ -196,7 +196,7 @@ scheduler_name_enum = StringEnum(
     
 class SDRunner:
     def __init__ (self, procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
-                  strength, seed, enable_sr, progress_bar, config_path_output):
+                  strength, seed, progress_bar, config_path_output):
         self.procedure = procedure
         self.image = image
         self.drawable = drawable
@@ -208,7 +208,6 @@ class SDRunner:
         self.initial_image = initial_image
         self.strength = strength
         self.seed = seed
-        self.enable_sr = enable_sr
         self.progress_bar = progress_bar
         self.config_path_output = config_path_output
         self.result = None
@@ -225,7 +224,6 @@ class SDRunner:
         initial_image = self.initial_image
         strength = self.strength
         seed = self.seed
-        enable_sr = self.enable_sr
         progress_bar = self.progress_bar
         config_path_output = self.config_path_output
 
@@ -251,7 +249,6 @@ class SDRunner:
                        "initial_image": initial_image,
                        "strength": strength,
                        "seed": seed,
-                       "enable_sr": enable_sr,
                        "inference_status": "started"}, file)
 
         # Run inference and load as layer
@@ -440,7 +437,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
         sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
-                                    initial_image=None, strength=0.8, seed="", enable_sr=False,
+                                    initial_image=None, strength=0.8, seed="",
                                     inference_status="success", src_height=512, src_width=512,scheduler="")
 
         sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
@@ -679,17 +676,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         #vbox.pack_start(seed_label, False, False, 1)
         seed_label.show()
 
-        # Create GIF Parameter
-        # config.set_property("enable_sr", enable_sr)
-        spin = GimpUi.prop_check_button_new(config, "enable_sr",
-                                            _("_Enable Super-Resolution"))
-        spin.set_tooltip_text(
-            _(
-                "If checked, output image from stable-diffusion will be upscaled x4. Only supports 512x512 image input currently"
-                "Please note that this process will add some overhead time"
 
-            )
-        )
         grid.attach(spin, 1, 6, 1, 1)
         spin.show()
 
@@ -920,10 +907,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     seed = seed.get_text()
                 else:
                     seed = None
-                enable_sr = config.get_property("enable_sr")
+           
 
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
-                strength, seed, enable_sr, progress_bar, config_path_output)
+                strength, seed, progress_bar, config_path_output)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
                 sd_run_label.show()
@@ -1051,15 +1038,6 @@ class StableDiffusion(Gimp.PlugIn):
         "strength": (
         float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
         GObject.ParamFlags.READWRITE,),
-        "enable_sr": (
-            bool,
-            #_("_Create GIF from the latent frames generated at each inference step"),
-            #"Create GIF",
-             _("_Upscale 512x512 image by x4"),
-            "Enable Super-Resolution",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
         "device_name": (
             str,
             _("Device Name"),
@@ -1174,7 +1152,6 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "num_infer_steps")
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
-            procedure.add_argument_from_property(self, "enable_sr")
             procedure.add_argument_from_property(self, "model_name")
             procedure.add_argument_from_property(self, "scheduler") 
             procedure.add_argument_from_property(self, "device_name")

@@ -337,11 +337,11 @@ class ControlNetOpenPoseInternal(DiffusionPipeline):
         #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test_before.png"))
         
         #Adding Padding - Assumption: Input image is square and result image is landscape
-        pose_npy = np.asarray(pose)
+        #pose_npy = np.asarray(pose)
 
-        pose_npy = np.pad(pose_npy, ((0, 0), (154, 154), (0, 0)))
-        pose_pad = Image.fromarray(np.uint8(pose_npy))
-        pose = pose_pad 
+        #pose_npy = np.pad(pose_npy, ((0, 0), (154, 154), (0, 0)))
+        #pose_pad = Image.fromarray(np.uint8(pose_npy))
+        #pose = pose_pad 
          
         #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test.png"))
         #print("POSE SAVED")
