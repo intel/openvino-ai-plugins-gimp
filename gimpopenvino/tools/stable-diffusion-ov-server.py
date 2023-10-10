@@ -48,13 +48,10 @@ from  models_ov.stable_diffusion_engine_inpainting_internal import StableDiffusi
 
 from  models_ov.controlnet_openpose import ControlNetOpenPose
 from  models_ov.controlnet_openpose_internal import ControlNetOpenPoseInternal
+from  models_ov.controlnet_cannyedge_internal import ControlNetCannyEdgeInternal
 
 
-#### Super-Res ###
-from openvino.inference_engine import IECore
-from models_ov.SuperResolution import SuperResolution
-from pipelines import get_user_config, AsyncPipeline
-########################
+
 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
@@ -109,6 +106,12 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose-internal")
         blobs = True
         swap = True        
+    elif model_name=="controlnet_canny_internal":
+        print("IN LATEST NPU CONFIG")
+
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny-internal")
+        blobs = True
+        swap = True         
         
 
     else:
@@ -136,6 +139,14 @@ def run(model_name,device_name):
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
+
+    elif model_name == "controlnet_canny_internal":
+        log.info('device_name: %s',device_name)
+        engine = ControlNetCannyEdgeInternal(
+        model = model_path,
+        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        blobs = blobs,
+        swap = swap)        
         
         
     elif model_name ==  "SD_1.5_Inpainting":
@@ -315,7 +326,23 @@ def run(model_name,device_name):
                                 model = model_path,
                                 callback = progress_callback,
                                 callback_userdata = conn
-                        )                            
+                        )
+
+                        elif model_name == "controlnet_canny_internal":
+                            
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                image = Image.open(init_image),
+                                scheduler = scheduler,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )                         
                             
                         
                         else:
@@ -336,7 +363,7 @@ def run(model_name,device_name):
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
                   
-                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_internal":
+                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_internal" or model_name == "controlnet_canny_internal":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:

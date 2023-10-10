@@ -112,7 +112,7 @@ class SDDialogResponse(IntEnum):
 def list_models(weight_path, SD):
     model_list = []
     flag = False
-    flag_openpose = False
+    flag_controlnet = False
     if SD == "SD_1.4":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         flag = True
@@ -122,10 +122,10 @@ def list_models(weight_path, SD):
         flag = True
     if SD == "controlnet_openpose":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
-        flag_openpose = True
-        print("flag_openpose", flag_openpose)
+        flag_controlnet = True
+        print("flag_controlnet", flag_controlnet)
         
-    if flag_openpose:
+    if flag_controlnet:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet_controlnet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
@@ -133,6 +133,7 @@ def list_models(weight_path, SD):
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
                 print("ALL OKAY !?")
                 model_list.append(SD)
+        flag_controlnet = False
         
         return model_list   
         
@@ -161,7 +162,13 @@ def list_models(weight_path, SD):
         dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-openpose-internal")
         if os.path.isdir(dir_path):
             model_list.append(SD)
-        return model_list         
+        return model_list
+
+    if SD ==  "controlnet_canny_internal":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-canny-internal")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list        
         
     if SD == "SD_1.5":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
@@ -427,7 +434,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if n_layers == 2:
             model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") + list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_internal")
         else:
-            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_internal_blobs_new") + list_models(config_path_output["weight_path"],"controlnet_openpose_internal")
+            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_internal_blobs_new") + list_models(config_path_output["weight_path"],"controlnet_openpose_internal") + list_models(config_path_output["weight_path"],"controlnet_canny_internal")
         
         model_name_enum = DeviceEnum(model_list)            
         
@@ -567,7 +574,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
+            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or  model_name=="controlnet_canny_internal":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -806,7 +813,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
                     device_pos_unet = config.get_property("unet_positive_device_name")
                     device_neg_unet = config.get_property("unet_negative_device_name")
                 else:
@@ -827,7 +834,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -944,7 +951,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if adv_checkbox.get_active():
                     device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal":
+                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
                         device_pos_unet = config.get_property("unet_positive_device_name")
                         device_neg_unet = config.get_property("unet_negative_device_name")
                     else:
