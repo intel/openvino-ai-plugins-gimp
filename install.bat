@@ -2,8 +2,8 @@
     @echo off
     echo **** openvino-ai-plugins-gimp Setup started **** 
     python -m pip install virtualenv | find /V "already satisfied"
-	python -m virtualenv gimpenv3
-	gimpenv3\Scripts\python.exe -m pip install safetensors==0.3.2 transformers==4.31.0 diffusers==0.14.0 controlnet-aux>=0.0.6 tqdm==4.64.0 openvino==2022.3.0 huggingface_hub streamlit==1.12.0 watchdog==2.1.9 ftfy==6.1.1 | find /V "already satisfied"
+    python -m virtualenv gimpenv3
+    gimpenv3\Scripts\python.exe -m pip install safetensors==0.3.2 transformers==4.31.0 diffusers==0.14.0 controlnet-aux>=0.0.6 tqdm==4.64.0 openvino==2023.0.2 huggingface_hub streamlit==1.12.0 watchdog==2.1.9 ftfy==6.1.1 | find /V "already satisfied"
     gimpenv3\Scripts\python.exe -m pip install openvino-ai-plugins-gimp\.
 	echo *** openvino-ai-plugins-gimp Installed ***
     gimpenv3\Scripts\python.exe -c "import gimpopenvino; gimpopenvino.setup_python_weights()"
