@@ -63,9 +63,6 @@ def progress_callback(i, conn):
 
 
 def run(model_name,device_name):
-
-
-
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
@@ -75,47 +72,47 @@ def run(model_name,device_name):
    
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
     elif model_name == "SD_1.5_portrait": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/portrait")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/square")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square")
     elif model_name == "SD_1.5_landscape": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape")
     elif model_name == "SD_1.5_portrait_512x768": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/portrait_512x768")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768")
     elif model_name == "SD_1.5_landscape_768x512": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5/landscape_768x512")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512")
     elif model_name == "SD_1.5_Inpainting": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting") 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting") 
     elif model_name == "SD_1.5_Inpainting_internal": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting-internal") 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-internal") 
         blobs = True
   
     elif model_name == "controlnet_openpose": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")        
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")        
     elif model_name == "SD_1.5_internal_blobs_new": 
         print("IN LATEST NPU CONFIG")
 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-internal-blobs-NEW")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-internal-blobs-NEW")
         blobs = True
         swap = True
     elif model_name=="controlnet_openpose_internal":
         print("IN LATEST NPU CONFIG")
 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose-internal")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-internal")
         blobs = True
         swap = True        
     elif model_name=="controlnet_canny_internal":
         print("IN LATEST NPU CONFIG")
 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny-internal")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-internal")
         blobs = True
         swap = True         
         
 
     else:
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
         device_name = ["CPU","GPU","GPU"]
 
 
@@ -146,7 +143,7 @@ def run(model_name,device_name):
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
-        swap = swap)        
+        swap = swap)
         
         
     elif model_name ==  "SD_1.5_Inpainting":
