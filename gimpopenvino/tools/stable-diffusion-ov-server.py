@@ -40,8 +40,7 @@ import threading
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
-from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
-from  models_ov.stable_diffusion_engine_v1_5_vision_NEW import StableDiffusionEngineInternal
+from  models_ov.stable_diffusion_engine import StableDiffusionEngineInternal, StableDiffusionEngine
 
 from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
 from  models_ov.stable_diffusion_engine_inpainting_internal import StableDiffusionEngineInpaintingInternal
@@ -49,9 +48,6 @@ from  models_ov.stable_diffusion_engine_inpainting_internal import StableDiffusi
 from  models_ov.controlnet_openpose import ControlNetOpenPose
 from  models_ov.controlnet_openpose_internal import ControlNetOpenPoseInternal
 from  models_ov.controlnet_cannyedge_internal import ControlNetCannyEdgeInternal
-
-
-
 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
