@@ -28,9 +28,6 @@ from pathlib import Path
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 
-
-# from openvino.runtime import Core, Model
-
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
 from plugin_utils import *
 
@@ -78,6 +75,7 @@ class DeviceEnum:
             self.keys.append(i)
             self.values.append(i)
 
+
     def get_tree_model(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
@@ -114,14 +112,14 @@ def list_models(weight_path, SD):
     flag = False
     flag_controlnet = False
     if SD == "SD_1.4":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
         flag = True
 
     if SD == "SD_1.5_Inpainting":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
         flag = True
     if SD == "controlnet_openpose":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
         flag_controlnet = True
         print("flag_controlnet", flag_controlnet)
         
@@ -147,42 +145,40 @@ def list_models(weight_path, SD):
         return model_list
 
     if SD ==  "SD_1.5_internal_blobs_new":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-internal-blobs-NEW")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-internal-blobs-NEW")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
         
     if SD ==  "SD_1.5_Inpainting_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-inpainting-internal")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-internal")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list         
 
     if SD ==  "controlnet_openpose_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-openpose-internal")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-internal")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
 
     if SD ==  "controlnet_canny_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-canny-internal")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-internal")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list        
         
     if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
      
     for file in os.scandir(dir_path): #, recursive=True):
         text = Path(file) / 'text_encoder.xml'
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
-               
                 model = "SD_1.5_" + os.path.basename(file)
                 model_list.append(model)
-          
-            
+
     return model_list   
         
 

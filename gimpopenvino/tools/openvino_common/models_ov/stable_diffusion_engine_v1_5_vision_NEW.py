@@ -194,7 +194,7 @@ class StableDiffusionEngineInternal(DiffusionPipeline):
             # encoder
 
             #self.vae_encoder = None
-            self.vae_encoder = self.newcore.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
+            self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
 
 
 
