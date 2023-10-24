@@ -49,9 +49,9 @@ Please raise a PR for any new features, modifactions or bug fixes.
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the desired model and device from the drop down list.<br>
 4. For running on GPU & NPU - Select stable-diffusion-1.5-internal-blobs-NEW from the model drop down list and choose Text_encoder Device - CPU, Unet Device - GPU/NPU, UnetNeg Device - NPU/GPU, VAE Device - GPU <br>
-6. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference" <br>
+6. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Generate"" <br>
 7. Enter prompt and other parameters (select EulerDiscrete for scheduler) <br>
-8. Click on “Run Inference”. Wait for the total inference steps to get completed. <br>
+8. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 9. If create gif option is selected, please note that performance will reduce. The generated gif is located in below path. You can play it in GIMP by going to Filters -> Animations -> Playback <br>
 ```C:\Users\<user_name>\openvino-ai-plugins-gimp\gif\stable_diffusion.gif``` <br>
 

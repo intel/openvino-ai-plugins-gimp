@@ -152,7 +152,7 @@ def randn_tensor(
 
     return latents
 
-class ControlNetOpenPoseInternal(DiffusionPipeline):
+class ControlNetOpenPoseAdvanced(DiffusionPipeline):
     def __init__(
             self,
             model="runwayml/stable-diffusion-v1-5",

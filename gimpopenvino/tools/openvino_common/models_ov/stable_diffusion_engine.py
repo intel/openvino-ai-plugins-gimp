@@ -80,7 +80,7 @@ def result(var):
     return next(iter(var.values()))
 
 
-class StableDiffusionEngineInternal(DiffusionPipeline):
+class StableDiffusionEngineAdvanced(DiffusionPipeline):
     def __init__(
             self,
              #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],

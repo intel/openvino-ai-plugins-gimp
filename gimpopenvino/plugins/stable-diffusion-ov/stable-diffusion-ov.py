@@ -92,15 +92,6 @@ class DeviceEnum:
                 tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
-
-#model_name_enum = StringEnum(
-#    "SD_1.4",
-#    _("SD_1.4"),
-#    "SD_1.5",
-#    _("SD_1.5"),
-
-#)
-
 class SDDialogResponse(IntEnum):
     LoadModelComplete = 777
     RunInferenceComplete = 778
@@ -144,26 +135,26 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-    if SD ==  "SD_1.5_internal_blobs_new":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-internal-blobs-NEW")
+    if SD ==  "SD_1.5_NPU":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-npu")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
         
-    if SD ==  "SD_1.5_Inpainting_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-internal")
+    if SD ==  "SD_1.5_Inpainting_advanced":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-advanced")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list         
 
-    if SD ==  "controlnet_openpose_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-internal")
+    if SD ==  "controlnet_openpose_advanced":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-advanced")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
 
-    if SD ==  "controlnet_canny_internal":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-internal")
+    if SD ==  "controlnet_canny_advanced":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list        
@@ -428,9 +419,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") + list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_internal")
+            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") + list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_advanced")
         else:
-            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_internal_blobs_new") + list_models(config_path_output["weight_path"],"controlnet_openpose_internal") + list_models(config_path_output["weight_path"],"controlnet_canny_internal")
+            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_NPU") + list_models(config_path_output["weight_path"],"controlnet_openpose_advanced") + list_models(config_path_output["weight_path"],"controlnet_canny_advanced")
         
         model_name_enum = DeviceEnum(model_list)            
         
@@ -461,7 +452,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
-        run_button = dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
 
         vbox = Gtk.Box(
@@ -570,7 +561,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or  model_name=="controlnet_canny_internal":
+            if model_name=="SD_1.5_NPU" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or  model_name=="controlnet_canny_advanced":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -730,7 +721,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                                     _("_Use Inital Image (Default: Selected layer in Canvas)"))   
 
         def populate_init_image_section():
-
             grid.attach(file_chooser_button, 0, 8, 1, 1)
             file_chooser_button.show()
             grid.attach(file_entry, 1, 8, 1, 1)
@@ -809,7 +799,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
+                if model_name=="SD_1.5_NPU" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
                     device_pos_unet = config.get_property("unet_positive_device_name")
                     device_neg_unet = config.get_property("unet_negative_device_name")
                 else:
@@ -830,7 +820,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
+                if model_name=="SD_1.5_NPU" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -947,7 +937,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if adv_checkbox.get_active():
                     device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal" or  model_name=="SD_1.5_Inpainting_internal" or model_name=="controlnet_canny_internal":
+                    if model_name=="SD_1.5_NPU" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
                         device_pos_unet = config.get_property("unet_positive_device_name")
                         device_neg_unet = config.get_property("unet_negative_device_name")
                     else:
@@ -971,7 +961,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_load_model_thread.start()
 
                 continue
-                
             elif response == Gtk.ResponseType.HELP:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git"
                 Gio.app_info_launch_default_for_uri(url, None)
@@ -996,7 +985,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 adv_checkbox.set_sensitive(True)
                 adv_unet_positive_combo.set_sensitive(True)
                 adv_unet_negative_combo.set_sensitive(True)
-
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
                 if run_inference_thread:
@@ -1024,7 +1012,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     populate_basic_devices()
 
             else:
-                dialog.destroy()
+#                dialog.destroy()
                 return procedure.new_return_values(
                     Gimp.PDBStatusType.CANCEL, GLib.Error()
                 )

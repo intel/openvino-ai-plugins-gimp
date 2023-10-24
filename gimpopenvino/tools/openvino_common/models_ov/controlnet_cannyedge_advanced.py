@@ -122,7 +122,7 @@ def randn_tensor(
 
     return latents
 
-class ControlNetCannyEdgeInternal(DiffusionPipeline):
+class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
     def __init__(
             self,
             model="runwayml/stable-diffusion-v1-5",
@@ -148,9 +148,7 @@ class ControlNetCannyEdgeInternal(DiffusionPipeline):
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
         print("Setting caching")
-        
-       
-        
+
      
 
 
@@ -601,7 +599,7 @@ if __name__ == "__main__":
     #from gimpopenvino.tools.tools_utils import get_weight_path
     weight_path = "C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights"
     
-    model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny-internal")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
+    model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
     device_name = ["GPU", "GPU" , "GPU","GPU"]
     
     prompt = "Dancing Darth Vader, best quality, extremely detailed"

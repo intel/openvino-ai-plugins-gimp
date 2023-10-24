@@ -144,8 +144,8 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-    if SD ==  "SD_1.5_internal_blobs_new":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-internal-blobs-NEW")
+    if SD ==  "SD_1.5_NPU":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-npu")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
@@ -444,7 +444,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
-        run_button = dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
 
         vbox = Gtk.Box(

@@ -40,14 +40,14 @@ import threading
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
-from  models_ov.stable_diffusion_engine import StableDiffusionEngineInternal, StableDiffusionEngine
+from  models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine
 
-from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting 
-from  models_ov.stable_diffusion_engine_inpainting_internal import StableDiffusionEngineInpaintingInternal
+from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
+from  models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 
 from  models_ov.controlnet_openpose import ControlNetOpenPose
-from  models_ov.controlnet_openpose_internal import ControlNetOpenPoseInternal
-from  models_ov.controlnet_cannyedge_internal import ControlNetCannyEdgeInternal
+from  models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
+from  models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
@@ -65,47 +65,40 @@ def run(model_name,device_name):
 
     import json
 
-   
+
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-    elif model_name == "SD_1.5_portrait": 
+    elif model_name == "SD_1.5_portrait":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
-    elif model_name == "SD_1.5_square": 
+    elif model_name == "SD_1.5_square":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square")
-    elif model_name == "SD_1.5_landscape": 
+    elif model_name == "SD_1.5_landscape":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape")
-    elif model_name == "SD_1.5_portrait_512x768": 
+    elif model_name == "SD_1.5_portrait_512x768":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768")
-    elif model_name == "SD_1.5_landscape_768x512": 
+    elif model_name == "SD_1.5_landscape_768x512":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512")
-    elif model_name == "SD_1.5_Inpainting": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting") 
-    elif model_name == "SD_1.5_Inpainting_internal": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-internal") 
+    elif model_name == "SD_1.5_Inpainting":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
+    elif model_name == "SD_1.5_Inpainting_advanced":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-advanced")
         blobs = True
-  
-    elif model_name == "controlnet_openpose": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")        
-    elif model_name == "SD_1.5_internal_blobs_new": 
-        print("IN LATEST NPU CONFIG")
-
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-internal-blobs-NEW")
+    elif model_name == "controlnet_openpose":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
+    elif model_name == "SD_1.5_NPU":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-npu")
         blobs = True
         swap = True
-    elif model_name=="controlnet_openpose_internal":
-        print("IN LATEST NPU CONFIG")
-
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-internal")
+    elif model_name=="controlnet_openpose_advanced":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-advanced")
         blobs = True
-        swap = True        
-    elif model_name=="controlnet_canny_internal":
-        print("IN LATEST NPU CONFIG")
-
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-internal")
+        swap = True
+    elif model_name=="controlnet_canny_advanced":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")
         blobs = True
-        swap = True         
-        
+        swap = True
+
 
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
@@ -117,40 +110,40 @@ def run(model_name,device_name):
     log.info('device_name: %s',device_name)
 
 
-    if model_name == "SD_1.5_internal_blobs_new":
+    if model_name == "SD_1.5_NPU":
         log.info('device_name: %s',device_name)
-        engine = StableDiffusionEngineInternal(
-        model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
-        blobs = blobs,
-        swap = swap)
-    
-    elif model_name == "controlnet_openpose_internal":
-        log.info('device_name: %s',device_name)
-        engine = ControlNetOpenPoseInternal(
+        engine = StableDiffusionEngineAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
-    elif model_name == "controlnet_canny_internal":
+    elif model_name == "controlnet_openpose_advanced":
         log.info('device_name: %s',device_name)
-        engine = ControlNetCannyEdgeInternal(
+        engine = ControlNetOpenPoseAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
-        
-        
+
+    elif model_name == "controlnet_canny_advanced":
+        log.info('device_name: %s',device_name)
+        engine = ControlNetCannyEdgeaAdvanced(
+        model = model_path,
+        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        blobs = blobs,
+        swap = swap)
+
+
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
     )
-    
-    elif model_name == "SD_1.5_Inpainting_internal":
-        log.info('Internal Inpainting device_name: %s',device_name)
-        engine = StableDiffusionEngineInpaintingInternal(
+
+    elif model_name == "SD_1.5_Inpainting_advanced":
+        log.info('advanced Inpainting device_name: %s',device_name)
+        engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs)
@@ -159,15 +152,15 @@ def run(model_name,device_name):
         engine = ControlNetOpenPose(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
-    )        
+    )
 
     else:
-       
+
         engine = StableDiffusionEngine(
             model = model_path,
             device = [device_name[0], device_name[1], device_name[3]]
         )
-        
+
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
@@ -179,11 +172,11 @@ def run(model_name,device_name):
         while True:
             conn, addr = s.accept()
             with conn:
-          
+
                 while True:
                     print("Waiting")
                     data = conn.recv(1024)
-                    
+
                     if data.decode() == "kill":
                         os._exit(0)
                     if data.decode() == "ping":
@@ -192,15 +185,15 @@ def run(model_name,device_name):
                     if data.decode() == "model_name":
                         tosend = bytes(model_name, 'utf-8')
                         conn.sendall(tosend)
-                        continue                          
-                 
+                        continue
+
                     if not data:
                         break
-                    try:    
+                    try:
                         weight_path = get_weight_path()
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "r") as file:
                             data_output = json.load(file)
-                       
+
                         prompt = data_output["prompt"]
                         scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
@@ -210,16 +203,16 @@ def run(model_name,device_name):
                         strength = data_output["strength"]
                         seed = data_output["seed"]
                         create_gif = False #data_output["create_gif"]
-                        
-                        
-                        
+
+
+
                         if scheduler == "LMSDiscreteScheduler":
                              log.info('LMSDiscreteScheduler...')
                              scheduler = LMSDiscreteScheduler(
                                     beta_start=0.00085,
                                     beta_end=0.012,
                                     beta_schedule="scaled_linear",
-                                    
+
                                 )
                         elif scheduler == "PNDMScheduler":
                             log.info('PNDMScheduler...')
@@ -229,26 +222,26 @@ def run(model_name,device_name):
                                 beta_end=0.012,
                                 beta_schedule="scaled_linear",
                                 skip_prk_steps = True,
-                                
+
                             )
 
                         elif scheduler == "UniPCMultistepScheduler":
                             log.info('UniPCMultistepScheduler')
                             scheduler = UniPCMultistepScheduler(
-                                beta_start=0.00085, 
-                                beta_end=0.012, 
+                                beta_start=0.00085,
+                                beta_end=0.012,
                                 beta_schedule="scaled_linear"
-                                )                
-                          
+                                )
+
                         else:
                              log.info('EulerDiscreteScheduler...')
                              scheduler = EulerDiscreteScheduler(
-                             beta_start=0.00085, 
-                             beta_end=0.012, 
+                             beta_start=0.00085,
+                             beta_end=0.012,
                              beta_schedule="scaled_linear"
                              )
-              
-                        
+
+
                         strength = 1.0 if init_image is None else strength
                         log.info('Starting inference...')
                         log.info('Prompt: %s',prompt)
@@ -257,21 +250,21 @@ def run(model_name,device_name):
                         log.info('guidance_scale: %s',guidance_scale)
                         log.info('strength: %s',strength)
                         log.info('init_image: %s',init_image)
-                        
-                        if seed is not None:   
+
+                        if seed is not None:
                             np.random.seed(int(seed))
                             log.info('Seed: %s',seed)
                         else:
-                            ran_seed = random.randrange(4294967294) #4294967294 
+                            ran_seed = random.randrange(4294967294) #4294967294
                             np.random.seed(int(ran_seed))
                             log.info('Random Seed: %s',ran_seed)
-                        
+
                         import time
                         start_time = time.time()
-                        
-                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_internal":
+
+                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_advanced":
                             print("-------In Inpainting-------")
-                                     
+
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -287,16 +280,16 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-                      
+
 
                         elif model_name ==  "controlnet_openpose":
-          
-                            
+
+
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
                                 image = Image.open(init_image),
-                                
+
                                 num_inference_steps = num_infer_steps,
                                 guidance_scale = guidance_scale,
                                 eta = 0.0,
@@ -305,8 +298,8 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-                        elif model_name == "controlnet_openpose_internal":
-                            
+                        elif model_name == "controlnet_openpose_advanced":
+
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -321,8 +314,8 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
 
-                        elif model_name == "controlnet_canny_internal":
-                            
+                        elif model_name == "controlnet_canny_advanced":
+
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -335,9 +328,9 @@ def run(model_name,device_name):
                                 model = model_path,
                                 callback = progress_callback,
                                 callback_userdata = conn
-                        )                         
-                            
-                        
+                        )
+
+
                         else:
                             output = engine(
                                 prompt = prompt,
@@ -352,18 +345,18 @@ def run(model_name,device_name):
                                 model = model_path,
                                 callback = progress_callback,
                                 callback_userdata = conn
-                            ) 
+                            )
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
-                  
-                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_internal" or model_name == "controlnet_canny_internal":
+
+                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_advanced" or model_name == "controlnet_canny_advanced":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:
                             cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
                             src_height,src_width, _ = output.shape
-                            
-                        
+
+
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
 
@@ -378,13 +371,13 @@ def run(model_name,device_name):
                                 os.remove(os.path.join(my_dir, f_name))
 
                     except Exception as error:
-                      
+
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             data_output["inference_status"] = "failed"
                             json.dump(data_output, file)
                             #json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
-                            traceback.print_exception("DEBUG THE ERROR", file=file)                            
+                            traceback.print_exception("DEBUG THE ERROR", file=file)
 
                     conn.sendall(b"done")
 
@@ -424,5 +417,5 @@ def start():
 
 if __name__ == "__main__":
    start()
-   
-   
+
+
