@@ -611,7 +611,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
         #print("Inside decode", image.shape)
         return image    
 
-    def prepare_latents(self,batch_size,num_channels_latents,height, width,scheduler): #, scheduler):
+    def prepare_latents(self,batch_size,num_channels_latents,height, width,scheduler): 
         """
         Preparing noise to image generation. If initial latents are not provided, they will be generated randomly, 
         then prepared latents scaled by the standard deviation required by the scheduler

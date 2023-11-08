@@ -315,23 +315,8 @@ def run(model_name,device_name):
                         )
 
 
-                        elif model_name ==  "controlnet_openpose":
+                        elif model_name ==  "controlnet_openpose" or model_name == "controlnet_openpose_int8":
 
-
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
-                        elif model_name == "controlnet_openpose_int8":
 
                             output = engine(
                                 prompt = prompt,
@@ -346,31 +331,17 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-
-                        elif model_name == "controlnet_canny_int8":
-
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
+                  
+                      
                         
-                        elif model_name ==  "controlnet_canny":
+                        elif model_name ==  "controlnet_canny" or model_name == "controlnet_canny_int8":
           
                             
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
                                 image = Image.open(init_image),
-                                
+                                scheduler = scheduler,
                                 num_inference_steps = num_infer_steps,
                                 guidance_scale = guidance_scale,
                                 eta = 0.0,
@@ -380,14 +351,14 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
 
-                        elif model_name == "controlnet_scribble":
+                        elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
 
 
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
                                 image = Image.open(init_image),
-
+                                scheduler = scheduler,
                                 num_inference_steps = num_infer_steps,
                                 guidance_scale = guidance_scale,
                                 eta = 0.0,
@@ -397,21 +368,7 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )          
                         
-                        elif model_name == "controlnet_scribble_int8":
-
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
+              
 
                         else:
                             output = engine(

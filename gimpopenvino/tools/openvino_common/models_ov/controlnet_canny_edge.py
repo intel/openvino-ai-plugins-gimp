@@ -20,9 +20,12 @@ import numpy as np
 from transformers import CLIPTokenizer
 import torch
 
+#from diffusers.pipeline_utils import DiffusionPipeline
+#from diffusers import UniPCMultistepScheduler
+#from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler,EulerAncestralDiscreteScheduler
+
 from diffusers.pipeline_utils import DiffusionPipeline
-from diffusers import UniPCMultistepScheduler
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler,EulerAncestralDiscreteScheduler
+from diffusers import UniPCMultistepScheduler,DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
 import cv2
 import os
 import sys
@@ -147,7 +150,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
 
 
 
-        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"UniPCMultistepScheduler_config"))
+        #self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"UniPCMultistepScheduler_config"))
         
     
         
@@ -225,8 +228,8 @@ class ControlNetCannyEdge(DiffusionPipeline):
             create_gif = False,
             model = None,
             callback = None,
-            callback_userdata = None#,
-            #scheduler=None,
+            callback_userdata = None,#,
+            scheduler=None
     ):
         do_classifier_free_guidance = guidance_scale > 1.0
         # 2. Encode input prompt
@@ -252,8 +255,8 @@ class ControlNetCannyEdge(DiffusionPipeline):
         
         #print("self.scheduler",self.scheduler)
         
-        self.scheduler.set_timesteps(num_inference_steps)
-        timesteps = self.scheduler.timesteps
+        scheduler.set_timesteps(num_inference_steps)
+        timesteps = scheduler.timesteps
         
 
 
@@ -265,7 +268,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
 
         # get the initial random noise unless the user supplied it
         
-        latents = self.prepare_latents(batch_size,num_channels_latents,height,width) #,self.scheduler)
+        latents = self.prepare_latents(batch_size,num_channels_latents,height,width,scheduler) #,self.scheduler)
 
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
@@ -281,7 +284,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
         # num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         # with self.progress_bar(total=num_inference_steps) as progress_bar:
         #    for i, t in enumerate(timesteps):
-        num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
+        num_warmup_steps = len(timesteps) - num_inference_steps * scheduler.order
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
 
@@ -293,7 +296,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
             #noise_pred = []
                 latent_model_input = np.concatenate(
                     [latents] * 2) if do_classifier_free_guidance else latents
-                latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+                latent_model_input = scheduler.scale_model_input(latent_model_input, t)
                 #print("latent_model_input", latent_model_input)
                 
              
@@ -313,14 +316,14 @@ class ControlNetCannyEdge(DiffusionPipeline):
                     noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
                     
                 # compute the previous noisy sample x_t -> x_t-1
-                latents = self.scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents)).prev_sample.numpy()
+                latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents)).prev_sample.numpy()
                 #print("latents", latents)
 
                 if create_gif:
                     frames.append(latents)
                     
                 # update progress
-                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
+                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % scheduler.order == 0):
                     progress_bar.update()                    
 
         if callback:
@@ -444,7 +447,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
         #print("Inside decode", image.shape)
         return image    
 
-    def prepare_latents(self,batch_size:int, num_channels_latents:int,height:int, width:int): #, scheduler):
+    def prepare_latents(self,batch_size, num_channels_latents,height, width,scheduler): #, scheduler):
         """
         Preparing noise to image generation. If initial latents are not provided, they will be generated randomly, 
         then prepared latents scaled by the standard deviation required by the scheduler
@@ -457,13 +460,20 @@ class ControlNetCannyEdge(DiffusionPipeline):
            latents (np.ndarray): scaled initial noise for diffusion
         """
         shape = (batch_size, num_channels_latents, height // 8, width // 8)
-       
+        
         latents = randn_tensor(shape, np.float32)
        
+        # scale the initial noise by the standard deviation required by the scheduler
+        if isinstance(scheduler, LMSDiscreteScheduler):
+            
+            latents = latents * scheduler.sigmas[0].numpy()
+        elif isinstance(scheduler, EulerDiscreteScheduler):
+            
+            latents = latents * scheduler.sigmas.max().numpy()
+        else:
+            latents = latents * scheduler.init_noise_sigma
 
-        latents = latents * self.scheduler.init_noise_sigma
-
-    
+        #latents = latents * self.scheduler.init_noise_sigma.numpy()
         return latents
         
 
