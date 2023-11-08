@@ -201,13 +201,13 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
         self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
         print("compile_model for unet_time_proj on 'CPU'  ", time.time() - start)
 
-        unet_int8_model = "unet_int8_sq_0.15_tp_input.xml"
+        unet_int8_model = "unet_int8.xml"
 
 
         if blobs:
             if device[1] == "NPU" or device[2] == "NPU":
                 device_npu = "NPU"
-                blob_name = "unet_int8_sq_0.15_tp_input.blob"
+                blob_name = "unet_int8_NPU.blob"
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:

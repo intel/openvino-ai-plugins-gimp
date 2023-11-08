@@ -316,6 +316,8 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
 
         # scale and decode the image latents with vae
         
+        latents = 1 / 0.18215 * latents
+        
         image = self.vae_decoder(latents)[self._vae_d_output]
       
         image = self.postprocess_image(image)
