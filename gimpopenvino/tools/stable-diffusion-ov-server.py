@@ -142,7 +142,7 @@ def run(model_name,device_name):
 
     elif model_name == "controlnet_canny_int8":
         log.info('device_name: %s',device_name)
-        engine = ControlNetCannyEdgeaAdvanced(
+        engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
