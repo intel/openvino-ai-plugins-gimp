@@ -110,9 +110,9 @@ while True:
     choice = input("Enter the Number for the model you want to download: ")
 
     if choice=="1":
-        print("Downloading Intel/stable-diffusion-1.5-quantized Models")
+        print("Downloading Intel/sd-1.5-square-quantized Models")
 
-        repo_id="Intel/stable-diffusion-1.5-quantized"
+        repo_id="Intel/sd-1.5-square-quantized"
         model_fp16 = "stable-diffusion-1.5\square"
         model_int8 = "stable-diffusion-1.5\square_int8"
         download_hf_model(repo_id, model_fp16,model_int8)
@@ -120,15 +120,15 @@ while True:
     if choice=="2":
         print("Downloading Intel/sd-1.5-portrait-quantized Models")
 
-        repo_id="Intel/stable-diffusion-1.5-quantized"
+        repo_id="Intel/sd-1.5-portrait-quantized"
         model_1 = "portrait"
         model_2 = "portrait_512x768"
         download_model(repo_id, model_1,model_2)   
 
     if choice=="3":
-        print("Downloading Intel/sd-1.5-portrait-quantized Models")
+        print("Downloading Intel/sd-1.5-landscape-quantized Models")
 
-        repo_id="Intel/stable-diffusion-1.5-quantized"
+        repo_id="Intel/sd-1.5-landscape-quantized"
         model_1 = "landscape"
         model_2 = "landscape_768x512"
         download_model(repo_id, model_1,model_2)             
