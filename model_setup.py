@@ -85,7 +85,7 @@ def download_hf_model(repo_id, model_fp16, model_int8):
 
 
     delete_folder=os.path.join(download_folder, "../../..")
-    #shutil.rmtree(delete_folder)  
+    shutil.rmtree(delete_folder)  
     
 def download_model(repo_id, model_1, model_2):
     download_folder = snapshot_download(repo_id=repo_id, token=access_token)
