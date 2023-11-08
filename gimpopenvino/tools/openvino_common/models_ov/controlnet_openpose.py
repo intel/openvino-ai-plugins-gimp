@@ -176,7 +176,7 @@ class ControlNetOpenPose(DiffusionPipeline):
 
     
 
-        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"..","UniPCMultistepScheduler_config"))
+        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model, "UniPCMultistepScheduler_config"))
         
      
         self.core = Core()
@@ -360,7 +360,7 @@ class ControlNetOpenPose(DiffusionPipeline):
                     
                     
                   # update progress
-                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % scheduler.order == 0):
+                if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                     progress_bar.update()                  
 
         if callback:
@@ -391,21 +391,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         if create_gif:
             gif_folder=os.path.join(model,"../../../gif")
             print("gif_folder:",gif_folder)
-            #if not os.path.exists(gif_folder):
-                #os.makedirs(gif_folder)
-            #for i in range(0,len(frames)):
-            #    image = self.vae_decoder(frames[i]*(1/0.18215))[self._vae_d_output]
-            #    image = self.postprocess_image(image, meta)
-            #    output = gif_folder + "/" + str(i).zfill(3) +".png"
-            #    cv2.imwrite(output, image)
-            #with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
-            #    json.dump({"prompt": prompt}, file)
-            #frames_image =  [Image.open(image) for image in glob.glob(f"{gif_folder}/*.png")]
-            #frame_one = frames_image[0]
-            #gif_file=os.path.join(gif_folder,"stable_diffusion.gif")
-            #frame_one.save(gif_file, format="GIF", append_images=frames_image, save_all=True, duration=100, loop=0)
-
-        #print("type(engine image) = ", type(image))
+        
 
         return image[0]
         

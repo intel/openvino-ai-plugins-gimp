@@ -109,7 +109,7 @@ def run(model_name,device_name):
         swap = True
         
     elif model_name=="controlnet_scribble_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
         blobs = True
         swap = True   
 

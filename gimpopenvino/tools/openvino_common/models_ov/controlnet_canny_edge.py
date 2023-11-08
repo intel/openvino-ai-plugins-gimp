@@ -147,7 +147,7 @@ class ControlNetCannyEdge(DiffusionPipeline):
 
 
 
-        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"..","UniPCMultistepScheduler_config"))
+        self.scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model,"UniPCMultistepScheduler_config"))
         
     
         
