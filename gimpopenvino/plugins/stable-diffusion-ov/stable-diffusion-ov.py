@@ -178,8 +178,9 @@ def list_models(weight_path, SD):
         text = Path(file) / 'text_encoder.xml'
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+        if os.path.isfile(text) and os.path.isfile(vae):
                 model = "SD_1.5_" + os.path.basename(file)
+                
                 model_list.append(model)
 
     return model_list   

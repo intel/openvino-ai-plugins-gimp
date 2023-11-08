@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 from pathlib import Path
+from glob import glob
 
 
 other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp\weights")
@@ -55,7 +56,14 @@ def download_hf_model(repo_id, model_fp16, model_int8):
 
     FP16_model = os.path.join(download_folder, "FP16")
     shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))    
-    shutil.copytree(FP16_model, SD_path_FP16)    
+
+
+    files = glob(os.path.join(FP16_model, '**'), recursive=True)
+    
+    for f in files:
+        if os.path.isfile(f):
+            base = os.path.basename(f)
+            shutil.copy(f, os.path.join(SD_path_FP16, base))       
     
     if model_int8:
         SD_path_INT8 = os.path.join(install_location, model_int8)
@@ -66,11 +74,18 @@ def download_hf_model(repo_id, model_fp16, model_int8):
         
         INT8_model = os.path.join(download_folder, "INT8")
         shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))        
-        shutil.copytree(INT8_model, SD_path_INT8)
+        #shutil.copy(INT8_model, SD_path_INT8)
+        
+        files = glob(os.path.join(INT8_model, '**'), recursive=True)
+        
+        for f in files:
+            if os.path.isfile(f):
+                base = os.path.basename(f)
+                shutil.copy(f, os.path.join(SD_path_INT8, base))          
 
 
     delete_folder=os.path.join(download_folder, "../../..")
-    shutil.rmtree(delete_folder)  
+    #shutil.rmtree(delete_folder)  
     
 def download_model(repo_id, model_1, model_2):
     download_folder = snapshot_download(repo_id=repo_id, token=access_token)
