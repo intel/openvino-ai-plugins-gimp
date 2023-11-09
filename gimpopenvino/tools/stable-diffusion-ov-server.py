@@ -40,14 +40,14 @@ import threading
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
-from  models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine
+from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine
 
-from  models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
-from  models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
+from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
+from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 
-from  models_ov.controlnet_openpose import ControlNetOpenPose
-from  models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
-from  models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
+from models_ov.controlnet_openpose import ControlNetOpenPose
+from models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
+from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
@@ -69,6 +69,8 @@ def run(model_name,device_name):
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
+    elif model_name == "Latent_Consistency":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "lcm")
     elif model_name == "SD_1.5_portrait":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square":
@@ -86,8 +88,8 @@ def run(model_name,device_name):
         blobs = True
     elif model_name == "controlnet_openpose":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
-    elif model_name == "SD_1.5_NPU":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-npu")
+    elif model_name == "SD_1.5_INT8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-INT8")
         blobs = True
         swap = True
     elif model_name=="controlnet_openpose_advanced":
@@ -110,7 +112,7 @@ def run(model_name,device_name):
     log.info('device_name: %s',device_name)
 
 
-    if model_name == "SD_1.5_NPU":
+    if model_name == "SD_1.5_INT8":
         log.info('device_name: %s',device_name)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
@@ -137,6 +139,12 @@ def run(model_name,device_name):
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
+        model = model_path,
+        device = [device_name[0], device_name[1], device_name[3]]
+    )
+
+    elif model_name ==  "Latent_Consistency":
+        engine = LatentConsistencyEngine(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
     )
@@ -264,7 +272,6 @@ def run(model_name,device_name):
 
                         if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_advanced":
                             print("-------In Inpainting-------")
-
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -283,8 +290,6 @@ def run(model_name,device_name):
 
 
                         elif model_name ==  "controlnet_openpose":
-
-
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -299,7 +304,6 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
                         elif model_name == "controlnet_openpose_advanced":
-
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -313,9 +317,7 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-
                         elif model_name == "controlnet_canny_advanced":
-
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -329,8 +331,16 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-
-
+                        elif model_name == "Latent_Consistency":
+                            output = engine(
+                                prompt = prompt,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                lcm_origin_steps = 50,
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )
                         else:
                             output = engine(
                                 prompt = prompt,
@@ -353,7 +363,7 @@ def run(model_name,device_name):
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:
-                            cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
+                            #cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
                             src_height,src_width, _ = output.shape
 
 

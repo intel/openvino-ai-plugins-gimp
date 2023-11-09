@@ -144,11 +144,17 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-    if SD ==  "SD_1.5_NPU":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-npu")
+    if SD ==  "SD_1.5_INT8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-INT8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
+
+    if SD ==  "Latent_Consistency_Model":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\LCM")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list
 
     if SD ==  "controlnet_openpose_internal":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-openpose-internal")
