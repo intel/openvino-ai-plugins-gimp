@@ -45,10 +45,11 @@ from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, Sta
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 
-from models_ov.controlnet_openpose import ControlNetOpenPose
-from models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
-from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
-
+from  models_ov.controlnet_openpose import ControlNetOpenPose
+from  models_ov.controlnet_canny_edge import ControlNetCannyEdge
+from  models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
+from  models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
+from  models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
@@ -83,23 +84,34 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512")
     elif model_name == "SD_1.5_Inpainting":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
-    elif model_name == "SD_1.5_Inpainting_advanced":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-advanced")
+    elif model_name == "SD_1.5_Inpainting_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
         blobs = True
     elif model_name == "controlnet_openpose":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
-    elif model_name == "SD_1.5_INT8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-INT8")
+    elif model_name == "controlnet_canny":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
+
+    elif model_name == "controlnet_scribble": 
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")  
+        
+    elif model_name == "SD_1.5_square_int8":
+        model_path = os.path.join(weight_path,"stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
         blobs = True
         swap = True
-    elif model_name=="controlnet_openpose_advanced":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-advanced")
+    elif model_name=="controlnet_openpose_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
         blobs = True
         swap = True
-    elif model_name=="controlnet_canny_advanced":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")
+    elif model_name=="controlnet_canny_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
         blobs = True
         swap = True
+        
+    elif model_name=="controlnet_scribble_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
+        blobs = True
+        swap = True   
 
 
     else:
@@ -112,7 +124,7 @@ def run(model_name,device_name):
     log.info('device_name: %s',device_name)
 
 
-    if model_name == "SD_1.5_INT8":
+    if model_name == "SD_1.5_square_int8":
         log.info('device_name: %s',device_name)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
@@ -120,7 +132,7 @@ def run(model_name,device_name):
         blobs = blobs,
         swap = swap)
 
-    elif model_name == "controlnet_openpose_advanced":
+    elif model_name == "controlnet_openpose_int8":
         log.info('device_name: %s',device_name)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
@@ -128,20 +140,39 @@ def run(model_name,device_name):
         blobs = blobs,
         swap = swap)
 
-    elif model_name == "controlnet_canny_advanced":
+    elif model_name == "controlnet_canny_int8":
         log.info('device_name: %s',device_name)
-        engine = ControlNetCannyEdgeaAdvanced(
+        engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
+    elif model_name == "controlnet_scribble_int8":
+        log.info('device_name: %s',device_name)
+        engine = ControlNetScribbleAdvanced(
+        model = model_path,
+        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        blobs = blobs,
+        swap = swap)
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
     )
+    
+    elif model_name == "controlnet_canny":
+        engine = ControlNetCannyEdge(
+        model = model_path,
+        device = device_name
+    )    
+    
+    elif model_name == "controlnet_scribble":
+        engine = ControlNetScribble(
+        model = model_path,
+        device = device_name
+    )   
 
     elif model_name ==  "Latent_Consistency":
         engine = LatentConsistencyEngine(
@@ -149,7 +180,7 @@ def run(model_name,device_name):
         device = [device_name[0], device_name[1], device_name[3]]
     )
 
-    elif model_name == "SD_1.5_Inpainting_advanced":
+    elif model_name == "SD_1.5_Inpainting_int8":
         log.info('advanced Inpainting device_name: %s',device_name)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
@@ -270,7 +301,7 @@ def run(model_name,device_name):
                         import time
                         start_time = time.time()
 
-                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_advanced":
+                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
                             print("-------In Inpainting-------")
                             output = engine(
                                 prompt = prompt,
@@ -289,21 +320,7 @@ def run(model_name,device_name):
                         )
 
 
-                        elif model_name ==  "controlnet_openpose":
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
-                        elif model_name == "controlnet_openpose_advanced":
+                        elif model_name ==  "controlnet_openpose" or model_name == "controlnet_openpose_int8":
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -317,7 +334,7 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-                        elif model_name == "controlnet_canny_advanced":
+                        elif model_name ==  "controlnet_canny" or model_name == "controlnet_canny_int8":
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -341,6 +358,20 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
+                        elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                image = Image.open(init_image),
+                                scheduler = scheduler,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )          
                         else:
                             output = engine(
                                 prompt = prompt,
@@ -359,7 +390,7 @@ def run(model_name,device_name):
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
 
-                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_advanced" or model_name == "controlnet_canny_advanced":
+                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_int8" or model_name == "controlnet_canny_int8" or model_name == "controlnet_canny" or model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:

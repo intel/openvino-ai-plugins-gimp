@@ -29,15 +29,7 @@
 	if %continue%==y (
 		echo **** OpenVINO MODEL SETUP STARTED ****
 		gimpenv3\Scripts\python.exe openvino-ai-plugins-gimp\model_setup.py
-		echo -----------------------------------------------------------------------------------------------
-		echo **** OPENVINO STABLE DIFFUSION 1.5 MODELS SETUP **** 
-		echo Checking model installation environment...
-		python -m venv model_conv
-		
-		model_conv\Scripts\python.exe -m pip install --upgrade pip wheel setuptools | find /V "already satisfied"
-		model_conv\Scripts\python.exe -m pip install -r openvino-ai-plugins-gimp\model-requirements.txt | find /V "already satisfied"
-		model_conv\Scripts\python.exe openvino-ai-plugins-gimp\choose_sd_model.py
-		echo **** OPENVINO STABLE DIFFUSION 1.5 MODELS COMPLETE **** 
+
 		) else ( echo Model setup skipped. Please make sure you have all the required models setup.
 		)
 		

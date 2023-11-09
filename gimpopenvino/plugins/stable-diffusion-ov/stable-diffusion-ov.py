@@ -114,6 +114,16 @@ def list_models(weight_path, SD):
         flag_controlnet = True
         print("flag_controlnet", flag_controlnet)
         
+    if SD == "controlnet_canny":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny")
+        flag_controlnet = True
+        print("flag_controlnet", flag_controlnet)
+        
+    if SD == "controlnet_scribble":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")
+        flag_controlnet = True
+        print("flag_controlnet", flag_controlnet)
+        
     if flag_controlnet:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet_controlnet.xml'
@@ -135,8 +145,8 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-    if SD == "SD_1.5_INT8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-INT8")
+    if SD == "SD_1.5_square_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
@@ -147,23 +157,31 @@ def list_models(weight_path, SD):
             model_list.append(SD)
         return model_list  
         
-    if SD == "SD_1.5_Inpainting_advanced":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-advanced")
+        
+    if SD ==  "SD_1.5_Inpainting_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list         
 
-    if SD ==  "controlnet_openpose_advanced":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-advanced")
+    if SD ==  "controlnet_openpose_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
 
-    if SD ==  "controlnet_canny_advanced":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")
+    if SD ==  "controlnet_canny_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list        
+        
+        
+    if SD ==  "controlnet_scribble_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list  
         
     if SD == "SD_1.5":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
@@ -172,8 +190,9 @@ def list_models(weight_path, SD):
         text = Path(file) / 'text_encoder.xml'
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+        if os.path.isfile(text) and os.path.isfile(vae):
                 model = "SD_1.5_" + os.path.basename(file)
+                
                 model_list.append(model)
 
     return model_list   
@@ -425,19 +444,23 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
+<<<<<<< HEAD
             model_list = (list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_advanced"))
+                          list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_int8"))
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_INT8") +
+                          list_models(config_path_output["weight_path"],"SD_1.5_square_int8") +
                           list_models(config_path_output["weight_path"],"Latent_Consistency") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose_advanced") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny_advanced"))
+                          list_models(config_path_output["weight_path"],"controlnet_openpose") + 
+                          list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
+                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
+                          list_models(config_path_output["weight_path"],"controlnet_canny") + 
+                          list_models(config_path_output["weight_path"],"controlnet_scribble") + 
+                          list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
         
         model_name_enum = DeviceEnum(model_list)            
-        
         
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
@@ -574,7 +597,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_IN8" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or  model_name=="controlnet_canny_advanced":
+            if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or  model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -812,7 +835,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_INT8" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
+                if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
                     device_pos_unet = config.get_property("unet_positive_device_name")
                     device_neg_unet = config.get_property("unet_negative_device_name")
                 else:
@@ -833,7 +856,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_INT8" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
+                if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -950,7 +973,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if adv_checkbox.get_active():
                     device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_INT8" or model_name=="controlnet_openpose_advanced" or  model_name=="SD_1.5_Inpainting_advanced" or model_name=="controlnet_canny_advanced":
+                    if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
                         device_pos_unet = config.get_property("unet_positive_device_name")
                         device_neg_unet = config.get_property("unet_negative_device_name")
                     else:

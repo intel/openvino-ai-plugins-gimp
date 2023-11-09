@@ -156,7 +156,7 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
         # self.scheduler = scheduler
         controlnet =  os.path.join(model, "controlnet-canny.xml") 
         text_encoder = os.path.join(model, "text_encoder.xml")
-        unet_int8_model = os.path.join(model, "unet_controlnet_int8_sq_0.15_sym_tp_input.xml")
+        unet_int8_model = os.path.join(model, "unet_controlnet_int8.xml")
         unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
         vae_decoder = os.path.join(model, "vae_decoder.xml")
         
@@ -216,7 +216,7 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
         if blobs:
             if device[1] == "NPU" or device[2] == "NPU":
                 device_npu = "NPU"
-                blob_name = "unet_controlnet_int8_sq_0.15_sym_tp_input-opt-fp32.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+                blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:

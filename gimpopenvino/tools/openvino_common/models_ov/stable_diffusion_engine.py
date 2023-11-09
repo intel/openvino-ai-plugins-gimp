@@ -109,7 +109,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         # text features
 
         print("Text Device:",device[0])
-        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder_fp16.xml"), device[0])
+        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
 
         self._text_encoder_output = self.text_encoder.output(0)
 
@@ -121,13 +121,13 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
         print("compile_model for unet_time_proj on 'CPU'  ", time.time() - start)
 
-        unet_int8_model = "unet_int8_sq_0.15_sym_tp_input.xml"
+        unet_int8_model = "unet_int8.xml"
 
 
         if blobs:
             if device[1] == "NPU" or device[2] == "NPU":
                 device_npu = "NPU"
-                blob_name = "unet" + "_" + device_npu + ".blob"
+                blob_name = "unet_int8_NPU.blob"
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
@@ -176,7 +176,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         print("VAE Device:",device[3])
         if device[3] == "GPU": #bypass caching for vae - issues seen.
             start = time.time()
-            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder_fp16.xml"), device[3])
+            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
             print("vae decoder loaded on GPU in:", time.time() - start)
             # encoder
 
@@ -185,7 +185,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 
         else:
             start = time.time()
-            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder_fp16.xml"), device[3])
+            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
             print("vae decoder loaded on CPU in:", time.time() - start)
 
             # encoder
@@ -691,26 +691,15 @@ class StableDiffusionEngine(DiffusionPipeline):
             callback(num_inference_steps, callback_userdata)
 
         # scale and decode the image latents with vae
+        
+        if self.height == 512 and self.width == 512:
+            latents = 1 / 0.18215 * latents
 
         image = self.vae_decoder(latents)[self._vae_d_output]
 
         image = self.postprocess_image(image, meta)
 
-        if create_gif:
-            gif_folder = os.path.join(model, "../../../gif")
-            if not os.path.exists(gif_folder):
-                os.makedirs(gif_folder)
-            for i in range(0, len(frames)):
-                image = self.vae_decoder(frames[i])[self._vae_d_output]
-                image = self.postprocess_image(image, meta)
-                output = gif_folder + "/" + str(i).zfill(3) + ".png"
-                cv2.imwrite(output, image)
-            with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
-                json.dump({"prompt": prompt}, file)
-            frames_image = [Image.open(image) for image in glob.glob(f"{gif_folder}/*.png")]
-            frame_one = frames_image[0]
-            gif_file = os.path.join(gif_folder, "stable_diffusion.gif")
-            frame_one.save(gif_file, format="GIF", append_images=frames_image, save_all=True, duration=100, loop=0)
+        
 
         return image
 
