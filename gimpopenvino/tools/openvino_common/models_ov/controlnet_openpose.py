@@ -20,8 +20,7 @@ import numpy as np
 from transformers import CLIPTokenizer
 import torch
 
-from diffusers.pipeline_utils import DiffusionPipeline
-from diffusers.pipeline_utils import DiffusionPipeline
+from diffusers import DiffusionPipeline
 from diffusers import UniPCMultistepScheduler,DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
 
 import cv2

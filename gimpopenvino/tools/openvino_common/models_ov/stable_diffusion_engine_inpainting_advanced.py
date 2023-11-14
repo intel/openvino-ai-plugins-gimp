@@ -19,7 +19,7 @@ from openvino.runtime import Core, Model
 from transformers import CLIPTokenizer
 import torch
 
-from diffusers.pipeline_utils import DiffusionPipeline
+from diffusers import DiffusionPipeline
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
 import cv2
 import os
