@@ -29,7 +29,7 @@ import shutil
 from PIL import Image
 
 # scheduler
-from diffusers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler,EulerAncestralDiscreteScheduler,DDIMScheduler, UniPCMultistepScheduler
+from diffusers import LCMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler,EulerAncestralDiscreteScheduler,DDIMScheduler, UniPCMultistepScheduler
 # utils 
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
@@ -76,6 +76,10 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square")
+    elif model_name == "SD_1.5_square_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
+        blobs = True
+        swap = True
     elif model_name == "SD_1.5_landscape":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape")
     elif model_name == "SD_1.5_portrait_512x768":
@@ -91,14 +95,8 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
     elif model_name == "controlnet_canny":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
-
     elif model_name == "controlnet_scribble": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")  
-        
-    elif model_name == "SD_1.5_square_int8":
-        model_path = os.path.join(weight_path,"stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
-        blobs = True
-        swap = True
+        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")
     elif model_name=="controlnet_openpose_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
         blobs = True
@@ -172,9 +170,10 @@ def run(model_name,device_name):
         engine = ControlNetScribble(
         model = model_path,
         device = device_name
-    )   
+    )
 
     elif model_name ==  "Latent_Consistency":
+        print("Garth - Debug - initing LCM", model_path, device_name)
         engine = LatentConsistencyEngine(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
@@ -185,23 +184,23 @@ def run(model_name,device_name):
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
         device = [device_name[0], device_name[1],device_name[2],device_name[3]],
-        blobs = blobs)
+        blobs = blobs
+        )
 
     elif model_name == "controlnet_openpose":
         engine = ControlNetOpenPose(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
-    )
+        )
 
     else:
-
         engine = StableDiffusionEngine(
             model = model_path,
             device = [device_name[0], device_name[1], device_name[3]]
         )
 
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    with (socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s):
         s.bind((HOST, PORT))
         s.listen()
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -242,8 +241,6 @@ def run(model_name,device_name):
                         strength = data_output["strength"]
                         seed = data_output["seed"]
                         create_gif = False #data_output["create_gif"]
-
-
 
                         if scheduler == "LMSDiscreteScheduler":
                              log.info('LMSDiscreteScheduler...')
@@ -319,7 +316,6 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
 
-
                         elif model_name ==  "controlnet_openpose" or model_name == "controlnet_openpose_int8":
                             output = engine(
                                 prompt = prompt,
@@ -390,7 +386,13 @@ def run(model_name,device_name):
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
 
-                        if model_name == "controlnet_openpose" or model_name == "controlnet_openpose_int8" or model_name == "controlnet_canny_int8" or model_name == "controlnet_canny" or model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
+                        if model_name == "Latent_Consistency" or \
+                           model_name == "controlnet_openpose" or \
+                           model_name == "controlnet_openpose_int8" or \
+                           model_name == "controlnet_canny_int8" or \
+                           model_name == "controlnet_canny" or \
+                           model_name == "controlnet_scribble" or \
+                           model_name == "controlnet_scribble_int8":
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:

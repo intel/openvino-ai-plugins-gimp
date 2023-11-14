@@ -112,30 +112,25 @@ def list_models(weight_path, SD):
     if SD == "controlnet_openpose":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
         flag_controlnet = True
-        print("flag_controlnet", flag_controlnet)
-        
+
     if SD == "controlnet_canny":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-canny")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
         flag_controlnet = True
-        print("flag_controlnet", flag_controlnet)
-        
+
     if SD == "controlnet_scribble":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
         flag_controlnet = True
-        print("flag_controlnet", flag_controlnet)
-        
+
     if flag_controlnet:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet_controlnet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
        
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
-                print("ALL OKAY !?")
                 model_list.append(SD)
         flag_controlnet = False
         
-        return model_list   
-        
+        return model_list
                
     if flag:
         text = Path(dir_path) / 'text_encoder.xml'
@@ -145,19 +140,13 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-    if SD == "SD_1.5_square_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list
 
     if SD == "Latent_Consistency":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "lcm")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
-        
-        
+
     if SD ==  "SD_1.5_Inpainting_int8":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
         if os.path.isdir(dir_path):
@@ -185,14 +174,19 @@ def list_models(weight_path, SD):
         
     if SD == "SD_1.5":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
-     
+
+    if SD == "SD_1.5_square_int8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list
+
     for file in os.scandir(dir_path): #, recursive=True):
         text = Path(file) / 'text_encoder.xml'
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
         if os.path.isfile(text) and os.path.isfile(vae):
                 model = "SD_1.5_" + os.path.basename(file)
-                
                 model_list.append(model)
 
     return model_list   
@@ -399,8 +393,10 @@ def async_sd_run_func(runner, dialog):
 def on_toggled(widget, dialog):
     dialog.response(800)
 
+#
+# This is what brings up the UI
+#
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
@@ -444,14 +440,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-<<<<<<< HEAD
             model_list = (list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") +
                           list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_int8"))
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_square_int8") +
                           list_models(config_path_output["weight_path"],"Latent_Consistency") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
@@ -459,7 +453,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"controlnet_canny") + 
                           list_models(config_path_output["weight_path"],"controlnet_scribble") + 
                           list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
-        
+
         model_name_enum = DeviceEnum(model_list)            
         
         config = procedure.create_config()
@@ -657,7 +651,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(prompt_label, 0, 1, 1, 1)
         #vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
-        
+
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
@@ -854,9 +848,22 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # if model / devices are changed from what is currently loaded.
         def model_sensitive_combo_changed(widget):
             model_name_tmp = config.get_property("model_name")
+
+            # LCM model has no negative prompt
+            if model_name_tmp == "Latent_Consistency":
+                negative_prompt_text.hide()
+                negative_prompt_label.hide()
+            else:
+                negative_prompt_text.show()
+                negative_prompt_label.show()
+
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
+                if (model_name=="SD_1.5_square_int8"       or
+                    model_name=="controlnet_openpose_int8" or
+                    model_name=="SD_1.5_Inpainting_int8"   or
+                    model_name=="controlnet_canny_int8"    or
+                    model_name=="controlnet_scribble_int8"):
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -869,7 +876,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 device_pos_unet_tmp = device_tmp
                 device_neg_unet_tmp = device_tmp
                 device_vae_tmp = device_tmp
-            if model_name_tmp==model_name and device_text_tmp==device_text and device_pos_unet_tmp==device_pos_unet and device_neg_unet_tmp==device_neg_unet and device_vae_tmp==device_vae:
+            if (model_name_tmp==model_name           and
+                device_text_tmp==device_text         and
+                device_pos_unet_tmp==device_pos_unet and
+                device_neg_unet_tmp==device_neg_unet and
+                device_vae_tmp==device_vae):
                 run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
