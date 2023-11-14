@@ -59,7 +59,7 @@ rsa>=4.7 # not directly required, pinned by Snyk to avoid a vulnerability
 diffusers[torch]>=0.9.0
 huggingface-hub>=0.9.1
 
-diffusers==0.14.0
+diffusers>=0.23.0
 huggingface-hub>=0.9.1
 
 controlnet-aux>=0.0.6
