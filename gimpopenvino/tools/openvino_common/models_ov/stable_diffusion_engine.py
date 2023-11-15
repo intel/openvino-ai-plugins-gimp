@@ -1247,6 +1247,7 @@ class LatentConsistencyEngine(DiffusionPipeline):
         output_type: Optional[str] = "pil",
         return_dict: bool = True,
         model: Optional[Dict[str, any]] = None,
+        seed: Optional[int] = 1234567,
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
         callback = None,
         callback_userdata = None
@@ -1260,7 +1261,9 @@ class LatentConsistencyEngine(DiffusionPipeline):
         else:
             batch_size = prompt_embeds.shape[0]
 
-        print("After Step 1: batch size is ", batch_size)
+        torch.manual_seed(seed)
+
+        #print("After Step 1: batch size is ", batch_size)
         # do_classifier_free_guidance = guidance_scale > 0.0
         # In LCM Implementation:  cfg_noise = noise_cond + cfg_scale * (noise_cond - noise_uncond) , (cfg_scale > 0.0 using CFG)
 
@@ -1270,13 +1273,13 @@ class LatentConsistencyEngine(DiffusionPipeline):
             num_images_per_prompt,
             prompt_embeds=prompt_embeds,
         )
-        print("After Step 2: prompt embeds is ", prompt_embeds)
-        print("After Step 2: scheduler is ",self.scheduler )
+        #print("After Step 2: prompt embeds is ", prompt_embeds)
+        #print("After Step 2: scheduler is ",self.scheduler )
         # 3. Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, original_inference_steps=lcm_origin_steps)
         timesteps = self.scheduler.timesteps
 
-        print("After Step 3: timesteps is ", timesteps)
+        #print("After Step 3: timesteps is ", timesteps)
 
         # 4. Prepare latent variable
         num_channels_latents = 4
@@ -1288,13 +1291,13 @@ class LatentConsistencyEngine(DiffusionPipeline):
             prompt_embeds.dtype,
             latents,
         )
-        print("After Step 4: ")
+        #print("After Step 4: ")
         bs = batch_size * num_images_per_prompt
 
         # 5. Get Guidance Scale Embedding
         w = torch.tensor(guidance_scale).repeat(bs)
         w_embedding = self.get_w_embedding(w, embedding_dim=256)
-        print("After Step 5: ")
+        #print("After Step 5: ")
         # 6. LCM MultiStep Sampling Loop:
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
@@ -1310,7 +1313,7 @@ class LatentConsistencyEngine(DiffusionPipeline):
                 )
                 progress_bar.update()
 
-        print("After Step 6: ")
+        #print("After Step 6: ")
 
         if not output_type == "latent":
             image = torch.from_numpy(self.vae_decoder(denoised / 0.18215, share_inputs=True, share_outputs=True)[0])
@@ -1326,7 +1329,7 @@ class LatentConsistencyEngine(DiffusionPipeline):
         #else:
         #    do_denormalize = [not has_nsfw for has_nsfw in has_nsfw_concept]
 
-        print ("After do_denormalize: image is ", image)
+        #print ("After do_denormalize: image is ", image)
 
         image = self.image_processor.postprocess(
             image, output_type=output_type, do_denormalize=do_denormalize

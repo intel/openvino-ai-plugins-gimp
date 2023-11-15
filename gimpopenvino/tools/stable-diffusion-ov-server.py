@@ -173,7 +173,6 @@ def run(model_name,device_name):
     )
 
     elif model_name ==  "Latent_Consistency":
-        print("Garth - Debug - initing LCM", model_path, device_name)
         engine = LatentConsistencyEngine(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
@@ -352,7 +351,8 @@ def run(model_name,device_name):
                                 lcm_origin_steps = 50,
                                 model = model_path,
                                 callback = progress_callback,
-                                callback_userdata = conn
+                                callback_userdata = conn,
+                                seed = seed
                         )
                         elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
                             output = engine(
@@ -437,17 +437,17 @@ def start():
     run_thread.start()
 
     #run(model_name,device_name)
-    print("Looking for GIMP process")
+    #print("Looking for GIMP process")
     gimp_proc = None
     for proc in psutil.process_iter():
         if "gimp-2.99" in proc.name():
             gimp_proc = proc
             break;
 
-    print("Done looking for GIMP process")
+    #print("Done looking for GIMP process")
 
     if gimp_proc:
-        print("gimp-2.99 process found:", gimp_proc)
+     #   print("gimp-2.99 process found:", gimp_proc)
         psutil.wait_procs([proc])
         print("exiting..!")
         os._exit(0)
