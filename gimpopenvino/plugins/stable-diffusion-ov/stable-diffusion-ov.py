@@ -412,17 +412,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         
         supported_devices = []
         for device in config_path_output["supported_devices"]:
-           if device == "NPU":
-                if "NPU" not in supported_devices:
-                    supported_devices.append("NPU")
-           else:
+           if 'GNA' not in device:
                 supported_devices.append(device)
-                
-
 
         device_name_enum = DeviceEnum(supported_devices) #config_path_output["supported_devices"])
         
         list_layers = []
+
         try:
             list_layers = image.get_layers()
         except:
@@ -548,10 +544,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Scheduler Name parameter
         scheduler_label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
-        scheduler_label.show()
         scheduler_combo = GimpUi.prop_string_combo_box_new(
             config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
         )
+        scheduler_label.show()
         scheduler_combo.show()
 
         def remove_all_device_widgets():
@@ -586,12 +582,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             adv_unet_negative_device_label.hide()
             adv_unet_negative_combo.hide()
 
-
         def populate_advanced_devices():
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or  model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
+            if model_name=="SD_1.5_square_int8" or \
+               model_name=="controlnet_openpose_int8" or  \
+               model_name=="SD_1.5_Inpainting_int8" or  \
+               model_name=="controlnet_canny_int8" or  \
+               model_name=="controlnet_scribble_int8":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -704,6 +703,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(spin, 1, 6, 1, 1)
         spin.show()
 
+
         # UI to browse Initial Image
         def choose_file(widget):
             if file_chooser_dialog.run() == Gtk.ResponseType.OK:
@@ -790,9 +790,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 invisible_label2.show()
                 #invisible_label3.show()            
 
-
         initialImage_checkbox.connect("toggled", initImage_toggled)    
-        
 
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
@@ -819,14 +817,22 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
-        model_name = None
+
         device_text = None
         device_pos_unet = None
         device_neg_unet = None
         device_vae = None
+        model_name = config.get_property("model_name")
+
+        if model_name == "Latent_Consistency":
+            negative_prompt_label.hide()
+            negative_prompt_text.hide()
+            scheduler_label.hide()
+            scheduler_combo.hide()
+
+
         if is_server_running():
             run_button.set_sensitive(True)
-            model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
                 if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
@@ -843,6 +849,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 device_neg_unet = device
                 device_vae = device
 
+
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
         # if model / devices are changed from what is currently loaded.
@@ -853,9 +860,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if model_name_tmp == "Latent_Consistency":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
+                scheduler_combo.hide()
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
+                scheduler_combo.show()
 
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
