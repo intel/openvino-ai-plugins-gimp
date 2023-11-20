@@ -141,8 +141,8 @@ def list_models(weight_path, SD):
         return model_list
 
 
-    if SD == "Latent_Consistency":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "lcm")
+    if SD == "SD_1.5_lcm":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "lcm")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
@@ -442,7 +442,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                          list_models(config_path_output["weight_path"],"Latent_Consistency") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
@@ -824,7 +823,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_vae = None
         model_name = config.get_property("model_name")
 
-        if model_name == "Latent_Consistency":
+        if model_name == "SD_1.5_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
             scheduler_label.hide()
@@ -857,7 +856,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
 
             # LCM model has no negative prompt
-            if model_name_tmp == "Latent_Consistency":
+            if model_name_tmp == "SD_1.5_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
                 scheduler_combo.hide()
