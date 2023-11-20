@@ -9,8 +9,6 @@ import socket
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
 
-
-
 import cv2
 import torch
 
@@ -63,10 +61,7 @@ def run(model_name,device_name):
     weight_path = get_weight_path()
     blobs = False
     #log.info('Loading config file...')
-
     import json
-
-
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
@@ -105,13 +100,10 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
         blobs = True
         swap = True
-        
     elif model_name=="controlnet_scribble_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
         blobs = True
         swap = True   
-
-
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
         device_name = ["CPU","GPU","GPU"]
@@ -344,6 +336,7 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
                         elif model_name == "Latent_Consistency":
+                            data_output["scheduler"] = "LCMScheduler"
                             output = engine(
                                 prompt = prompt,
                                 num_inference_steps = num_infer_steps,
@@ -396,14 +389,14 @@ def run(model_name,device_name):
                             output.save(os.path.join(weight_path, "..", "cache.png"))
                             src_width,src_height = output.size
                         else:
-                            #cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
+                            cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
                             src_height,src_width, _ = output.shape
-
 
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
 
                         data_output["inference_status"] = "success"
+
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             json.dump(data_output, file)
 
@@ -452,8 +445,8 @@ def start():
         print("exiting..!")
         os._exit(0)
 
-    else:
-        print("no gimp process found!")
+    #else:
+    #    print("no gimp process found!")
 
     run_thread.join()
 
