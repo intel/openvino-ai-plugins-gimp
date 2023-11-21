@@ -234,7 +234,7 @@ def run(model_name,device_name):
                         create_gif = False #data_output["create_gif"]
 
                         if scheduler == "LMSDiscreteScheduler":
-                             log.info('LMSDiscreteScheduler...')
+                             #log.info('LMSDiscreteScheduler...')
                              scheduler = LMSDiscreteScheduler(
                                     beta_start=0.00085,
                                     beta_end=0.012,
@@ -242,7 +242,7 @@ def run(model_name,device_name):
 
                                 )
                         elif scheduler == "PNDMScheduler":
-                            log.info('PNDMScheduler...')
+                            #log.info('PNDMScheduler...')
                             scheduler = PNDMScheduler(
 
                                 beta_start=0.00085,
@@ -252,8 +252,16 @@ def run(model_name,device_name):
 
                             )
 
+                        elif scheduler == "LCMScheduler":
+                            #log.info('LCMScheduler...')
+                            scheduler = LCMScheduler(
+                                beta_start=0.00085,
+                                beta_end=0.012,
+                                beta_schedule="scaled_linear"
+                            )
+
                         elif scheduler == "UniPCMultistepScheduler":
-                            log.info('UniPCMultistepScheduler')
+                            #log.info('UniPCMultistepScheduler')
                             scheduler = UniPCMultistepScheduler(
                                 beta_start=0.00085,
                                 beta_end=0.012,
@@ -261,7 +269,7 @@ def run(model_name,device_name):
                                 )
 
                         else:
-                             log.info('EulerDiscreteScheduler...')
+                             #log.info('EulerDiscreteScheduler...')
                              scheduler = EulerDiscreteScheduler(
                              beta_start=0.00085,
                              beta_end=0.012,
@@ -290,7 +298,7 @@ def run(model_name,device_name):
                         start_time = time.time()
 
                         if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
-                            print("-------In Inpainting-------")
+                            #print("-------In Inpainting-------")
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -336,11 +344,16 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )
                         elif model_name == "SD_1.5_lcm":
-                            data_output["scheduler"] = "LCMScheduler"
+                            scheduler = LCMScheduler(
+                                beta_start=0.00085,
+                                beta_end=0.012,
+                                beta_schedule="scaled_linear"
+                                )
                             output = engine(
                                 prompt = prompt,
                                 num_inference_steps = num_infer_steps,
                                 guidance_scale = guidance_scale,
+                                scheduler = scheduler,
                                 lcm_origin_steps = 50,
                                 model = model_path,
                                 callback = progress_callback,

@@ -808,20 +808,15 @@ class LatentConsistencyEngine(DiffusionPipeline):
         print("unet Device:", device[1])
         self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1])
         self._unet_output = self.unet.output(0)
+        self.infer_request = self.unet.create_infer_request()
 
         # decoder
         print("Vae Device:", device[2])
 
         self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
-
-        pipe = DiffusionPipeline.from_pretrained(
-            "SimianLuo/LCM_Dreamshaper_v7",
-            custom_pipeline="latent_consistency_txt2img",
-            custom_revision="main",
-        )
-        self.scheduler = pipe.scheduler
-        self.safety_checker = pipe.safety_checker
-        self.feature_extractor = pipe.feature_extractor
+        self.infer_request_vae = self.vae_decoder.create_infer_request()
+        self.safety_checker = None #pipe.safety_checker
+        self.feature_extractor = None #pipe.feature_extractor
         self.vae_scale_factor = 2 ** 3
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
 
@@ -912,7 +907,6 @@ class LatentConsistencyEngine(DiffusionPipeline):
         if latents is None:
             latents = torch.randn(shape, dtype=dtype)
         # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * self.scheduler.init_noise_sigma
         return latents
 
     def get_w_embedding(self, w, embedding_dim=512, dtype=torch.float32):
@@ -945,6 +939,7 @@ class LatentConsistencyEngine(DiffusionPipeline):
         height: Optional[int] = 512,
         width: Optional[int] = 512,
         guidance_scale: float = 7.5,
+        scheduler = None,
         num_images_per_prompt: Optional[int] = 1,
         latents: Optional[torch.FloatTensor] = None,
         num_inference_steps: int = 4,
@@ -981,10 +976,10 @@ class LatentConsistencyEngine(DiffusionPipeline):
             prompt_embeds=prompt_embeds,
         )
         #print("After Step 2: prompt embeds is ", prompt_embeds)
-        #print("After Step 2: scheduler is ",self.scheduler )
+        #print("After Step 2: scheduler is ", scheduler )
         # 3. Prepare timesteps
-        self.scheduler.set_timesteps(num_inference_steps, original_inference_steps=lcm_origin_steps)
-        timesteps = self.scheduler.timesteps
+        scheduler.set_timesteps(num_inference_steps, original_inference_steps=lcm_origin_steps)
+        timesteps = scheduler.timesteps
 
         #print("After Step 3: timesteps is ", timesteps)
 
@@ -998,6 +993,8 @@ class LatentConsistencyEngine(DiffusionPipeline):
             prompt_embeds.dtype,
             latents,
         )
+        latents = latents * scheduler.init_noise_sigma
+
         #print("After Step 4: ")
         bs = batch_size * num_images_per_prompt
 
@@ -1008,6 +1005,8 @@ class LatentConsistencyEngine(DiffusionPipeline):
         # 6. LCM MultiStep Sampling Loop:
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
+                if callback:
+                    callback(i+1, callback_userdata)
 
                 ts = torch.full((bs,), t, dtype=torch.long)
 
@@ -1015,21 +1014,22 @@ class LatentConsistencyEngine(DiffusionPipeline):
                 model_pred = self.unet([latents, ts, prompt_embeds, w_embedding],share_inputs=True, share_outputs=True)[0]
 
                 # compute the previous noisy sample x_t -> x_t-1
-                latents, denoised = self.scheduler.step(
+                latents, denoised = scheduler.step(
                     torch.from_numpy(model_pred), t, latents, return_dict=False
                 )
                 progress_bar.update()
 
         #print("After Step 6: ")
 
+        #vae_start = time.time()
+
         if not output_type == "latent":
             image = torch.from_numpy(self.vae_decoder(denoised / 0.18215, share_inputs=True, share_outputs=True)[0])
-            #image, has_nsfw_concept = self.run_safety_checker(
-            #    image, prompt_embeds.dtype
-            #)
         else:
             image = denoised
-            has_nsfw_concept = None
+
+        #print("vae decoder done", time.time() - vae_start)
+        #post_start = time.time()
 
         #if has_nsfw_concept is None:
         do_denormalize = [True] * image.shape[0]
