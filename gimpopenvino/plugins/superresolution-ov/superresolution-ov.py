@@ -193,7 +193,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("SuperResolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
-        dialog.add_button("_Run Inference", Gtk.ResponseType.OK)
+        dialog.add_button("_Generate", Gtk.ResponseType.OK)
 
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10

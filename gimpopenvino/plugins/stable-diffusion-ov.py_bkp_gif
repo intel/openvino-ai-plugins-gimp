@@ -28,6 +28,9 @@ from pathlib import Path
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 
+
+# from openvino.runtime import Core, Model
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
 from plugin_utils import *
 
@@ -75,7 +78,6 @@ class DeviceEnum:
             self.keys.append(i)
             self.values.append(i)
 
-
     def get_tree_model(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
@@ -86,11 +88,19 @@ class DeviceEnum:
     def get_tree_model_no_npu(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
-       
         for i in range(len(self.keys)):
             if self.keys[i] != "NPU":
                 tree_model.append([self.keys[i], self.values[i]])
         return tree_model
+
+
+#model_name_enum = StringEnum(
+#    "SD_1.4",
+#    _("SD_1.4"),
+#    "SD_1.5",
+#    _("SD_1.5"),
+
+#)
 
 class SDDialogResponse(IntEnum):
     LoadModelComplete = 777
@@ -101,36 +111,30 @@ class SDDialogResponse(IntEnum):
 def list_models(weight_path, SD):
     model_list = []
     flag = False
-    flag_controlnet = False
+    flag_openpose = False
     if SD == "SD_1.4":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.4")
         flag = True
 
     if SD == "SD_1.5_Inpainting":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5-inpainting")
         flag = True
     if SD == "controlnet_openpose":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
-        flag_controlnet = True
-
-    if SD == "controlnet_canny":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
-        flag_controlnet = True
-
-    if SD == "controlnet_scribble":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
-        flag_controlnet = True
-
-    if flag_controlnet:
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")
+        flag_openpose = True
+        print("flag_openpose", flag_openpose)
+        
+    if flag_openpose:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet_controlnet.xml'
         vae = Path(dir_path) / 'vae_decoder.xml'
        
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+                print("ALL OKAY !?")
                 model_list.append(SD)
-        flag_controlnet = False
         
-        return model_list
+        return model_list   
+        
                
     if flag:
         text = Path(dir_path) / 'text_encoder.xml'
@@ -140,55 +144,37 @@ def list_models(weight_path, SD):
                 model_list.append(SD)
         return model_list
 
-
-    if SD == "SD_1.5_square_lcm":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
+    if SD ==  "SD_1.5_INT8":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\stable-diffusion-1.5-INT8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
 
-    if SD ==  "SD_1.5_Inpainting_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
+    if SD ==  "Latent_Consistency_Model":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\LCM")
+        if os.path.isdir(dir_path):
+            model_list.append(SD)
+        return model_list
+
+    if SD ==  "controlnet_openpose_internal":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov\controlnet-openpose-internal")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list         
-
-    if SD ==  "controlnet_openpose_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list
-
-    if SD ==  "controlnet_canny_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list        
-        
-        
-    if SD ==  "controlnet_scribble_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list  
         
     if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
-
-    if SD == "SD_1.5_square_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list
-
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov/stable-diffusion-1.5")
+     
     for file in os.scandir(dir_path): #, recursive=True):
         text = Path(file) / 'text_encoder.xml'
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(vae):
+        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
+               
                 model = "SD_1.5_" + os.path.basename(file)
                 model_list.append(model)
-
+          
+            
     return model_list   
         
 
@@ -209,7 +195,7 @@ scheduler_name_enum = StringEnum(
     
 class SDRunner:
     def __init__ (self, procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
-                  strength, seed, progress_bar, config_path_output):
+                  strength, seed, create_gif, progress_bar, config_path_output):
         self.procedure = procedure
         self.image = image
         self.drawable = drawable
@@ -221,6 +207,7 @@ class SDRunner:
         self.initial_image = initial_image
         self.strength = strength
         self.seed = seed
+        self.create_gif = create_gif
         self.progress_bar = progress_bar
         self.config_path_output = config_path_output
         self.result = None
@@ -237,6 +224,7 @@ class SDRunner:
         initial_image = self.initial_image
         strength = self.strength
         seed = self.seed
+        create_gif = self.create_gif
         progress_bar = self.progress_bar
         config_path_output = self.config_path_output
 
@@ -262,6 +250,7 @@ class SDRunner:
                        "initial_image": initial_image,
                        "strength": strength,
                        "seed": seed,
+                       "create_gif": create_gif,
                        "inference_status": "started"}, file)
 
         # Run inference and load as layer
@@ -322,10 +311,10 @@ class SDRunner:
             Gimp.context_pop()
 
             # Remove temporary layers that were saved
-            #my_dir = os.path.join(weight_path, "..")
-            #for f_name in os.listdir(my_dir):
-            #    if f_name.startswith("cache"):
-            #        os.remove(os.path.join(my_dir, f_name))
+            my_dir = os.path.join(weight_path, "..")
+            for f_name in os.listdir(my_dir):
+                if f_name.startswith("cache"):
+                    os.remove(os.path.join(my_dir, f_name))
 
             self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
             return self.result
@@ -393,10 +382,8 @@ def async_sd_run_func(runner, dialog):
 def on_toggled(widget, dialog):
     dialog.response(800)
 
-#
-# This is what brings up the UI
-#
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
+
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
@@ -409,16 +396,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         python_path = config_path_output["python_path"]
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(config_path, client)
-        
-        supported_devices = []
-        for device in config_path_output["supported_devices"]:
-           if 'GNA' not in device:
-                supported_devices.append(device)
 
-        device_name_enum = DeviceEnum(supported_devices) #config_path_output["supported_devices"])
+        device_name_enum = DeviceEnum(config_path_output["supported_devices"])
         
         list_layers = []
-
         try:
             list_layers = image.get_layers()
         except:
@@ -436,27 +417,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_int8"))
+            model_list = list_models(config_path_output["weight_path"],"SD_1.5_Inpainting")
         else:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
-                          list_models(config_path_output["weight_path"],"SD_1.5") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") + 
-                          list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
-                          list_models(config_path_output["weight_path"],"controlnet_canny") + 
-                          list_models(config_path_output["weight_path"],"controlnet_scribble") + 
-                          list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
-
+            model_list = list_models(config_path_output["weight_path"],"SD_1.4") + list_models(config_path_output["weight_path"],"SD_1.5") + list_models(config_path_output["weight_path"],"controlnet_openpose") + list_models(config_path_output["weight_path"],"SD_1.5_internal_blobs_new") + list_models(config_path_output["weight_path"],"controlnet_openpose_internal")
+        
         model_name_enum = DeviceEnum(model_list)            
+        
         
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
         sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
-                                    initial_image=None, strength=0.8, seed="",
+                                    initial_image=None, strength=0.8, seed="", create_gif=False,
                                     inference_status="success", src_height=512, src_width=512,scheduler="")
 
         sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
@@ -543,10 +516,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Scheduler Name parameter
         scheduler_label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
+        scheduler_label.show()
         scheduler_combo = GimpUi.prop_string_combo_box_new(
             config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
         )
-        scheduler_label.show()
         scheduler_combo.show()
 
         def remove_all_device_widgets():
@@ -581,15 +554,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             adv_unet_negative_device_label.hide()
             adv_unet_negative_combo.hide()
 
+
         def populate_advanced_devices():
             grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
             grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
             model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_square_int8" or \
-               model_name=="controlnet_openpose_int8" or  \
-               model_name=="SD_1.5_Inpainting_int8" or  \
-               model_name=="controlnet_canny_int8" or  \
-               model_name=="controlnet_scribble_int8":
+            if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
                 grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
                 grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
                 grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
@@ -649,7 +619,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(prompt_label, 0, 1, 1, 1)
         #vbox.pack_start(prompt_label, False, False, 1)
         prompt_label.show()
-
+        
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
@@ -698,10 +668,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         #vbox.pack_start(seed_label, False, False, 1)
         seed_label.show()
 
+        # Create GIF Parameter
+        # config.set_property("create_gif", create_gif)
+        spin = GimpUi.prop_check_button_new(config, "create_gif",
+                                            _("_Create GIF from the latent frames generated at each inference step"))
+        spin.set_tooltip_text(
+            _(
+                "If checked, a GIF of all the latent frames will be created. "
+                "Please note that currently this process is extremely slow."
 
+            )
+        )
         grid.attach(spin, 1, 6, 1, 1)
         spin.show()
-
 
         # UI to browse Initial Image
         def choose_file(widget):
@@ -750,6 +729,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                                     _("_Use Inital Image (Default: Selected layer in Canvas)"))   
 
         def populate_init_image_section():
+
             grid.attach(file_chooser_button, 0, 8, 1, 1)
             file_chooser_button.show()
             grid.attach(file_entry, 1, 8, 1, 1)
@@ -789,7 +769,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 invisible_label2.show()
                 #invisible_label3.show()            
 
+
         initialImage_checkbox.connect("toggled", initImage_toggled)    
+        
 
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
@@ -816,25 +798,17 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
-
+        model_name = None
         device_text = None
         device_pos_unet = None
         device_neg_unet = None
         device_vae = None
-        model_name = config.get_property("model_name")
-
-        if model_name == "SD_1.5_square_lcm":
-            negative_prompt_label.hide()
-            negative_prompt_text.hide()
-            scheduler_label.hide()
-            scheduler_combo.hide()
-
-
         if is_server_running():
             run_button.set_sensitive(True)
+            model_name = config.get_property("model_name")
             if adv_checkbox.get_active():
                 device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
                     device_pos_unet = config.get_property("unet_positive_device_name")
                     device_neg_unet = config.get_property("unet_negative_device_name")
                 else:
@@ -848,32 +822,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 device_neg_unet = device
                 device_vae = device
 
-
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
         # if model / devices are changed from what is currently loaded.
         def model_sensitive_combo_changed(widget):
             model_name_tmp = config.get_property("model_name")
-
-            # LCM model has no negative prompt
-            if model_name_tmp == "SD_1.5_square_lcm":
-                negative_prompt_text.hide()
-                negative_prompt_label.hide()
-                scheduler_label.hide()
-                scheduler_combo.hide()
-            else:
-                negative_prompt_text.show()
-                negative_prompt_label.show()
-                scheduler_label.show()
-                scheduler_combo.show()
-
             if adv_checkbox.get_active():
                 device_text_tmp = config.get_property("text_encode_device_name")
-                if (model_name=="SD_1.5_square_int8"       or
-                    model_name=="controlnet_openpose_int8" or
-                    model_name=="SD_1.5_Inpainting_int8"   or
-                    model_name=="controlnet_canny_int8"    or
-                    model_name=="controlnet_scribble_int8"):
+                if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
                     device_pos_unet_tmp = config.get_property("unet_positive_device_name")
                     device_neg_unet_tmp = config.get_property("unet_negative_device_name")
                 else:
@@ -886,11 +842,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 device_pos_unet_tmp = device_tmp
                 device_neg_unet_tmp = device_tmp
                 device_vae_tmp = device_tmp
-            if (model_name_tmp==model_name           and
-                device_text_tmp==device_text         and
-                device_pos_unet_tmp==device_pos_unet and
-                device_neg_unet_tmp==device_neg_unet and
-                device_vae_tmp==device_vae):
+            if model_name_tmp==model_name and device_text_tmp==device_text and device_pos_unet_tmp==device_pos_unet and device_neg_unet_tmp==device_neg_unet and device_vae_tmp==device_vae:
                 run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
@@ -957,10 +909,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     seed = seed.get_text()
                 else:
                     seed = None
-           
+                create_gif = config.get_property("create_gif")
 
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
-                strength, seed, progress_bar, config_path_output)
+                strength, seed, create_gif, progress_bar, config_path_output)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
                 sd_run_label.show()
@@ -994,7 +946,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if adv_checkbox.get_active():
                     device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
+                    if model_name=="SD_1.5_internal_blobs_new" or model_name=="controlnet_openpose_internal":
                         device_pos_unet = config.get_property("unet_positive_device_name")
                         device_neg_unet = config.get_property("unet_negative_device_name")
                     else:
@@ -1018,6 +970,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_load_model_thread.start()
 
                 continue
+                
             elif response == Gtk.ResponseType.HELP:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git"
                 Gio.app_info_launch_default_for_uri(url, None)
@@ -1042,6 +995,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 adv_checkbox.set_sensitive(True)
                 adv_unet_positive_combo.set_sensitive(True)
                 adv_unet_negative_combo.set_sensitive(True)
+
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
                 if run_inference_thread:
@@ -1069,7 +1023,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     populate_basic_devices()
 
             else:
-#                dialog.destroy()
+                dialog.destroy()
                 return procedure.new_return_values(
                     Gimp.PDBStatusType.CANCEL, GLib.Error()
                 )
@@ -1086,6 +1040,13 @@ class StableDiffusion(Gimp.PlugIn):
         "strength": (
         float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
         GObject.ParamFlags.READWRITE,),
+        "create_gif": (
+            bool,
+            _("_Create GIF from the latent frames generated at each inference step"),
+            "Create GIF",
+            False,
+            GObject.ParamFlags.READWRITE,
+        ),
         "device_name": (
             str,
             _("Device Name"),
@@ -1200,6 +1161,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "num_infer_steps")
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
+            procedure.add_argument_from_property(self, "create_gif")
             procedure.add_argument_from_property(self, "model_name")
             procedure.add_argument_from_property(self, "scheduler") 
             procedure.add_argument_from_property(self, "device_name")
