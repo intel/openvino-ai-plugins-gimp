@@ -859,10 +859,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if model_name_tmp == "SD_1.5_square_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
+                scheduler_label.hide()
                 scheduler_combo.hide()
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
+                scheduler_label.show()
                 scheduler_combo.show()
 
             if adv_checkbox.get_active():

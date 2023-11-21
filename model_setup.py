@@ -90,17 +90,25 @@ def download_hf_model(repo_id, model_fp16, model_int8):
 def download_model(repo_id, model_1, model_2):
     download_folder = snapshot_download(repo_id=repo_id, token=access_token)
     sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
-    sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+
     
     if os.path.isdir(sd_model_1):
             shutil.rmtree(sd_model_1)
-    if os.path.isdir(sd_model_2):
-            shutil.rmtree(sd_model_2)  
-
-    download_model_1 = os.path.join(download_folder, model_1)  
-    download_model_2 = os.path.join(download_folder, model_2)
+  
+     
+    if repo_id == "Intel/sd-1.5-lcm-openvino":
+        download_model_1 = download_folder
+    else:
+        download_model_1 = os.path.join(download_folder, model_1) 
     shutil.copytree(download_model_1, sd_model_1)  
-    shutil.copytree(download_model_2, sd_model_2) 
+     
+    if model_2:
+        sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+        if os.path.isdir(sd_model_2):
+                shutil.rmtree(sd_model_2)
+        download_model_2 = os.path.join(download_folder, model_2)
+        shutil.copytree(download_model_2, sd_model_2)
+
     
     delete_folder=os.path.join(download_folder, "../../..")
     shutil.rmtree(delete_folder)
@@ -178,7 +186,15 @@ while True:
         repo_id="Intel/sd-1.5-controlnet-scribble-quantized"
         model_fp16 = "controlnet-scribble"
         model_int8 = "controlnet-scribble-int8"
-        download_hf_model(repo_id, model_fp16,model_int8)  
+        download_hf_model(repo_id, model_fp16,model_int8) 
+
+    elif choice=="8":
+        print("Downloading Intel/sd-1.5-lcm-openvino")
+
+        repo_id="Intel/sd-1.5-lcm-openvino"
+        model_1 = "square_lcm"
+        model_2 = None
+        download_model(repo_id, model_1,model_2)         
         
     elif choice=="13":
          print("Downloading all the models")
