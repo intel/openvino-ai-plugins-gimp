@@ -141,8 +141,8 @@ def list_models(weight_path, SD):
         return model_list
 
 
-    if SD == "SD_1.5_lcm":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "lcm")
+    if SD == "SD_1.5_square_lcm":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list  
@@ -823,7 +823,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_vae = None
         model_name = config.get_property("model_name")
 
-        if model_name == "SD_1.5_lcm":
+        if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
             scheduler_label.hide()
@@ -856,7 +856,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_name_tmp = config.get_property("model_name")
 
             # LCM model has no negative prompt
-            if model_name_tmp == "SD_1.5_lcm":
+            if model_name_tmp == "SD_1.5_square_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
                 scheduler_combo.hide()

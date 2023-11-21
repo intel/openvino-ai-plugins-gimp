@@ -65,8 +65,8 @@ def run(model_name,device_name):
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-    elif model_name == "SD_1.5_lcm":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "lcm")
+    elif model_name == "SD_1.5_square_lcm":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
     elif model_name == "SD_1.5_portrait":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square":
@@ -164,7 +164,7 @@ def run(model_name,device_name):
         device = device_name
     )
 
-    elif model_name ==  "SD_1.5_lcm":
+    elif model_name ==  "SD_1.5_square_lcm":
         engine = LatentConsistencyEngine(
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
@@ -343,7 +343,7 @@ def run(model_name,device_name):
                                 callback = progress_callback,
                                 callback_userdata = conn
                         )
-                        elif model_name == "SD_1.5_lcm":
+                        elif model_name == "SD_1.5_square_lcm":
                             scheduler = LCMScheduler(
                                 beta_start=0.00085,
                                 beta_end=0.012,
@@ -392,7 +392,7 @@ def run(model_name,device_name):
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
 
-                        if model_name == "SD_1.5_lcm" or \
+                        if model_name == "SD_1.5_square_lcm" or \
                            model_name == "controlnet_openpose" or \
                            model_name == "controlnet_openpose_int8" or \
                            model_name == "controlnet_canny_int8" or \
