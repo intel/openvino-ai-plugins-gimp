@@ -85,6 +85,9 @@ class AsyncPipeline:
     def __init__(self, ie, model, model_path, plugin_config, device='CPU', max_num_requests=1):
         self.model = model
         self.logger = logging.getLogger()
+        
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
+        self.logger.info('Model Cached')        
 
         ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
         self.logger.info('SR Model Cached')

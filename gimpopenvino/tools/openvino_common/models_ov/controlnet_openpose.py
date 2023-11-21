@@ -163,6 +163,10 @@ class ControlNetOpenPose(DiffusionPipeline):
             tokenizer="openai/clip-vit-large-patch14",
             device=["CPU","CPU","CPU"],
             ):
+            
+        super().__init__()    
+            
+        self.set_progress_bar_config(disable=False)    
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
@@ -174,9 +178,6 @@ class ControlNetOpenPose(DiffusionPipeline):
         self.vae_scale_factor = 8
         self.set_progress_bar_config(disable=False)
 
-    
-
-        #scheduler =   UniPCMultistepScheduler.from_pretrained(os.path.join(model, "UniPCMultistepScheduler_config"))
         
      
         self.core = Core()
@@ -187,25 +188,21 @@ class ControlNetOpenPose(DiffusionPipeline):
         OPENPOSE_OV_PATH = os.path.join(model, "openpose.xml")
         self.pose_estimator = OpenposeDetector.from_pretrained(os.path.join(model, "lllyasviel_ControlNet"))
         
-      
+
         
         ov_openpose = OpenPoseOVModel(self.core, OPENPOSE_OV_PATH, device="CPU")
         self.pose_estimator.body_estimation.model = ov_openpose
         
 
-
-
-        #self.vae_scale_factor = 8
-        # scheduler = scheduler
         controlnet = os.path.join(model, "controlnet-pose.xml")
         text_encoder = os.path.join(model, "text_encoder.xml")
         unet = os.path.join(model, "unet_controlnet.xml")
  
+
         vae_decoder = os.path.join(model, "vae_decoder.xml")
 
         ####################
         self.load_models(self.core, device, controlnet, text_encoder, unet, vae_decoder)
-    
 
         # encoder
         self.vae_encoder = None
@@ -214,8 +211,6 @@ class ControlNetOpenPose(DiffusionPipeline):
         
         self.height = self.unet.input(0).shape[2] * 8
         self.width = self.unet.input(0).shape[3] * 8    
-
-   
 
     def load_models(self, core: Core, device: str, controlnet:Model, text_encoder: Model, unet: Model, vae_decoder: Model):
         """
@@ -275,7 +270,6 @@ class ControlNetOpenPose(DiffusionPipeline):
         # 3. Preprocess image
         image = image.convert("RGB")
         pose = self.pose_estimator(image)
-        #pose.save("C:\\Users\\lab_admin\\Desktop\\pose.png")
         
         orig_width, orig_height = pose.size
         
@@ -334,9 +328,7 @@ class ControlNetOpenPose(DiffusionPipeline):
                 latent_model_input = np.concatenate(
                     [latents] * 2) if do_classifier_free_guidance else latents
                 latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-                #print("latent_model_input", latent_model_input)
-               
-                
+                              
                 result = self.controlnet([latent_model_input, t, text_embeddings, pose])
                 #print("result", result)
                 down_and_mid_blok_samples = [sample * controlnet_conditioning_scale for _, sample in result.items()]
@@ -357,11 +349,11 @@ class ControlNetOpenPose(DiffusionPipeline):
 
                 if create_gif:
                     frames.append(latents)
-                    
-                    
+
                   # update progress
                 if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % scheduler.order == 0):
                     progress_bar.update()                  
+
 
         if callback:
               callback(num_inference_steps, callback_userdata)
@@ -379,7 +371,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         if output_type == "pil":
             image = self.numpy_to_pil(image)
             image = [img.resize((orig_width, orig_height), Image.Resampling.LANCZOS) for img in image]
-            #image[0].save("C:\\Users\\lab_admin\\Desktop\\openpose-result.png") 
+
         else:
             image = [cv2.resize(img, (orig_width, orig_width))
                      for img in image]

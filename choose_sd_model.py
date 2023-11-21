@@ -14,19 +14,20 @@ else:
     
 
 
-print("=========Chose SD-1.5 models to download and convert=========")
-print("1 - Square (512x512 output image) ")
-print("2 - Landscape (640x360 output image, 16:9) ")	
-print("3 - Portrait (360x640 output image, 9:16) ")
-print("4 - Portrait_512x768 (512x768 output image), will take time since model is large ")
-print("5 - Landscape_768x512 (768x512 output image),  will take time since model is large ")
-print("6 - SD-1.5 Inapinting model (512x512 output image) ")
-print("7 - SD-1.5 Controlnet-Openpose model (512x512 output image) ")
-print("8 - ALL the above SD-1.5 models ")
-print("9 - Only Square, Landscape, Portrait")
-print("10 - Skip All SD-1.5 Model setup ")   
-    
+  
 while True:
+
+    print("=========Chose SD-1.5 models to download and convert=========")
+    print("1 - Square (512x512 output image) ")
+    print("2 - Landscape (640x360 output image, 16:9) ")	
+    print("3 - Portrait (360x640 output image, 9:16) ")
+    print("4 - Portrait_512x768 (512x768 output image), will take time since model is large ")
+    print("5 - Landscape_768x512 (768x512 output image),  will take time since model is large ")
+    print("6 - SD-1.5 Inapinting model (512x512 output image) ")
+    print("7 - SD-1.5 Controlnet-Openpose model (512x512 output image) ")
+    print("8 - ALL the above SD-1.5 models ")
+    print("9 - Only Square, Landscape, Portrait")
+    print("10 - Skip All SD-1.5 Model setup ") 
     choice = input("Enter the Number for the model you want to download & convert: ")
 
     # setup all the SD1.5 models
@@ -53,7 +54,7 @@ while True:
   
         subprocess.call([sd_python_path, chose_model_controlnet, choice]) 
     
-        break
+        #break
   
     else:
         print("Wrong option selected.")

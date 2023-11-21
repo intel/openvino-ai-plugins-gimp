@@ -2,11 +2,13 @@
     @echo off
     echo **** openvino-ai-plugins-gimp Setup started **** 
     python -m pip install virtualenv | find /V "already satisfied"
+
     python -m virtualenv gimpenv3
 	echo -----activating python venv------------------------------------------------------------------
 	call "gimpenv3\Scripts\activate"
     pip install -r openvino-ai-plugins-gimp\plugin-requirements.txt | find /V "already satisfied"
     pip install openvino-ai-plugins-gimp\.
+
 	echo *** openvino-ai-plugins-gimp Installed ***
     python -c "import gimpopenvino; gimpopenvino.setup_python_weights()"
 	echo **** openvino-ai-plugins-gimp Setup Ended ****
