@@ -10,7 +10,7 @@ other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp",
 src_dir = os.path.join("openvino-ai-plugins-gimp", "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-access_token  = "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"
+access_token  = None
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
