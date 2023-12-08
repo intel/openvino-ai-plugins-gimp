@@ -32,6 +32,8 @@ from PIL import Image
 import glob
 import json
 
+import time
+
 def prepare_mask_and_masked_image(image, mask, height, width, return_image: bool = False):
     """
     Prepares a pair (image, mask) to be consumed by the Stable Diffusion pipeline. This means that those inputs will be
@@ -145,6 +147,10 @@ def prepare_mask_and_masked_image(image, mask, height, width, return_image: bool
         mask = torch.from_numpy(mask)
 
     masked_image = image * (mask < 0.5)
+    print("image shape", image.shape)
+    print("mask shape", mask.shape)
+    print("masked_image shape", masked_image.shape)
+  
 
     # n.b. ensure backwards compatibility as old function does not return image
     if return_image:
@@ -156,14 +162,17 @@ def result(var):
     return next(iter(var.values()))
 
 
-class StableDiffusionEngineInpainting(DiffusionPipeline):
+class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
     def __init__(
             self,
             #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
             model="runwayml/stable-diffusion-inpainting",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU"]
+            device=["CPU","CPU","CPU","CPU"],
+            blobs=False
+            
             ):
+            
         #self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
         try: 
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
@@ -171,40 +180,119 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
                 
-        #self.scheduler = scheduler
+
         # models
-     
+
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
+        print("Setting caching")
         # text features
 
         print("Text Device:",device[0])
         self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
-        
+
         self._text_encoder_output = self.text_encoder.output(0)
-       
+
         # diffusion
         print("unet Device:",device[1])
-        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1]) #"unet_ov22_2.xml"
-        self._unet_output = self.unet.output(0)
-        self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
+        print("unet-neg Device:",device[2])
+
+        start = time.time()
+        self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
+        print("compile_model for unet_time_proj on 'CPU'  ", time.time() - start)
+
+        unet_int8_model = "unet_int8.xml"
+
+
+        if blobs:
+            if device[1] == "NPU" or device[2] == "NPU":
+                device_npu = "NPU"
+                blob_name = "unet_int8_NPU.blob"
+                print("Loading unet blob on npu:",blob_name)
+                start = time.time()
+                with open(os.path.join(model, blob_name), "rb") as f:
+                    self.unet_npu = self.core.import_model(f.read(), device_npu)
+                print("unet loaded on npu in:", time.time() - start)
+                
+            if device[1] == "GPU" or device[2] == "GPU":
+                print("compiling start on GPU")
+                start = time.time()
+                self.unet_gpu = self.core.compile_model(os.path.join(model, unet_int8_model), "GPU")
+                print("compiling done on GPU in", time.time() - start)
+                
+            if device[1] == "CPU" or device[2] == "CPU":
+                print("compiling start on CPU")
+                start = time.time()
+                self.unet_cpu = self.core.compile_model(os.path.join(model, unet_int8_model), "CPU")
+                print("compiling done on CPU in", time.time() - start)
+
+
+            # Positive prompt
+            if device[1] == "NPU":
+                self.unet = self.unet_npu
+            elif device[1] == "GPU":
+                self.unet = self.unet_gpu
+            else:
+                self.unet = self.unet_cpu
+
+            # Negative prompt:
+            if device[2] == "NPU":
+                self.unet_neg = self.unet_npu
+            elif device[2] == "GPU":
+                self.unet_neg = self.unet_gpu
+            else:
+                self.unet_neg = self.unet_cpu
+
+        else:
+
+            self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
+            self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
+
+        print( "num unet inputs = ", len(self.unet.inputs))
+
+
+
         # decoder
-        print("Vae Device:",device[2])
-        
-        
-        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
-            
+        print("VAE Device:",device[3])
+        #if device[3] == "GPU": #bypass caching for vae - issues seen.
+        #    self.newcore = Core()
+        #    start = time.time()
+        #    self.vae_decoder = self.newcore.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
+        #    print("vae decoder loaded on GPU in:", time.time() - start)
+            # encoder
+
+            #self.vae_encoder = None
+         #   self.vae_encoder = self.newcore.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
+
+        #else:
+        start = time.time()
+        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
+        print("vae decoder loaded in:", time.time() - start)
+
         # encoder
-            
-        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[2]) 
-    
-        self.init_image_shape = tuple(self.vae_encoder.inputs[0].shape)[2:]
+
+        #self.vae_encoder = None
+        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
+
+
+
 
         self._vae_d_output = self.vae_decoder.output(0)
-        self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None  
+        self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
 
-        self.height = self.unet.input(0).shape[2] * 8
-        self.width = self.unet.input(0).shape[3] * 8      
+
+
+        #if self.unet.input("latent_model_input").shape[1] == 4:
+        self.height = self.unet.input("latent_model_input").shape[2] * 8
+        self.width = self.unet.input("latent_model_input").shape[3] * 8
+        #else:
+
+         #   self.height = self.unet.input("latent_model_input").shape[1] * 8
+         #   self.width = self.unet.input("latent_model_input").shape[2] * 8
+
+        self.infer_request_neg = self.unet_neg.create_infer_request()
+        self.infer_request = self.unet.create_infer_request()
+        self.infer_request_time_proj = self.unet_time_proj.create_infer_request()     
 
 
 
@@ -266,13 +354,19 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
 
         timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, scheduler)
         latent_timestep = timesteps[:1]
+        
+        print("---Before prepare mask and masked image size---", image.size)
+        print("---Before prepare mask and masked MASK size---", mask_image.size)
 
         #preprocess image and mask
         mask, masked_image, init_image = prepare_mask_and_masked_image(
             image, mask_image, self.height, self.width, return_image=True)
+        print("After prepare mask and masked image", masked_image.shape)
+        print("before prepare mask latents")     
         
         mask, masked_image_latents = self.prepare_mask_latents(mask, masked_image, do_classifier_free_guidance)
 
+        print("After prepare mask")
         # get the initial random noise unless the user supplied it
         latents = self.prepare_latents(init_image, latent_timestep, scheduler)
 
@@ -293,17 +387,49 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
                callback(i, callback_userdata)
 
             # expand the latents if we are doing classifier free guidance
-            latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
+            #latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
+            #latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+            
+            noise_pred = []
+            latent_model_input = latents 
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-            #print("latent_model_input:", latent_model_input)
+            
+            #print("loop latent_model_input:", latent_model_input.shape)
+            #print("loop mask:", mask.shape)
+            #print("loop masked_image_latents:", masked_image_latents.shape)
             latent_model_input = np.concatenate([latent_model_input, mask, masked_image_latents], axis=1)
+            
+            
+            time_proj_dict = {"t" : np.expand_dims(np.float32(t), axis=0)}
+            self.infer_request_time_proj.start_async(time_proj_dict)
+            self.infer_request_time_proj.wait()
+            time_proj = self.infer_request_time_proj.get_output_tensor(0).data.astype(np.float32)     
+
+            
             # predict the noise residual
-            noise_pred = self.unet([latent_model_input, float(t), text_embeddings])[self._unet_output]
+            #noise_pred = self.unet([latent_model_input, float(t), text_embeddings])[self._unet_output]
+            
+            input_dict_neg = {"latent_model_input":latent_model_input, "encoder_hidden_states": np.expand_dims(text_embeddings[0], axis=0), "time_proj": np.float32(time_proj)}
+            self.infer_request_neg.start_async(input_dict_neg)
+       
+            input_dict = {"latent_model_input":latent_model_input, "encoder_hidden_states": np.expand_dims(text_embeddings[1], axis=0), "time_proj": np.float32(time_proj)}
+            self.infer_request.start_async(input_dict)
+            
+            self.infer_request_neg.wait()
+            self.infer_request.wait()
+            noise_pred_neg = self.infer_request_neg.get_output_tensor(0)
+            noise_pred_pos = self.infer_request.get_output_tensor(0)
+
+
+            noise_pred.append(noise_pred_neg.data.astype(np.float32))
+            noise_pred.append(noise_pred_pos.data.astype(np.float32)) 
             #print("noise_pred:",noise_pred)
             # perform guidance
             if do_classifier_free_guidance:
+                #noise_pred_uncond = negative, noise_pred_text = positive
                 noise_pred_uncond, noise_pred_text = noise_pred[0], noise_pred[1]
-                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+                noise_diff = noise_pred_text - noise_pred_uncond
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_diff)
 
             # compute the previous noisy sample x_t -> x_t-1
             latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents), **extra_step_kwargs)["prev_sample"].numpy()
@@ -315,7 +441,6 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
             callback(num_inference_steps, callback_userdata)
 
         # scale and decode the image latents with vae
-        
         latents = 1 / 0.18215 * latents
         
         image = self.vae_decoder(latents)[self._vae_d_output]
@@ -356,20 +481,24 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
         latents_shape = (1, 4, self.height // 8, self.width // 8)
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
+        # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
+        
         if input_image is None:
             print("Image is NONE")
-            # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
+            
             if isinstance(scheduler, LMSDiscreteScheduler):
-             
+                
                 noise = noise * scheduler.sigmas[0].numpy()
-                return noise, {}
+                return noise
             elif isinstance(scheduler, EulerDiscreteScheduler):
-              
+                
                 noise = noise * scheduler.sigmas.max().numpy()
-                return noise, {}
+                return noise
             else:
-                return noise, {}
-       
+                noise = noise * scheduler.init_noise_sigma
+                return noise
+    
+        
         moments = self.vae_encoder(input_image)[self._vae_e_output]
       
         mean, logvar = np.split(moments, 2, axis=1)
@@ -379,7 +508,7 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
        
          
         latents = scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
-        return latents
+        return latents        
 
     def prepare_mask_latents(self, mask = None, masked_image = None, do_classifier_free_guidance = True):
          mask = torch.nn.functional.interpolate(mask, size=(self.height // 8, self.width // 8)).numpy()                                        
@@ -387,8 +516,8 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
          mean, logvar = np.split(moments, 2, axis=1) 
          std = np.exp(logvar * 0.5)
          masked_image_latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
-         mask = np.concatenate([mask] * 2) if do_classifier_free_guidance else mask
-         masked_image_latents = np.concatenate([masked_image_latents] * 2) if do_classifier_free_guidance else masked_image_latents
+         mask = mask #np.concatenate([mask] * 2) if do_classifier_free_guidance else mask
+         masked_image_latents = masked_image_latents #np.concatenate([masked_image_latents] * 2) if do_classifier_free_guidance else masked_image_latents
          return mask, masked_image_latents
 
     def postprocess_image(self, image:np.ndarray):

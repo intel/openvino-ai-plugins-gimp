@@ -58,27 +58,21 @@ def run(device,prompt,negative_prompt,num_infer_steps,guidance_scale,init_image,
         ran_seed = random.randrange(4294967294) #4294967294 
         np.random.seed(int(ran_seed))
         log.info('Random Seed: %s',ran_seed)
-        
-   
-        
-  
+
      if scheduler == "LMSDiscreteScheduler":
          log.info('LMSDiscreteScheduler...')
          scheduler = LMSDiscreteScheduler(
                 beta_start=0.00085,
                 beta_end=0.012,
-                beta_schedule="scaled_linear",
-                
+                beta_schedule="scaled_linear"
             )
      elif scheduler == "PNDMScheduler":
         log.info('PNDMScheduler...')
         scheduler = PNDMScheduler(
-
             beta_start=0.00085,
             beta_end=0.012,
             beta_schedule="scaled_linear",
             skip_prk_steps = True,
-            
         ) 
       
      else:
@@ -126,6 +120,6 @@ def run(device,prompt,negative_prompt,num_infer_steps,guidance_scale,init_image,
 
 
 if __name__ == "__main__":
-    mask = run("GPU.1", "photo of a lady in green party dress","ugly, low quality, bad anatomy, monochrome, deformed face", 20, 7.5 ,None,7,None,False,"EulerDiscreteScheduler","SD_1.5") #"C:\\Users\\lab_admin\\Documents\\red-hair.png" "C:\\Users\\lab_admin\\Downloads\\bird.png" E:\\git\\new\\latest\\open-source\\march29\\openvino-ai-plugins-gimp\\sampleinput\\img.png"
+    mask = run("GPU", "photo of a lady in green party dress","ugly, low quality, bad anatomy, monochrome, deformed face", 20, 7.5 ,None,7,None,False,"EulerDiscreteScheduler","SD_1.5") #"C:\\Users\\lab_admin\\Documents\\red-hair.png" "C:\\Users\\lab_admin\\Downloads\\bird.png" E:\\git\\new\\latest\\open-source\\march29\\openvino-ai-plugins-gimp\\sampleinput\\img.png"
     cv2.imwrite("stablediffusion.png", mask)
 
