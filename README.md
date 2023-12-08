@@ -157,6 +157,7 @@ sudo ninja -C _build install
 5. Follow steps 4,5 from section A. <br>
 6. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
+_Note that the screenshots below are based on the previous UI_
 ![](gifs/stable-diffusion.png)
 ![](gifs/stable-diffusion.webp)
 
