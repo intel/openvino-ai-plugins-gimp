@@ -140,7 +140,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
             else:
                 if "NPU" in device[2]:    
                     with open(os.path.join(model, blob_name), "rb") as f:
-                        self.unet_neg = self.core.import_model(f.read(), device[1])
+                        self.unet_neg = self.core.import_model(f.read(), device[2])
                 else:    
                     self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])           
         else:
