@@ -105,7 +105,7 @@ sudo ninja -C _build install
 4. Start the GIMP application (```gimp-2.99```), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
 5. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
 
-# OpenVINO™ Image Generator Plugin with Stable Diffusion - This GIF doesn't represent the current GUI
+# OpenVINO™ Image Generator Plugin with Stable Diffusion 
 #### A. Prompt to Image 
 1. Create or choose a layer  <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
