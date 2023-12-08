@@ -179,7 +179,7 @@ while True:
     print("5 - SD-1.5 Controlnet-Openpose")
     print("6 - SD-1.5 Controlnet-CannyEdge")
     print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - LCM ")
+    print("8 - SD-1.5 LCM ")
     print("12 - All the above models")
     print("0 - Exit SD-1.5 Model setup")
 
