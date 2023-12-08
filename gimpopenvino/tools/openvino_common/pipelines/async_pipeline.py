@@ -86,10 +86,13 @@ class AsyncPipeline:
         self.model = model
         self.logger = logging.getLogger()
         
-        ie.set_config(config={"CACHE_DIR": os.path.join(os.path.dirname(model_path), 'cache')}, device_name=device)
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
         self.logger.info('Model Cached')        
 
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
+        self.logger.info('SR Model Cached')
         self.logger.info('Loading network to {} plugin...'.format(device))
+        
         self.exec_net = ie.load_network(network=self.model.net, device_name=device,
                                         config=plugin_config, num_requests=max_num_requests)
         if max_num_requests == 0:

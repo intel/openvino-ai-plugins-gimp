@@ -43,9 +43,12 @@ def run(frame, model_path, device, model_name):
      plugin_config = get_user_config(device, '', None)
      log.info('Loading network: %s',model_name)
      log.info('Device: %s',device)
+     log.info('frame.shape: %s',frame.shape)
+     
      
      model = SuperResolution(ie, model_path, frame.shape, model_name)
      pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
+
 
      log.info('Starting inference...')
 
@@ -76,5 +79,5 @@ if __name__ == "__main__":
     import numpy as np
     img = cv2.imread(r"D:\git\\GIMP-OV\sampleinput\haze.png") #[:, :, ::-1]
 
-    mask = run(img, r"C:\GIMP-OV\weights\superresolution-ov\realesrgan.xml","VPUX","esrgan") #r )
+    mask = run(img, r"C:\GIMP-OV\weights\superresolution-ov\realesrgan.xml","NPU","esrgan") #r )
     cv2.imwrite("esrgan_ov.png", mask)

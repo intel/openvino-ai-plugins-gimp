@@ -153,7 +153,7 @@ def run(frame, model_path, device):
     return frame 
 
 #img = cv2.imread(r'D:\sampleinput\img.png')[:, :, ::-1]
-#mask = run(img, r'C:\GIMP-ML\weights\semseg\deeplabv3.xml',"VPUX")
+#mask = run(img, r'C:\GIMP-ML\weights\semseg\deeplabv3.xml',"NPU")
 #print("type = ", type(mask))
 #print(mask.shape)
 #cv2.imwrite("cache_ov.png", mask)
