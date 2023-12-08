@@ -2,7 +2,7 @@
 
 # OpenVINO™ AI Plugins for GIMP
 
-This branch is currently under development. <br>Dedicated for GIMP 3, Python 3 and OpenVino.<br> :star: :star: :star: :star: are welcome.<br>
+<br>Dedicated for GIMP 3, Python 3 and OpenVINO™.<br> :star: :star: :star: :star: are welcome.<br>
 
 ## Current list of plugins:
 [1] Super-Resolution <br>
@@ -12,7 +12,7 @@ This branch is currently under development. <br>Dedicated for GIMP 3, Python 3 a
 [5] Stable-Diffusion (Suppports - SD 1.4, SD 1.5 (landscape, portrait, and Latent Consistency Model), SD 1.5 Inpainting, SD 1.5 Controlnet-OpenPose, SD 1.5 Controlnet-CannyEdge, SD 1.5 Controlnet-Scribble) <br>
 
 # Objectives
-[1] Provides a set of OpenVino based plugins that add AI features to GIMP. <br>
+[1] Provides a set of OpenVINO™ based plugins that add AI features to GIMP. <br>
 [2] Serve as a refrence code for how to make use of OpenVino in GIMP application for inferencing on Intel's' CPU & GPU  <br>
 [3] Add AI to routine image editing workflows. <br>
 
@@ -25,30 +25,50 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 ## Installation Steps
 
+### Install OpenVINO™
+- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system.
+- Note that these plugins have been tested with 2023.1.0 and 2023.2.0
+- For Intel&reg; Core™ Ultra support, you need to download and install OpenVINO™ from the archive. Do not use pypi for installation. 
+
+
 ### Windows
 Skip steps 1 and 2 if you already have Python3 and Git on Windows
 
 #### 1. Install Python
-- Download a Python installer from python.org. Choose Python 3.7, 3.8, 3.9 and make sure to pick a 64 bit version. For example, this 3.9.13 installer: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe <br>
+- Download a Python installer from python.org. Choose Python 3.9 or 3.10 and make sure to pick a 64 bit version. For example, this 3.9.13 installer: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe <br>
 - Double click on the installer to run it, and follow the steps in the installer. Check the box to add Python to your PATH, and to install py. At the end of the installer, there is an option to disable the PATH length limit. It is recommended to click this. <br>
 
 #### 2. Install Git
 - Download and install [GIT](https://git-scm.com/)
 
 #### 3. Install the GIMP Plugin 
-1. Install [GIMP 2.99.10 (revision 2)](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.10-setup-2.exe) or Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone and run install script: <br>
-
-   - clone this repo: <br>
-   ```git clone https://github.com/intel/openvino-ai-plugins-gimp.git``` <br>
-   
-    - run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
-   ```openvino-ai-plugins-gimp\install.bat``` <br>
+1. Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
+2. Clone this repository: <br>
+   ```
+   git clone https://github.com/intel/openvino-ai-plugins-gimp.git
+   ``` 
+3. Setup OpenVINO™ Environment
+   <b>Note that you will need to do these steps everytime you start GIMP</b>
+   ```
+   C:\Path\to\where\you\installed\OpenVINO\setupvars.bat
+   ```
+4. Run install script - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup. <br>
+   ```
+   openvino-ai-plugins-gimp\install.bat
+   ``` 
+   You will be prompted to setup the AI models used with OpenVINO™. Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.
    *You can re-run "run install script" step later again to install & setup models that you may have missed.* <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
-   Example:  ```Plug-ins in GIMP :  <path\to>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` Add this path to [Edit-> Preferences-> Folders-> Plugins] in GIMP <br>
-4. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+   Example: ```C:\User\<username>\GIMP\gimpenv3\lib\site-packages\gimpopenvino\plugins``` 
+   
+5. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+   ```
+   call "C:\Path\to\where\you\installed\OpenVINO\setupvars.bat"
+   cd "C:\Program Files\GIMP 2.99\bin"
+   .\gimp-2.99.exe
+   ```
+   Note that you need to run setupvars.bat everytime you start GIMP. Creating a .bat file to do these steps may be helpful.
 
 ### Linux 
 This plugin is tested on Ubuntu 22.04. 
@@ -89,21 +109,31 @@ ninja -C _build
 sudo ninja -C _build install
 ```
 #### 5. Install Plugins
-1. Clone, run install script, and download models. The following steps will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
-
+1. Clone this repo
    ```
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
-   chmod +x openvino-ai-plugins-gimp/install.sh
-   ./openvino-ai-plugins-gimp/install.sh
    ```
-   *You can re-run "run install script" step later again to install & setup models that you may have missed.* <br>
 2. Setup the environment Note that you will need to do these steps everytime you start GIMP
    ```
    source /opt/intel/openvino/setupvars.sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
    ```
-4. Start the GIMP application (```gimp-2.99```), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
-5. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+3. Run install script, and download models. The following steps will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
+   ```
+   chmod +x openvino-ai-plugins-gimp/install.sh
+   source /opt/intel/openvino/setupvars.sh
+   ./openvino-ai-plugins-gimp/install.sh
+   ```
+   You will be prompted to setup the AI models used with OpenVINO™. Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.<br>
+   *You can re-run "run install script" step later again to install & setup models that you may have missed.* <br>
+
+5. Start the GIMP application (```gimp-2.99```), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins]. <br>
+6. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
+   ```
+   source /opt/intel/openvino/setupvars.sh
+   export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
+   gimp-2.99
+   ```
 
 # OpenVINO™ Image Generator Plugin with Stable Diffusion 
 #### A. Prompt to Image 
