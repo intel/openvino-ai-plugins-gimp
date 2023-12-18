@@ -41,7 +41,10 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 #### 2. Install Git
 - Download and install [GIT](https://git-scm.com/)
 
-#### 3. Install the GIMP Plugin 
+#### 3. Install the MSFT Visual C++ Runtime
+- Download and install [the latest supported redist](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
+
+#### 4. Install the GIMP Plugin 
 1. Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
 2. Clone this repository: <br>
    ```
