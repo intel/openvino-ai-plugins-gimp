@@ -49,7 +49,8 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 2. Clone this repository: <br>
    ```
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
-   ``` 
+   ```
+   :warning: If you clone this directory into your home directory, please ensure to name it something other than `openvino-ai-plugins-gimp` 
 3. Setup OpenVINO™ Environment
    <b>Note that you will need to do these steps everytime you start GIMP</b>
    ```
