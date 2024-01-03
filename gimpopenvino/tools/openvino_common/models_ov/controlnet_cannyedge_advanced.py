@@ -160,8 +160,8 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
         unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
         vae_decoder = os.path.join(model, "vae_decoder.xml")
         
-        self.npu_flag = False
-        self.npu_flag_neg = False
+#        self.npu_flag = False
+#        self.npu_flag_neg = False
 
         ####################
         self.load_models(self.core, device, controlnet, text_encoder, unet_time_proj_model, unet_int8_model, vae_decoder, blobs, model)
@@ -242,8 +242,10 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
                 self.npu_flag = True
             elif device[1] == "GPU":
                 self.unet = self.unet_gpu
+                self.npu_flag = False
             else:
                 self.unet = self.unet_cpu
+                self.npu_flag = False
 
             # Negative prompt:
             if device[2] == "NPU":
@@ -251,8 +253,10 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
                 self.npu_flag_neg = True
             elif device[2] == "GPU":
                 self.unet_neg = self.unet_gpu
+                self.npu_flag_neg = False
             else:
                 self.unet_neg = self.unet_cpu
+                self.npu_flag_neg = False
 
         else:
 
