@@ -164,9 +164,9 @@ class ControlNetOpenPose(DiffusionPipeline):
             device=["CPU","CPU","CPU"],
             ):
             
-        super().__init__()    
+        #super().__init__()    
             
-        self.set_progress_bar_config(disable=False)    
+        #self.set_progress_bar_config(disable=False)    
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)

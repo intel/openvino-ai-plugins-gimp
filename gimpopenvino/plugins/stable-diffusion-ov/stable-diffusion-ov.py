@@ -441,7 +441,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
