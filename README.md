@@ -26,9 +26,9 @@ Please raise a PR for any new features, modifactions or bug fixes.
 ## Installation Steps
 
 ### Install OpenVINO™
-- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system.
+- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system. Please follow the instructions to download and install OpenVINO™ from the archive. <b>Do not use pypi for installation.</b> 
 - Note that these plugins have been tested with 2023.1.0 and 2023.2.0
-- For Intel&reg; Core™ Ultra support, you need to download and install OpenVINO™ from the archive. Do not use pypi for installation. 
+ 
 
 
 ### Windows
@@ -46,11 +46,13 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 
 #### 4. Install the GIMP Plugin 
 1. Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) <br>
-2. Clone this repository: <br>
+2. Create a new folder, called GIMP, and clone this repository in that directory: <br>
    ```
+   mkdir GIMP
+   cd GIMP
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    ```
-   :warning: If you clone this directory into your home directory, please ensure to name it something other than `openvino-ai-plugins-gimp` 
+   :warning: Make sure you create the GIMP folder and clone the repo there. Do not clone this repository in your home directory. 
 3. Setup OpenVINO™ Environment
    <b>Note that you will need to do these steps everytime you start GIMP</b>
    ```
@@ -64,7 +66,7 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    *You can re-run "run install script" step later again to install & setup models that you may have missed.* <br>
    
 3. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
-   Example: ```C:\User\<username>\GIMP\gimpenv3\lib\site-packages\gimpopenvino\plugins``` 
+   Example: ```C:\User\<username>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` 
    
 5. Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu <br>
    ```
