@@ -54,7 +54,7 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    ```
    :warning: Make sure you create the GIMP folder and clone the repo there. Do not clone this repository in your home directory. <br><br>
    
-3. Setup OpenVINO™ Environment using a command shell
+3. Setup OpenVINO™ Environment using a command prompt
    ```
    C:\Path\to\where\you\installed\OpenVINO\setupvars.bat
    ```   
