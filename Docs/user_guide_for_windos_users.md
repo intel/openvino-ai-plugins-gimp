@@ -2,26 +2,26 @@
 
 # User guide for Windows Users
 
-## Install GIMP AI plugins with OpenVINO Backend on GIMP
+## Install GIMP AI plugins with OpenVINO™ Backend on GIMP
 
-### Pre-requisite for execute NPU 
+### Pre-requisite for execute on Intel NPU
 
-The following configurations are required:
+>__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO is supported.
 
 - Hardware:
-  - Intel Meteor Lake platform
+  - Intel Core Ultra platform
   - 16GB system memory as minimum requirement
-  - internet connection is required
+  - internet connection is required for installation
 - Driver:
   - Intel NPU driver: 31.0.100.1688 or later versions
 - Software and Package:
   - git
-  - python3.9 or 3.10
+  - python 3.9 or 3.10
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
-  - Download and install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
-  - Download [OpenVINO 2023.1](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.1/windows/w_openvino_toolkit_windows_2023.1.0.12185.47b736f63ed_x86_64.zip) or later version
-  - Download [GIMP AI plugins with OpenVINO Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
+  - [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
+  - [OpenVINO™ 2023.2](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.2/windows/w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip) or later version
+  - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
 ### Install OpenVINO™
@@ -30,7 +30,7 @@ The following configurations are required:
 
 Please following below steps to download and install the OpenVINO package.
 
-- Check donwlond page[https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html?VERSION=v_2023_2_0&OP_SYSTEM=WINDOWS&DISTRIBUTION=ARCHIVE] of OpenVINO™ website, then click "Download Archives"
+- Check download page[https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html?VERSION=v_2023_2_0&OP_SYSTEM=WINDOWS&DISTRIBUTION=ARCHIVE] of OpenVINO™ website, then click "Download Archives"
 
     ![](figs/OpenVINO_installation.png)
 

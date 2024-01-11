@@ -32,6 +32,8 @@ Please raise a PR for any new features, modifactions or bug fixes.
 
 
 ### Windows
+>__Notes:__ Please refer [User guide for Windows Users](./Docs/user_guide_for_windos_users.md) for more detail.
+
 Skip steps 1 and 2 if you already have Python3 and Git on Windows
 
 #### 1. Install Python
