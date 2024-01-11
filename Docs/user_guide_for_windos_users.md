@@ -6,7 +6,7 @@
 
 ### Pre-requisite for execute on Intel NPU
 
->__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO is supported.
+>__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO™ is supported.
 
 - Hardware:
   - Intel Core Ultra platform
@@ -28,9 +28,9 @@
 
 >Here use OpenVINO™ `2023.2` as an example.
 
-Please following below steps to download and install the OpenVINO package.
+Please following below steps to download and install the OpenVINO™ package.
 
-- Check download page[https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html?VERSION=v_2023_2_0&OP_SYSTEM=WINDOWS&DISTRIBUTION=ARCHIVE] of OpenVINO™ website, then click "Download Archives"
+- Check download [page](https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html?VERSION=v_2023_2_0&OP_SYSTEM=WINDOWS&DISTRIBUTION=ARCHIVE) of OpenVINO™ website, then click "Download Archives"
 
     ![](figs/OpenVINO_installation.png)
 
@@ -65,7 +65,7 @@ Please download the prebuilt Windows x64 package from [link](https://www.python.
 
 >Here use Git `2.43.0` as an example.
 
-Please download the prebuilt Windows x64 package from [link](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe .After downloading, please following below steps to install the Git.
+Please download the prebuilt Windows x64 package from [link](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe) .After downloading, please following below steps to install the Git.
 
 - Click "Next", then click "Install"
 
@@ -114,7 +114,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
 
 
-### Install GIMP AI plugins with OpenVINO Backend
+### Install GIMP AI plugins with OpenVINO™ Backend
 
  - Open command prompt and download it from Github by git with below instruction.
 
@@ -127,14 +127,14 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     > __Notes__:
     > Here is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
 
-- Use same command prompt that used in previous step to include OpenVINO environment by below command.
+- Use same command prompt that used in previous step to include OpenVINO™ environment by below command.
 
     ```sh
     C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
     ```
     > __Notes__:
-    > - Folder name of `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64` is depends on OpenVINO version. The folder name of OpenVINO 2023.2 is `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64`.
-    > - Please ensure the OpenVINO environment is set, otherwise, NPU will not work for GIMP AI plugins with OpenVINO Backend.
+    > - Folder name of `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64` is for OpenVINO™ `2023.2` version and it depends on OpenVINO™ version.
+    > - Please ensure the OpenVINO™ environment is set, otherwise, NPU will not work for GIMP AI plugins with OpenVINO™ Backend.
 
  - Use same command prompt that used in previous steps and follow the command below to install it.
 
@@ -166,9 +166,9 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     > - The downloaded models include FP16 and INT8 precision, and INT8 precision can be executed on MTL NPU.
     > - Weights is saved at `C:\Users\\<user_name>\openvino-ai-plugins-gimp\weights`.
 
-## Set up GIMP AI plugins with OpenVINO Backend on GIMP
+## Set up GIMP AI plugins with OpenVINO™ Backend on GIMP
 
-Please follow below steps to setup plugin at first time and then you can use GIMP to execute GIMP AI plugins with OpenVINO Backend to run Stable-Diffusion or other features.
+Please follow below steps to setup plugin at first time and then you can use GIMP to execute GIMP AI plugins with OpenVINO™ Backend to run Stable-Diffusion or other features.
 
 - Open GIMP application from start menu. (Mandatory step for first launch)
 
@@ -190,11 +190,11 @@ Please follow below steps to setup plugin at first time and then you can use GIM
 
 >Notes: This section runs `SD-1.5 Square (512x512)` as an example. 
 
-With previous section, the GIMP AI plugins with OpenVINO Backend is installed and you can execute stable diffusion in GIMP. This session will guide you to execute Stable-Diffusion in GIMP.
+With previous section, the GIMP AI plugins with OpenVINO™ Backend is installed and you can execute stable diffusion in GIMP. This session will guide you to execute Stable-Diffusion in GIMP.
 
 ## Execute GIMP
 
-To make GIMP AI plugins with OpenVINO Backend can work with GIMP, please choose one of below two methods to execute it.
+To make GIMP AI plugins with OpenVINO™ Backend can work with GIMP, please choose one of below two methods to execute it.
 
 ### Execute by commands in cmd prompt
 
