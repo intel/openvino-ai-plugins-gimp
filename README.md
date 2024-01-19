@@ -16,9 +16,9 @@
 [2] Serve as a reference code for how to make use of OpenVino in GIMP application for inferencing on Intel's CPU & GPU  <br>
 [3] Add AI to routine image editing workflows. <br>
 
-# Contribution 
-Welcome people interested in contribution! 
-Please raise a PR for any new features, modifications, or bug fixes. 
+# Contribution
+Welcome people interested in contribution!
+Please raise a PR for any new features, modifications, or bug fixes.
 
 # Use with GIMP
 ![gimp-screenshot](gimp-screenshot.PNG)
@@ -26,9 +26,9 @@ Please raise a PR for any new features, modifications, or bug fixes.
 ## Installation Steps
 
 ### Install OpenVINO™
-- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system. Please follow the instructions to download and install OpenVINO™ from the archive. <b>Do not use pypi for installation.</b> 
+- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system. Please follow the instructions to download and install OpenVINO™ from the archive. <b>Do not use pypi for installation.</b>
 - Note that these plugins have been tested with 2023.1.0 and 2023.2.0
- 
+
 
 
 ### Windows
@@ -44,8 +44,8 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
 #### 3. Install the MSFT Visual C++ Runtime
 - Download and install [the latest supported redist](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 
-#### 4. Install the GIMP Plugin 
-1. Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) 
+#### 4. Install the GIMP Plugin
+1. Install [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
 2. Create a new folder, called GIMP, and clone this repository in that directory:
    ```
    mkdir GIMP
@@ -53,22 +53,22 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    ```
    :warning: Make sure you create the GIMP folder and clone the repo there. Do not clone this repository in your home directory. <br><br>
-   
+
 3. Setup OpenVINO™ Environment using a command prompt
    ```
    C:\Path\to\where\you\installed\OpenVINO\setupvars.bat
-   ```   
+   ```
    :warning: Make sure to use a command prompt, do not use powershell<br><br>
-   
+
 4. Run install script in the same command prompt used in the previous step - this will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
    ```
    openvino-ai-plugins-gimp\install.bat
-   ``` 
+   ```
    You will be prompted to setup the AI models used with OpenVINO™. Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.
    *You can re-run "run install script" step later again to install & setup models that you may have missed.* <br><br>
-   
+
 5. Start the GIMP application, and add the gimpenv3 path that was printed when running the above step to the list of plugin folders [Edit-> Preferences-> Folders-> Plugins]. <br>
-   Example: ```C:\User\<username>\gimpenv3\lib\site-packages\gimpopenvino\plugins``` 
+   Example: ```C:\User\<username>\gimpenv3\lib\site-packages\gimpopenvino\plugins```
    <br><br>
 6. From a new command prompt, Restart GIMP, and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```
@@ -79,8 +79,8 @@ Skip steps 1 and 2 if you already have Python3 and Git on Windows
    :warning: Note that you will need to run setupvars.bat every time you start GIMP. Creating a .bat file to do these steps may be helpful. Remember to use a command prompt for this step and do not use PowerShell.<br><br>
 
 
-### Linux 
-This plugin is tested on Ubuntu 22.04. 
+### Linux
+This plugin is tested on Ubuntu 22.04.
 Building GIMP from source is recommended.
 
 #### 1. Install Dependencies
@@ -89,7 +89,7 @@ Building GIMP from source is recommended.
    sudo apt install -y cmake libgflags-dev patchelf python3-pip gettext git git-lfs build-essential meson ninja-build autoconf libcairo2-dev libxt-dev libgdk-pixbuf-2.0-dev libgexiv2-dev libgtk-3-dev libmypaint-dev mypaint-brushes libbz2-dev libatk1.0-dev libgirepository1.0-dev libx11-xcb-dev libwmf-dev libxcb-glx0-dev  libxcb-dri2-0-dev   libxxf86vm-dev   valgrind  libappstream-glib-dev  libpugixml-dev libxmu-dev   libpoppler-glib-dev   xsltproc librsvg2-dev libopencv-dev
    ```
 
-#### 2. Clone, build, and install babl 
+#### 2. Clone, build, and install babl
 ```
 git clone https://gitlab.gnome.org/GNOME/babl
 cd babl
@@ -144,8 +144,8 @@ sudo ninja -C _build install
    gimp-2.99
    ```
 
-# OpenVINO™ Image Generator Plugin with Stable Diffusion 
-#### A. Prompt to Image 
+# OpenVINO™ Image Generator Plugin with Stable Diffusion
+#### A. Prompt to Image
 1. Create or choose a layer  <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the desired model and device from the drop down list.<br>
@@ -156,43 +156,43 @@ sudo ninja -C _build install
 
 #### B. Image to Image
 1. Create or choose a layer or open an image  <br>
-2. Follow steps 2,3,4,5 from section A. <br> 
+2. Follow steps 2,3,4,5 from section A. <br>
 3. Select "Use Initial Image"
 4. By default the opened image in canvas will be used as initial image to the model. You can also select a different image by browsing from files.
 5. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
-#### C. Stable-Diffusion-1.5 Inpainting - Make sure to download and convert the model during install process. 
+#### C. Stable-Diffusion-1.5 Inpainting - Make sure to download and convert the model during install process.
 1. Choose a layer or Open an image of size 512x512. (Currently works best with this resolution) <br>
 2. Use "Free select tool" to select the area in your image that you wish to change. <br>
 3. Right click on your image and click on "Add layer mask". Then choose "Selection" in "Initialize layer Mask to". This should create a mask with your selection.
 4. Follow steps 2,3,4,5 from section A. Please note that you will only see "SD_1.5_Inpainting" in model options if you added a mask layer to your image. <br>
 5. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
-#### D. Stable-Diffusion-1.5 Controlnet-Openpose - Make sure to download and convert the model during install process. 
+#### D. Stable-Diffusion-1.5 Controlnet-Openpose - Make sure to download and convert the model during install process.
 1. Open an image with some pose that you want to see in new image. <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the controlnet_openpose model and device from the drop down list.<br>
-4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail. 
+4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail.
 5. Follow steps 4,5 from section A. <br>
 6. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
 ![](gifs/controlnet-openpose.png)
 
 
-#### E. Stable-Diffusion-1.5 Controlnet-CannyEdge - Make sure to download and convert the model during install process. 
+#### E. Stable-Diffusion-1.5 Controlnet-CannyEdge - Make sure to download and convert the model during install process.
 1. Open an image that you want to use for generating the new image. <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the controlnet_canny model and device from the drop down list.<br>
-4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail. 
+4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail.
 5. Follow steps 4,5 from section A. <br>
 6. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
 
-#### F. Stable-Diffusion-1.5 Controlnet-Scribble - Make sure to download and convert the model during install process. 
+#### F. Stable-Diffusion-1.5 Controlnet-Scribble - Make sure to download and convert the model during install process.
 1. Open an image that you want to use for generating the new image. <br>
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins <br>
 3. Choose the controlnet_scribble model and device from the drop down list.<br>
-4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail. 
+4. Make sure to select -- "Use Initial Image" option from the GUI. If not selected then it will fail.
 5. Follow steps 4,5 from section A. <br>
 6. Click on “Generate”. Wait for the total inference steps to get completed. <br>
 
@@ -204,13 +204,13 @@ _Note that the screenshots below are based on the previous UI_
 ### OpenVINO™ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
 
-### OpenVINO™ Super Resolution Plugin 
+### OpenVINO™ Super Resolution Plugin
 ![](gifs/super-res.webp)
 
 ### OpenVINO™ Style Transfer Plugin
 ![](gifs/style-transfer.webp)
 
-### OpenVINO™ Inpainting Plugin 
+### OpenVINO™ Inpainting Plugin
 1. Open an image in GIMP. <br>
 2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel” <br>
 3. Add a new transparent layer of the same size as original image. <br>
