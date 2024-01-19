@@ -28,6 +28,8 @@ Please raise a PR for any new features, modifications, or bug fixes.
 - Note that these plugins have been tested with 2023.1.0 and 2023.2.0
 
 ### Windows
+>__Notes:__ For more detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windos_users.md).
+
 Skip steps 1 and 2 if you already have Python3 and Git on Windows
 
 #### 1. Install Python
