@@ -26,7 +26,7 @@
 
 ### Install OpenVINO™
 
->Here use OpenVINO™ `2023.2` as an example.
+>__Notes:__ Use OpenVINO™ `2023.2` as an example.
 
 Please following below steps to download and install the OpenVINO™ package.
 
@@ -40,13 +40,13 @@ Please following below steps to download and install the OpenVINO™ package.
 
 - Unzip `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip` to `C:\Users\Public\`
 
-> Here use `C:\Users\Public\` as an example, you can unzip it to anywhere that you want.
+> __Notes:__ Use `C:\Users\Public\` as an example, you can unzip it to anywhere that you want.
 
 
 
 ### Install Python
 
->Here use Python `3.9.13` as an example.
+>__Notes:__ Use Python `3.9.13` as an example.
 
 Please download the prebuilt Windows x64 package from [link](https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe). After downloading, please following below steps to install the Python package.
 
@@ -63,9 +63,9 @@ Please download the prebuilt Windows x64 package from [link](https://www.python.
 
 ### Install Git
 
->Here use Git `2.43.0` as an example.
+>__Notes:__ Use Git `2.43.0` as an example.
 
-Please download the prebuilt Windows x64 package from [link](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe) .After downloading, please following below steps to install the Git.
+Please download the prebuilt Windows x64 package from [link](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe). After downloading, please following below steps to install the Git.
 
 - Click "Next", then click "Install"
 
@@ -125,7 +125,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     git clone https://github.com/intel/openvino-ai-plugins-gimp.git
     ```
     > __Notes__:
-    > Here is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
+    > This is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
 
 - Use same command prompt that used in previous step to include OpenVINO™ environment by below command.
 
