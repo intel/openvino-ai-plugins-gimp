@@ -201,7 +201,7 @@ To make GIMP AI plugins with OpenVINO™ Backend can work with GIMP, please choo
 Open command prompt, then follow below command to execute GIMP in command prompt.
 
 ```sh
-C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupbars.bat
+C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
 cd "C:\Program Files\GIMP 2.99\bin"
 gimp-2.99.exe
 ```
