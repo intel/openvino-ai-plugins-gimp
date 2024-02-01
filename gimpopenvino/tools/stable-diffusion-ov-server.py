@@ -38,8 +38,7 @@ import threading
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
 sys.path.extend([plugin_loc])
 
-from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine
-
+from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 
@@ -86,12 +85,15 @@ def run(model_name,device_name):
     elif model_name == "SD_1.5_Inpainting_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
         blobs = True
+    elif model_name == "controlnet_referenceonly":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
+
     elif model_name == "controlnet_openpose":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
     elif model_name == "controlnet_canny":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
     elif model_name == "controlnet_scribble": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
     elif model_name=="controlnet_openpose_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
         blobs = True
@@ -183,11 +185,17 @@ def run(model_name,device_name):
         model = model_path,
         device = [device_name[0], device_name[1], device_name[3]]
         )
+    
+    elif model_name == "controlnet_referenceonly":
+        engine = StableDiffusionEngineReferenceOnly(
+        model = model_path,
+        device = [device_name[0], device_name[1], device_name[2], device_name[3]]
+        )
 
     else:
         engine = StableDiffusionEngine(
             model = model_path,
-            device = [device_name[0], device_name[1], device_name[3]]
+            device = [device_name[0], device_name[1], device_name[2]]
         )
 
 
@@ -365,6 +373,20 @@ def run(model_name,device_name):
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
                                 image = Image.open(init_image),
+                                scheduler = scheduler,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                eta = 0.0,
+                                create_gif = bool(create_gif),
+                                model = model_path,
+                                callback = progress_callback,
+                                callback_userdata = conn
+                        )          
+                        elif model_name == "controlnet_referenceonly":
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                init_image = Image.open(init_image),
                                 scheduler = scheduler,
                                 num_inference_steps = num_infer_steps,
                                 guidance_scale = guidance_scale,
