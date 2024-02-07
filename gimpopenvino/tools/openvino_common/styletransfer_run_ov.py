@@ -47,7 +47,7 @@ def run(frame, model_path, device):
      log.info('Device: %s',device)
      
      model = StyleTransfer(ie, model_path, frame.shape)
-     pipeline = AsyncPipeline(ie, model, plugin_config, device, 1)
+     pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
 
      log.info('Starting inference...')
 

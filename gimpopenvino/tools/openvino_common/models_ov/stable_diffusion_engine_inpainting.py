@@ -19,7 +19,7 @@ from openvino.runtime import Core, Model
 from transformers import CLIPTokenizer
 import torch
 
-from diffusers.pipeline_utils import DiffusionPipeline
+from diffusers import DiffusionPipeline
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
 import cv2
 import os
@@ -32,63 +32,135 @@ from PIL import Image
 import glob
 import json
 
-def scale_fit_to_window(dst_width:int, dst_height:int, image_width:int, image_height:int):
+def prepare_mask_and_masked_image(image, mask, height, width, return_image: bool = False):
     """
-    Preprocessing helper function for calculating image size for resize with peserving original aspect ratio 
-    and fitting image to specific window size
-    
-    Parameters:
-      dst_width (int): destination window width
-      dst_height (int): destination window height
-      image_width (int): source image width
-      image_height (int): source image height
-    Returns:
-      result_width (int): calculated width for resize
-      result_height (int): calculated height for resize
-    """
-    im_scale = min(dst_height / image_height, dst_width / image_width)
-    return int(im_scale * image_width), int(im_scale * image_height)
+    Prepares a pair (image, mask) to be consumed by the Stable Diffusion pipeline. This means that those inputs will be
+    converted to ``torch.Tensor`` with shapes ``batch x channels x height x width`` where ``channels`` is ``3`` for the
+    ``image`` and ``1`` for the ``mask``.
 
-def preprocess(image: PIL.Image.Image, ht, wt):
-    """
-    Image preprocessing function. Takes image in PIL.Image format, resizes it to keep aspect ration and fits to model input window 512x512,
-    then converts it to np.ndarray and adds padding with zeros on right or bottom side of image (depends from aspect ratio), after that
-    converts data to float32 data type and change range of values from [0, 255] to [-1, 1], finally, converts data layout from planar NHWC to NCHW.
-    The function returns preprocessed input tensor and padding size, which can be used in postprocessing.
-    
-    Parameters:
-      image (PIL.Image.Image): input image
+    The ``image`` will be converted to ``torch.float32`` and normalized to be in ``[-1, 1]``. The ``mask`` will be
+    binarized (``mask > 0.5``) and cast to ``torch.float32`` too.
+
+    Args:
+        image (Union[np.array, PIL.Image, torch.Tensor]): The image to inpaint.
+            It can be a ``PIL.Image``, or a ``height x width x 3`` ``np.array`` or a ``channels x height x width``
+            ``torch.Tensor`` or a ``batch x channels x height x width`` ``torch.Tensor``.
+        mask (_type_): The mask to apply to the image, i.e. regions to inpaint.
+            It can be a ``PIL.Image``, or a ``height x width`` ``np.array`` or a ``1 x height x width``
+            ``torch.Tensor`` or a ``batch x 1 x height x width`` ``torch.Tensor``.
+
+
+    Raises:
+        ValueError: ``torch.Tensor`` images should be in the ``[-1, 1]`` range. ValueError: ``torch.Tensor`` mask
+        should be in the ``[0, 1]`` range. ValueError: ``mask`` and ``image`` should have the same spatial dimensions.
+        TypeError: ``mask`` is a ``torch.Tensor`` but ``image`` is not
+            (ot the other way around).
+
     Returns:
-       image (np.ndarray): preprocessed image tensor
-       meta (Dict): dictionary with preprocessing metadata info
+        tuple[torch.Tensor]: The pair (mask, masked_image) as ``torch.Tensor`` with 4
+            dimensions: ``batch x channels x height x width``.
     """
-    #print("FIRST image size", image.size )
-    src_width, src_height = image.size
-    image = image.convert('RGB')
-    dst_width, dst_height = scale_fit_to_window(
-        wt, ht, src_width, src_height)
-    image = np.array(image.resize((dst_width, dst_height),
-                     resample=PIL.Image.Resampling.LANCZOS))[None, :]
-    print("2nd image size", image.size )
-    pad_width = wt - dst_width
-    pad_height = ht - dst_height
-    pad = ((0, 0), (0, pad_height), (0, pad_width), (0, 0))
-    image = np.pad(image, pad, mode="constant")
-    image = image.astype(np.float32) / 255.0
-    image = 2.0 * image - 1.0
-    image = image.transpose(0, 3, 1, 2)
-    print("4th image size", image.shape )
-    return image, {"padding": pad, "src_width": src_width, "src_height": src_height}
+
+    if image is None:
+        raise ValueError("`image` input cannot be undefined.")
+
+    if mask is None:
+        raise ValueError("`mask_image` input cannot be undefined.")
+
+    if isinstance(image, torch.Tensor):
+        if not isinstance(mask, torch.Tensor):
+            raise TypeError(f"`image` is a torch.Tensor but `mask` (type: {type(mask)} is not")
+
+        # Batch single image
+        if image.ndim == 3:
+            assert image.shape[0] == 3, "Image outside a batch should be of shape (3, H, W)"
+            image = image.unsqueeze(0)
+
+        # Batch and add channel dim for single mask
+        if mask.ndim == 2:
+            mask = mask.unsqueeze(0).unsqueeze(0)
+
+        # Batch single mask or add channel dim
+        if mask.ndim == 3:
+            # Single batched mask, no channel dim or single mask not batched but channel dim
+            if mask.shape[0] == 1:
+                mask = mask.unsqueeze(0)
+
+            # Batched masks no channel dim
+            else:
+                mask = mask.unsqueeze(1)
+
+        assert image.ndim == 4 and mask.ndim == 4, "Image and Mask must have 4 dimensions"
+        assert image.shape[-2:] == mask.shape[-2:], "Image and Mask must have the same spatial dimensions"
+        assert image.shape[0] == mask.shape[0], "Image and Mask must have the same batch size"
+
+        # Check image is in [-1, 1]
+        if image.min() < -1 or image.max() > 1:
+            raise ValueError("Image should be in [-1, 1] range")
+
+        # Check mask is in [0, 1]
+        if mask.min() < 0 or mask.max() > 1:
+            raise ValueError("Mask should be in [0, 1] range")
+
+        # Binarize mask
+        mask[mask < 0.5] = 0
+        mask[mask >= 0.5] = 1
+
+        # Image as float32
+        image = image.to(dtype=torch.float32)       
+        
+    elif isinstance(mask, torch.Tensor):
+        raise TypeError(f"`mask` is a torch.Tensor but `image` (type: {type(image)} is not")
+    else:
+    
+        # preprocess image
+        if isinstance(image, (PIL.Image.Image, np.ndarray)):
+            image = [image]
+        if isinstance(image, list) and isinstance(image[0], PIL.Image.Image):
+            # resize all images w.r.t passed height an width
+            
+            image = [i.resize((width, height), resample=PIL.Image.LANCZOS) for i in image]
+            image = [np.array(i.convert("RGB"))[None, :] for i in image]
+            image = np.concatenate(image, axis=0)
+        elif isinstance(image, list) and isinstance(image[0], np.ndarray):
+            image = np.concatenate([i[None, :] for i in image], axis=0)
+        
+        image = image.transpose(0, 3, 1, 2)
+        image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
+     
+        # preprocess mask
+        if isinstance(mask, (PIL.Image.Image, np.ndarray)):
+            mask = [mask]
+
+        if isinstance(mask, list) and isinstance(mask[0], PIL.Image.Image):
+            mask = [i.resize((width, height), resample=PIL.Image.LANCZOS) for i in mask]
+            mask = np.concatenate([np.array(m.convert("L"))[None, None, :] for m in mask], axis=0)
+            mask = mask.astype(np.float32) / 255.0
+        elif isinstance(mask, list) and isinstance(mask[0], np.ndarray):
+            mask = np.concatenate([m[None, None, :] for m in mask], axis=0)
+        
+
+        mask[mask < 0.5] = 0
+        mask[mask >= 0.5] = 1
+        mask = torch.from_numpy(mask)
+
+    masked_image = image * (mask < 0.5)
+
+    # n.b. ensure backwards compatibility as old function does not return image
+    if return_image:
+        return mask, masked_image, image
+
+    return mask, masked_image 
 
 def result(var):
     return next(iter(var.values()))
 
 
-class StableDiffusionEngine(DiffusionPipeline):
+class StableDiffusionEngineInpainting(DiffusionPipeline):
     def __init__(
             self,
             #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
-            model="bes-dev/stable-diffusion-v1-4-openvino",
+            model="runwayml/stable-diffusion-inpainting",
             tokenizer="openai/clip-vit-large-patch14",
             device=["CPU","CPU","CPU"]
             ):
@@ -139,7 +211,8 @@ class StableDiffusionEngine(DiffusionPipeline):
     def __call__(
             self,
             prompt,
-            init_image = None,
+            image: PIL.Image.Image = None,
+            mask_image: PIL.Image.Image = None,
             negative_prompt=None,
             scheduler=None,
             strength = 0.5,
@@ -194,8 +267,14 @@ class StableDiffusionEngine(DiffusionPipeline):
         timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, scheduler)
         latent_timestep = timesteps[:1]
 
+        #preprocess image and mask
+        mask, masked_image, init_image = prepare_mask_and_masked_image(
+            image, mask_image, self.height, self.width, return_image=True)
+        
+        mask, masked_image_latents = self.prepare_mask_latents(mask, masked_image, do_classifier_free_guidance)
+
         # get the initial random noise unless the user supplied it
-        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler)
+        latents = self.prepare_latents(init_image, latent_timestep, scheduler)
 
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
@@ -217,6 +296,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
             #print("latent_model_input:", latent_model_input)
+            latent_model_input = np.concatenate([latent_model_input, mask, masked_image_latents], axis=1)
             # predict the noise residual
             noise_pred = self.unet([latent_model_input, float(t), text_embeddings])[self._unet_output]
             #print("noise_pred:",noise_pred)
@@ -236,9 +316,11 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         # scale and decode the image latents with vae
         
+        latents = 1 / 0.18215 * latents
+        
         image = self.vae_decoder(latents)[self._vae_d_output]
       
-        image = self.postprocess_image(image, meta)
+        image = self.postprocess_image(image)
 
         if create_gif:
             gif_folder=os.path.join(model,"../../../gif")
@@ -246,7 +328,7 @@ class StableDiffusionEngine(DiffusionPipeline):
                 os.makedirs(gif_folder)
             for i in range(0,len(frames)):
                 image = self.vae_decoder(frames[i])[self._vae_d_output]
-                image = self.postprocess_image(image, meta)
+                image = self.postprocess_image(image)
                 output = gif_folder + "/" + str(i).zfill(3) +".png"
                 cv2.imwrite(output, image)
             with open(os.path.join(gif_folder, "prompt.json"), "w") as file:
@@ -258,7 +340,7 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         return image
     
-    def prepare_latents(self, image:PIL.Image.Image = None, latent_timestep:torch.Tensor = None, scheduler = LMSDiscreteScheduler):
+    def prepare_latents(self, input_image:PIL.Image.Image = None, latent_timestep:torch.Tensor = None, scheduler = LMSDiscreteScheduler):
         """
         Function for getting initial latents for starting generation
         
@@ -274,7 +356,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         latents_shape = (1, 4, self.height // 8, self.width // 8)
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
-        if image is None:
+        if input_image is None:
             print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(scheduler, LMSDiscreteScheduler):
@@ -287,7 +369,6 @@ class StableDiffusionEngine(DiffusionPipeline):
                 return noise, {}
             else:
                 return noise, {}
-        input_image, meta = preprocess(image,self.height,self.width)
        
         moments = self.vae_encoder(input_image)[self._vae_e_output]
       
@@ -298,9 +379,19 @@ class StableDiffusionEngine(DiffusionPipeline):
        
          
         latents = scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
-        return latents, meta
+        return latents
 
-    def postprocess_image(self, image:np.ndarray, meta:Dict):
+    def prepare_mask_latents(self, mask = None, masked_image = None, do_classifier_free_guidance = True):
+         mask = torch.nn.functional.interpolate(mask, size=(self.height // 8, self.width // 8)).numpy()                                        
+         moments = self.vae_encoder(masked_image)[self._vae_e_output] 
+         mean, logvar = np.split(moments, 2, axis=1) 
+         std = np.exp(logvar * 0.5)
+         masked_image_latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
+         mask = np.concatenate([mask] * 2) if do_classifier_free_guidance else mask
+         masked_image_latents = np.concatenate([masked_image_latents] * 2) if do_classifier_free_guidance else masked_image_latents
+         return mask, masked_image_latents
+
+    def postprocess_image(self, image:np.ndarray):
         """
         Postprocessing for decoded image. Takes generated image decoded by VAE decoder, unpad it to initila image size (if required), 
         normalize and convert to [0, 255] pixels range. Optionally, convertes it from np.ndarray to PIL.Image format
@@ -308,10 +399,6 @@ class StableDiffusionEngine(DiffusionPipeline):
         Parameters:
             image (np.ndarray):
                 Generated image
-            meta (Dict):
-                Metadata obtained on latents preparing step, can be empty
-            output_type (str, *optional*, pil):
-                Output format for result, can be pil or numpy
         Returns:
             image (List of np.ndarray or PIL.Image.Image):
                 Postprocessed images
@@ -323,28 +410,10 @@ class StableDiffusionEngine(DiffusionPipeline):
     
         return image
         """
-        if "padding" in meta:
-            pad = meta["padding"]
-            (_, end_h), (_, end_w) = pad[1:3]
-            h, w = image.shape[2:]
-            #print("image shape",image.shape[2:])
-            unpad_h = h - end_h
-            unpad_w = w - end_w
-            image = image[:, :, :unpad_h, :unpad_w]
         image = np.clip(image / 2 + 0.5, 0, 1)
         image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)
-
-           
-
-        if "src_height" in meta:
-            orig_height, orig_width = meta["src_height"], meta["src_width"]
-            image = cv2.resize(image, (orig_width, orig_height))
                         
         return image
-
-        
-                      #image = (image / 2 + 0.5).clip(0, 1)
-        #image = (image[0].transpose(1, 2, 0)[:, :, ::-1] * 255).astype(np.uint8)   
 
 
     def get_timesteps(self, num_inference_steps:int, strength:float, scheduler):

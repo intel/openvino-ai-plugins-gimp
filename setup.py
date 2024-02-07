@@ -39,7 +39,10 @@ setup(
         "timm==0.4.5",
         "transformers",
         "diffusers",
-        "openvino==2022.3.0"
+        "controlnet-aux>=0.0.6",
+        "openvino==2023.1.0",
+        "psutil",
+        "matplotlib"
         
         
     ]
