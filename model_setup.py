@@ -33,7 +33,7 @@ if choice == "Y" or choice == "y":
 
     repo_id="bes-dev/stable-diffusion-v1-4-openvino"
     
-     while True:
+    while True:
         try:
             download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
             break
