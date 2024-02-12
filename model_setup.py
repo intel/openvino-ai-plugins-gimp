@@ -32,8 +32,14 @@ if choice == "Y" or choice == "y":
          shutil.rmtree(SD_path)
 
     repo_id="bes-dev/stable-diffusion-v1-4-openvino"
-    download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
-    #print("download_folder", download_folder)
+    
+     while True:
+        try:
+            download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
+            break
+        except Exception as e:
+             print("Error retry:" + str(e))
+    
     shutil.copytree(download_folder, SD_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
@@ -41,7 +47,12 @@ if choice == "Y" or choice == "y":
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights", "stable-diffusion-ov")
 
 def download_quantized_models(repo_id, model_fp16, model_int8):
-    download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+    while True:
+        try:  
+            download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+            break
+        except Exception as e:
+             print("Error retry:" + str(e))
     SD_path_FP16 = os.path.join(install_location, model_fp16)
     
     if os.path.isdir(SD_path_FP16):
