@@ -160,6 +160,13 @@ def dl_sd_15_LCM():
     model_2 = None
     download_model(repo_id, model_1, model_2)
 
+def dl_sd_15_Referenceonly():
+    print("Downloading Intel/sd-reference-only")
+    repo_id = "Intel/sd-reference-only"
+    model_fp16 = "controlnet-referenceonly"
+    model_int8 = None
+    download_quantized_models(repo_id, model_fp16, model_int8)
+
 def dl_all():
     dl_sd_15_square()
     dl_sd_15_portrait()
@@ -169,6 +176,7 @@ def dl_all():
     dl_sd_15_canny()
     dl_sd_15_scribble()
     dl_sd_15_LCM()
+    dl_sd_15_Referenceonly()
 
 while True:
     print("=========Chose SD-1.5 models to download =========")
@@ -180,6 +188,7 @@ while True:
     print("6 - SD-1.5 Controlnet-CannyEdge")
     print("7 - SD-1.5 Controlnet-Scribble")
     print("8 - SD-1.5 LCM ")
+    print("9 - SD-1.5 Controlnet-ReferenceOnly")
     print("12 - All the above models")
     print("0 - Exit SD-1.5 Model setup")
 
@@ -193,6 +202,7 @@ while True:
     if choice=="6":  dl_sd_15_canny()
     if choice=="7":  dl_sd_15_scribble()
     if choice=="8":  dl_sd_15_LCM()
+    if choice=="9":  dl_sd_15_Referenceonly()
 
     if choice=="12":
         dl_all()

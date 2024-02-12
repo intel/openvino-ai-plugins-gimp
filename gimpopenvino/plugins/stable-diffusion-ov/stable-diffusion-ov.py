@@ -102,6 +102,7 @@ def list_models(weight_path, SD):
     model_list = []
     flag = False
     flag_controlnet = False
+    flag_referenceonly = False
     if SD == "SD_1.4":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
         flag = True
@@ -121,6 +122,10 @@ def list_models(weight_path, SD):
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
         flag_controlnet = True
 
+    if SD == "controlnet_referenceonly":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
+        flag_referenceonly = True
+
     if flag_controlnet:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet_controlnet.xml'
@@ -132,6 +137,15 @@ def list_models(weight_path, SD):
         
         return model_list
                
+    if flag_referenceonly:
+        text = Path(dir_path) / 'text_encoder.xml'
+        unet_r = Path(dir_path) / 'unet_reference_read.xml'
+        unet_w = Path(dir_path) / 'unet_reference_write.xml'
+        vae = Path(dir_path) / 'vae_decoder.xml'
+        if os.path.isfile(text) and os.path.isfile(unet_r) and os.path.isfile(unet_w) and os.path.isfile(vae):
+                model_list.append(SD)
+        return model_list
+
     if flag:
         text = Path(dir_path) / 'text_encoder.xml'
         unet = Path(dir_path) / 'unet.xml'
@@ -139,7 +153,6 @@ def list_models(weight_path, SD):
         if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
                 model_list.append(SD)
         return model_list
-
 
     if SD == "SD_1.5_square_lcm":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
@@ -441,6 +454,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
+                          list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
