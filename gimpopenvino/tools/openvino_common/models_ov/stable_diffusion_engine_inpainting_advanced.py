@@ -205,46 +205,24 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
 
 
         if blobs:
-            if device[1] == "NPU" or device[2] == "NPU":
-                device_npu = "NPU"
-                blob_name = "unet_int8_NPU.blob"
-                print("Loading unet blob on npu:",blob_name)
-                start = time.time()
+            blob_name = "unet_int8_NPU.blob"           
+            # Postive Prompt
+            if "NPU" in device[1]:    
                 with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet_npu = self.core.import_model(f.read(), device_npu)
-                print("unet loaded on npu in:", time.time() - start)
+                    self.unet = self.core.import_model(f.read(), device[1])
+            else:    
+                self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
                 
-            if device[1] == "GPU" or device[2] == "GPU":
-                print("compiling start on GPU")
-                start = time.time()
-                self.unet_gpu = self.core.compile_model(os.path.join(model, unet_int8_model), "GPU")
-                print("compiling done on GPU in", time.time() - start)
-                
-            if device[1] == "CPU" or device[2] == "CPU":
-                print("compiling start on CPU")
-                start = time.time()
-                self.unet_cpu = self.core.compile_model(os.path.join(model, unet_int8_model), "CPU")
-                print("compiling done on CPU in", time.time() - start)
-
-
-            # Positive prompt
-            if device[1] == "NPU":
-                self.unet = self.unet_npu
-            elif device[1] == "GPU":
-                self.unet = self.unet_gpu
+            # Negative Prompt
+            if device[1] == device[2]:
+                self.unet_neg = self.unet
             else:
-                self.unet = self.unet_cpu
-
-            # Negative prompt:
-            if device[2] == "NPU":
-                self.unet_neg = self.unet_npu
-            elif device[2] == "GPU":
-                self.unet_neg = self.unet_gpu
-            else:
-                self.unet_neg = self.unet_cpu
-
+                if "NPU" in device[2]:    
+                    with open(os.path.join(model, blob_name), "rb") as f:
+                        self.unet_neg = self.core.import_model(f.read(), device[2])
+                else:    
+                    self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])           
         else:
-
             self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
             self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
 
@@ -254,17 +232,7 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
 
         # decoder
         print("VAE Device:",device[3])
-        #if device[3] == "GPU": #bypass caching for vae - issues seen.
-        #    self.newcore = Core()
-        #    start = time.time()
-        #    self.vae_decoder = self.newcore.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
-        #    print("vae decoder loaded on GPU in:", time.time() - start)
-            # encoder
-
-            #self.vae_encoder = None
-         #   self.vae_encoder = self.newcore.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
-
-        #else:
+     
         start = time.time()
         self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
         print("vae decoder loaded in:", time.time() - start)
@@ -282,13 +250,9 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
 
 
 
-        #if self.unet.input("latent_model_input").shape[1] == 4:
         self.height = self.unet.input("latent_model_input").shape[2] * 8
         self.width = self.unet.input("latent_model_input").shape[3] * 8
-        #else:
-
-         #   self.height = self.unet.input("latent_model_input").shape[1] * 8
-         #   self.width = self.unet.input("latent_model_input").shape[2] * 8
+    
 
         self.infer_request_neg = self.unet_neg.create_infer_request()
         self.infer_request = self.unet.create_infer_request()
