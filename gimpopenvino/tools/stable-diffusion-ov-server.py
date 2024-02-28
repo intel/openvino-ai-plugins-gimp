@@ -56,9 +56,17 @@ def progress_callback(i, conn):
     conn.sendall(tosend)
 
 
+
+
 def run(model_name,device_name):
     weight_path = get_weight_path()
     blobs = False
+
+    scheduler = EulerDiscreteScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear"
+    )
     #log.info('Loading config file...')
     import json
     log.info('Model Name: %s',model_name )
@@ -66,6 +74,8 @@ def run(model_name,device_name):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
     elif model_name == "SD_1.5_square_lcm":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
+      
+
     elif model_name == "SD_1.5_portrait":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square":
@@ -113,89 +123,106 @@ def run(model_name,device_name):
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
-    log.info('device_name: %s',device_name)
+    log.info('supported device_name: %s',device_name)
+
+    device =  ["CPU","GPU","GPU"]
+    device_int8 = ["CPU","GPU","GPU","GPU"]  
+    
+    if device_name ==  "dGPU":
+        device =  ["CPU","GPU.1","GPU.1"]
+        device_int8 = ["CPU","GPU.1","GPU.1","GPU.1"]  
+    
+    #if device_name ==  "NPU_dGPU":
+    #    device =  ["CPU","GPU.1","GPU.1"]
+    #    device_int8 = ["CPU","GPU.1","NPU","GPU.1"]  
+
+    if device_name ==  "NPU":
+        device_int8 = ["CPU","GPU","NPU","GPU"]  
+
+
+    
 
 
     if model_name == "SD_1.5_square_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_openpose_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_canny_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_scribble_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetScribbleAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs,
         swap = swap)
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device #[device_name[0], device_name[1], device_name[3]]
     )
     
     elif model_name == "controlnet_canny":
         engine = ControlNetCannyEdge(
         model = model_path,
-        device = device_name
+        device = device
     )    
     
     elif model_name == "controlnet_scribble":
         engine = ControlNetScribble(
         model = model_path,
-        device = device_name
+        device = device
     )
 
     elif model_name ==  "SD_1.5_square_lcm":
         engine = LatentConsistencyEngine(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device
     )
 
     elif model_name == "SD_1.5_Inpainting_int8":
-        log.info('advanced Inpainting device_name: %s',device_name)
+        log.info('advanced Inpainting device_name: %s',device_int8)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
         blobs = blobs
         )
 
     elif model_name == "controlnet_openpose":
         engine = ControlNetOpenPose(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device
         )
     
     elif model_name == "controlnet_referenceonly":
         engine = StableDiffusionEngineReferenceOnly(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[2], device_name[3]]
+        device = ["CPU", "GPU", "GPU", "GPU"]
         )
 
     else:
         engine = StableDiffusionEngine(
             model = model_path,
-            device = [device_name[0], device_name[1], device_name[2]]
+            device = device
         )
 
 
@@ -232,7 +259,7 @@ def run(model_name,device_name):
                             data_output = json.load(file)
 
                         prompt = data_output["prompt"]
-                        scheduler = data_output["scheduler"]
+                        #scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
                         init_image = data_output["initial_image"]
                         num_infer_steps = data_output["num_infer_steps"]
@@ -241,48 +268,7 @@ def run(model_name,device_name):
                         seed = data_output["seed"]
                         create_gif = False #data_output["create_gif"]
 
-                        if scheduler == "LMSDiscreteScheduler":
-                             #log.info('LMSDiscreteScheduler...')
-                             scheduler = LMSDiscreteScheduler(
-                                    beta_start=0.00085,
-                                    beta_end=0.012,
-                                    beta_schedule="scaled_linear",
 
-                                )
-                        elif scheduler == "PNDMScheduler":
-                            #log.info('PNDMScheduler...')
-                            scheduler = PNDMScheduler(
-
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear",
-                                skip_prk_steps = True,
-
-                            )
-
-                        elif scheduler == "LCMScheduler":
-                            #log.info('LCMScheduler...')
-                            scheduler = LCMScheduler(
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear"
-                            )
-
-                        elif scheduler == "UniPCMultistepScheduler":
-                            #log.info('UniPCMultistepScheduler')
-                            scheduler = UniPCMultistepScheduler(
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear"
-                                )
-
-                        else:
-                             #log.info('EulerDiscreteScheduler...')
-                             scheduler = EulerDiscreteScheduler(
-                             beta_start=0.00085,
-                             beta_end=0.012,
-                             beta_schedule="scaled_linear"
-                             )
 
 
                         strength = 1.0 if init_image is None else strength
@@ -455,12 +441,12 @@ def run(model_name,device_name):
 
 def start():
     model_name = sys.argv[1]
-    text_encoder_device = sys.argv[2]
-    unet_pos_device = sys.argv[3]
-    unet_neg_device = sys.argv[4]
-    vae_device = sys.argv[5]
+    device = sys.argv[2]
+    #unet_pos_device = sys.argv[3]
+    #unet_neg_device = sys.argv[4]
+    #vae_device = sys.argv[5]
 
-    device_name = [text_encoder_device, unet_pos_device, unet_neg_device, vae_device]
+    device_name = device #[text_encoder_device, unet_pos_device, unet_neg_device, vae_device]
     run_thread = threading.Thread(target=run, args=(model_name, device_name))
     run_thread.start()
 
