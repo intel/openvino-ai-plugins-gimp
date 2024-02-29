@@ -296,11 +296,12 @@ class SDRunner:
         Gimp.context_pop()
 
         if data_output["inference_status"] == "success":
-            image_new = Gimp.Image.new(
-                data_output["src_width"], data_output["src_height"], 0
-            )
+
 
             for i in range(num_images):
+                image_new = Gimp.Image.new(
+                data_output["src_width"], data_output["src_height"], 0
+            )
                 display = Gimp.Display.new(image_new)
                 cache_image = "sd_cache_" + str(i) + ".png"
                 result = Gimp.file_load(
@@ -834,6 +835,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
+
+            if "controlnet" in config.get_property("model_name"):
+                
+                initialImage_checkbox.set_active(True)
+            else:
+                initialImage_checkbox.set_active(False)
+
            
 
 
@@ -875,7 +883,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
           
                 #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
-                negative_prompt = negative_prompt_text.get_text()       
+                negative_prompt = negative_prompt_text.get_text()
+          
+
                         
 
                 if adv_checkbox.get_active():
