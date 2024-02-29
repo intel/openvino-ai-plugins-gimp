@@ -209,13 +209,14 @@ def list_models(weight_path, SD):
 
     
 class SDRunner:
-    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image,
+    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
                   strength, seed, progress_bar, config_path_output):
         self.procedure = procedure
         self.image = image
         self.drawable = drawable
         self.prompt = prompt
         self.negative_prompt = negative_prompt
+        self.num_images = num_images
         self.num_infer_steps = num_infer_steps
         self.guidance_scale = guidance_scale
         self.initial_image = initial_image
@@ -231,6 +232,7 @@ class SDRunner:
         drawable = self.drawable
         prompt = self.prompt
         negative_prompt = self.negative_prompt
+        num_images = self.num_images
         num_infer_steps = self.num_infer_steps
         guidance_scale = self.guidance_scale
         initial_image = self.initial_image
@@ -255,6 +257,7 @@ class SDRunner:
         with open(sd_option_cache, "w") as file:
             json.dump({"prompt": prompt,
                        "negative_prompt": negative_prompt,
+                       "num_images": num_images,
                        "num_infer_steps": num_infer_steps,
                        "guidance_scale": guidance_scale,
                        "initial_image": initial_image,
@@ -297,33 +300,38 @@ class SDRunner:
                 data_output["src_width"], data_output["src_height"], 0
             )
 
-            display = Gimp.Display.new(image_new)
-            result = Gimp.file_load(
-                Gimp.RunMode.NONINTERACTIVE,
-                Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
-            )
-            try:
-                # 2.99.10
-                result_layer = result.get_active_layer()
-            except:
-                # > 2.99.10
-                result_layers = result.list_layers()
-                result_layer = result_layers[0]
+            for i in range(num_images):
+                display = Gimp.Display.new(image_new)
+                cache_image = "sd_cache_" + str(i) + ".png"
+                result = Gimp.file_load(
+                    Gimp.RunMode.NONINTERACTIVE,
+                    Gio.file_new_for_path(os.path.join(weight_path, "..", cache_image)),
+                )
+                try:
+                    # 2.99.10
+                    result_layer = result.get_active_layer()
+                except:
+                    # > 2.99.10
+                    result_layers = result.list_layers()
+                    result_layer = result_layers[0]
 
-            copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-            copy.set_name("Stable Diffusion")
-            copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
-            image_new.insert_layer(copy, None, -1)
+                copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
+                seed_num = "seed_" + str(i)
+                set_name = "Stable Diffusion -" + str(data_output[seed_num])
+                copy.set_name(set_name) #"Stable Diffusion")
+                copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
+                image_new.insert_layer(copy, None, -1)
 
-            Gimp.displays_flush()
-            image.undo_group_end()
-            Gimp.context_pop()
+                Gimp.displays_flush()
+                image.undo_group_end()
+                Gimp.context_pop()
+                i += 1
 
             # Remove temporary layers that were saved
-            #my_dir = os.path.join(weight_path, "..")
-            #for f_name in os.listdir(my_dir):
-            #    if f_name.startswith("cache"):
-            #        os.remove(os.path.join(my_dir, f_name))
+            my_dir = os.path.join(weight_path, "..")
+            for f_name in os.listdir(my_dir):
+                if f_name.startswith("sd_cache"):
+                    os.remove(os.path.join(my_dir, f_name))
 
             self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
             return self.result
@@ -463,7 +471,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config.begin_run(image, run_mode, args)
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
-        sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
+        sd_option_cache_data = dict(prompt="", negative_prompt="", num_images=1,num_infer_steps=20, guidance_scale=7.5,
                                     initial_image=None, strength=0.8, seed="",
                                     inference_status="success", src_height=512, src_width=512)
 
@@ -512,6 +520,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
         grid.attach(model_combo, 1, 0, 1, 1)
         model_combo.show()
+
+
+        #number of images
+        num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
+        num_images_spin = GimpUi.prop_spin_button_new(
+            config, "num_images", step_increment=1, page_increment=0.1, digits=0
+        ) 
+
+
+  
 
         # num_infer_steps parameter
         steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
@@ -565,15 +583,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label5 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label6 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label7 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label8 = Gtk.Label.new_with_mnemonic(_("_"))
 
         grid.attach(invisible_label4,0, 3, 1, 1)
         grid.attach(invisible_label5,0, 4, 1, 1)
         grid.attach(invisible_label6,0, 5, 1, 1)
-        grid.attach(invisible_label6,0, 7, 1, 1)    
+        grid.attach(invisible_label7,0, 6, 1, 1)
+        grid.attach(invisible_label8,0, 7, 1, 1)    
+    
         invisible_label4.show()
         invisible_label5.show()
         invisible_label6.show()
-        invisible_label7.show()            
+        invisible_label7.show()  
+        invisible_label8.show()           
 
         def remove_all_device_widgets():
             grid.remove(gscale_label)
@@ -585,6 +607,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             steps_label.hide()
             grid.remove(steps_spin)
             steps_spin.hide()
+
+            grid.remove(num_images_label)
+            num_images_label.hide()
+            grid.remove(num_images_spin)
+            num_images_spin.hide()            
             
 
             grid.remove(seed)
@@ -597,25 +624,33 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             invisible_label5.show()
             invisible_label6.show()
             invisible_label7.show()
+            invisible_label8.show() 
 
         def populate_advanced_devices():
+
+            grid.attach(num_images_label, 0, 3, 1, 1)
+            grid.attach(num_images_spin, 1, 3, 1, 1)              
            
-            grid.attach(steps_label, 0, 3, 1, 1)
-            grid.attach(steps_spin, 1, 3, 1, 1)
-            grid.attach(gscale_label, 0, 4, 1, 1)
-            grid.attach(gscale_spin, 1, 4, 1, 1)
-            grid.attach(seed, 1, 5, 1, 1)
-            grid.attach(seed_label, 0, 5, 1, 1)
+            grid.attach(steps_label, 0, 4, 1, 1)
+            grid.attach(steps_spin, 1, 4, 1, 1)
+            grid.attach(gscale_label, 0, 5, 1, 1)
+            grid.attach(gscale_spin, 1, 5, 1, 1)
+            grid.attach(seed, 1, 6, 1, 1)
+            grid.attach(seed_label, 0, 6, 1, 1)
             steps_label.show()
             steps_spin.show()
             gscale_label.show()
             gscale_spin.show()
             seed_label.show()
             seed.show()
+            num_images_label.show()
+            num_images_spin.show()               
+        
             invisible_label4.hide()
             invisible_label5.hide()
             invisible_label6.hide()   
-            invisible_label7.hide()          
+            invisible_label7.hide()
+            invisible_label8.hide()           
 
 
         if adv_checkbox.get_active():
@@ -649,6 +684,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         negative_prompt_text.set_width_chars(60)
         negative_prompt_text.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["negative_prompt"], -1))
         negative_prompt_text.show()
+
+
+
+
 
 
 
@@ -836,10 +875,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
           
                 #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
-                negative_prompt = negative_prompt_text.get_text()                
+                negative_prompt = negative_prompt_text.get_text()       
+                        
 
                 if adv_checkbox.get_active():
                             
+                    num_images = config.get_property("num_images") 
                     num_infer_steps = config.get_property("num_infer_steps")
                     guidance_scale = config.get_property("guidance_scale")
                     strength = config.get_property("strength")
@@ -849,7 +890,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                         seed = None
 
                 else:
-                    num_infer_steps = 16
+                    num_images = 1
+                    num_infer_steps = 20
+                    if config.get_property("model_name") == "SD_1.5_square_lcm":
+                        num_infer_steps = 4
+
                     guidance_scale = 7.5
                     seed = None
                     strength = 1.0
@@ -869,7 +914,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
            
 
-                runner = SDRunner(procedure, image, layer, prompt, negative_prompt, num_infer_steps, guidance_scale, initial_image,
+                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, progress_bar, config_path_output)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
@@ -959,6 +1004,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 class StableDiffusion(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
+        "num_images": (
+        int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
+        GObject.ParamFlags.READWRITE,),        
         "num_infer_steps": (
         int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32,
         GObject.ParamFlags.READWRITE,),
@@ -1031,6 +1079,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 
             # procedure.add_argument_from_property(self, "initial_image")
+            procedure.add_argument_from_property(self, "num_images")
             procedure.add_argument_from_property(self, "num_infer_steps")
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")

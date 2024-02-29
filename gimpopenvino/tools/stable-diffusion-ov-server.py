@@ -262,6 +262,7 @@ def run(model_name,device_name):
                         #scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
                         init_image = data_output["initial_image"]
+                        num_images = data_output["num_images"]
                         num_infer_steps = data_output["num_infer_steps"]
                         guidance_scale = data_output["guidance_scale"]
                         strength = data_output["strength"]
@@ -276,142 +277,158 @@ def run(model_name,device_name):
                         log.info('Prompt: %s',prompt)
                         log.info('negative_prompt: %s',negative_prompt)
                         log.info('num_inference_steps: %s',num_infer_steps)
+                        log.info('num_images: %s',num_images)
                         log.info('guidance_scale: %s',guidance_scale)
                         log.info('strength: %s',strength)
                         log.info('init_image: %s',init_image)
 
-                        if seed is not None:
-                            np.random.seed(int(seed))
-                            log.info('Seed: %s',seed)
-                        else:
-                            ran_seed = random.randrange(4294967294) #4294967294
-                            np.random.seed(int(ran_seed))
-                            log.info('Random Seed: %s',ran_seed)
+
 
                         import time
-                        start_time = time.time()
 
-                        if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
-                            #print("-------In Inpainting-------")
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(os.path.join(weight_path, "..", "cache1.png")),
-                                mask_image = Image.open(os.path.join(weight_path, "..", "cache0.png")),
-                                scheduler = scheduler,
-                                strength = strength,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
+                        for i in range(num_images):
+                            
 
-                        elif model_name ==  "controlnet_openpose" or model_name == "controlnet_openpose_int8":
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
-                        elif model_name ==  "controlnet_canny" or model_name == "controlnet_canny_int8":
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )
-                        elif model_name == "SD_1.5_square_lcm":
-                            scheduler = LCMScheduler(
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear"
-                                )
-                            output = engine(
-                                prompt = prompt,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                scheduler = scheduler,
-                                lcm_origin_steps = 50,
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn,
-                                seed = seed
-                        )
-                        elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )          
-                        elif model_name == "controlnet_referenceonly":
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                init_image = Image.open(init_image),
-                                scheduler = scheduler,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
-                        )          
-                        else:
-                            output = engine(
-                                prompt = prompt,
-                                negative_prompt = negative_prompt,
-                                init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
-                                scheduler = scheduler,
-                                strength = strength,
-                                num_inference_steps = num_infer_steps,
-                                guidance_scale = guidance_scale,
-                                eta = 0.0,
-                                create_gif = bool(create_gif),
-                                model = model_path,
-                                callback = progress_callback,
-                                callback_userdata = conn
+                            if seed is not None and i == 0:
+                                np.random.seed(int(seed))
+                                log.info('Seed: %s',seed)
+                            else:
+                                seed = random.randrange(4294967294) #4294967294
+                                np.random.seed(int(seed))
+                                log.info('Random Seed: %s',seed)      
+                            
+                            start_time = time.time()                      
+
+                            if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
+                                #print("-------In Inpainting-------")
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    image = Image.open(os.path.join(weight_path, "..", "cache1.png")),
+                                    mask_image = Image.open(os.path.join(weight_path, "..", "cache0.png")),
+                                    scheduler = scheduler,
+                                    strength = strength,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
                             )
-                        end_time = time.time()
-                        print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
 
-                        if model_name == "SD_1.5_square_lcm" or \
-                           model_name == "controlnet_openpose" or \
-                           model_name == "controlnet_openpose_int8" or \
-                           model_name == "controlnet_canny_int8" or \
-                           model_name == "controlnet_canny" or \
-                           model_name == "controlnet_scribble" or \
-                           model_name == "controlnet_scribble_int8":
-                            output.save(os.path.join(weight_path, "..", "cache.png"))
-                            src_width,src_height = output.size
-                        else:
-                            cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
-                            src_height,src_width, _ = output.shape
+                            elif model_name ==  "controlnet_openpose" or model_name == "controlnet_openpose_int8":
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    image = Image.open(init_image),
+                                    scheduler = scheduler,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
+                            )
+                            elif model_name ==  "controlnet_canny" or model_name == "controlnet_canny_int8":
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    image = Image.open(init_image),
+                                    scheduler = scheduler,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
+                            )
+                            elif model_name == "SD_1.5_square_lcm":
+                                scheduler = LCMScheduler(
+                                    beta_start=0.00085,
+                                    beta_end=0.012,
+                                    beta_schedule="scaled_linear"
+                                    )
+                                output = engine(
+                                    prompt = prompt,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    scheduler = scheduler,
+                                    lcm_origin_steps = 50,
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn,
+                                    seed = seed
+                            )
+                            elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    image = Image.open(init_image),
+                                    scheduler = scheduler,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
+                            )          
+                            elif model_name == "controlnet_referenceonly":
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    init_image = Image.open(init_image),
+                                    scheduler = scheduler,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
+                            )          
+                            else:
+                                output = engine(
+                                    prompt = prompt,
+                                    negative_prompt = negative_prompt,
+                                    init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
+                                    scheduler = scheduler,
+                                    strength = strength,
+                                    num_inference_steps = num_infer_steps,
+                                    guidance_scale = guidance_scale,
+                                    eta = 0.0,
+                                    create_gif = bool(create_gif),
+                                    model = model_path,
+                                    callback = progress_callback,
+                                    callback_userdata = conn
+                                )
+                            end_time = time.time()
+                            print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
+
+                            image = "sd_cache_" + str(i) + ".png"
+
+                            if model_name == "SD_1.5_square_lcm" or \
+                            model_name == "controlnet_openpose" or \
+                            model_name == "controlnet_openpose_int8" or \
+                            model_name == "controlnet_canny_int8" or \
+                            model_name == "controlnet_canny" or \
+                            model_name == "controlnet_scribble" or \
+                            model_name == "controlnet_scribble_int8":
+                                
+                                output.save(os.path.join(weight_path, "..", image )) #"cache.png"))
+                                src_width,src_height = output.size
+                            else:
+                                cv2.imwrite(os.path.join(weight_path, "..", image), output) #, output[:, :, ::-1])
+                                src_height,src_width, _ = output.shape
+
+                            
+                            seed_num = "seed_" + str(i) #None
+                            data_output[seed_num] = seed
+                            i += 1
+
 
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
@@ -442,11 +459,9 @@ def run(model_name,device_name):
 def start():
     model_name = sys.argv[1]
     device = sys.argv[2]
-    #unet_pos_device = sys.argv[3]
-    #unet_neg_device = sys.argv[4]
-    #vae_device = sys.argv[5]
+ 
 
-    device_name = device #[text_encoder_device, unet_pos_device, unet_neg_device, vae_device]
+    device_name = device 
     run_thread = threading.Thread(target=run, args=(model_name, device_name))
     run_thread.start()
 
