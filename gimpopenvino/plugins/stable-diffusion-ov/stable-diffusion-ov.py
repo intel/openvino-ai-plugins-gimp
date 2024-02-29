@@ -834,7 +834,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 model_combo.set_sensitive(False)
           
-                adv_checkbox.set_sensitive(False)
+                #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()                
 
@@ -885,7 +885,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
  
-                adv_checkbox.set_sensitive(False)
+                #adv_checkbox.set_sensitive(False)
   
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
