@@ -12,6 +12,7 @@ PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
 import cv2
 import torch
 
+
 import traceback
 
 import logging
@@ -56,16 +57,26 @@ def progress_callback(i, conn):
     conn.sendall(tosend)
 
 
+
+
 def run(model_name,device_name):
     weight_path = get_weight_path()
     blobs = False
-    #log.info('Loading config file...')
+
+    scheduler = EulerDiscreteScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear"
+    )
+ 
     import json
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
     elif model_name == "SD_1.5_square_lcm":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
+      
+
     elif model_name == "SD_1.5_portrait":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
     elif model_name == "SD_1.5_square":
@@ -113,89 +124,99 @@ def run(model_name,device_name):
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
-    log.info('device_name: %s',device_name)
+
+
+    device =  ["CPU","GPU","GPU"]
+    device_int8 = ["CPU","GPU","GPU","GPU"]  
+    
+    if device_name ==  "dGPU":
+        device =  ["CPU","GPU.1","GPU.1"]
+        device_int8 = ["CPU","GPU.1","GPU.1","GPU.1"]  
+
+    if device_name ==  "NPU":
+        device_int8 = ["CPU","GPU","NPU","GPU"]  
 
 
     if model_name == "SD_1.5_square_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_openpose_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_canny_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
     elif model_name == "controlnet_scribble_int8":
-        log.info('device_name: %s',device_name)
+        log.info('device_name: %s',device_int8)
         engine = ControlNetScribbleAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device 
     )
     
     elif model_name == "controlnet_canny":
         engine = ControlNetCannyEdge(
         model = model_path,
-        device = device_name
+        device = device
     )    
     
     elif model_name == "controlnet_scribble":
         engine = ControlNetScribble(
         model = model_path,
-        device = device_name
+        device = device
     )
 
     elif model_name ==  "SD_1.5_square_lcm":
         engine = LatentConsistencyEngine(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device
     )
 
     elif model_name == "SD_1.5_Inpainting_int8":
-        log.info('advanced Inpainting device_name: %s',device_name)
+        log.info('advanced Inpainting device_name: %s',device_int8)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
-        device = [device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs
         )
 
     elif model_name == "controlnet_openpose":
         engine = ControlNetOpenPose(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[3]]
+        device = device
         )
     
     elif model_name == "controlnet_referenceonly":
         engine = StableDiffusionEngineReferenceOnly(
         model = model_path,
-        device = [device_name[0], device_name[1], device_name[2], device_name[3]]
+        device = ["CPU", "GPU", "GPU", "GPU"]
         )
 
     else:
         engine = StableDiffusionEngine(
             model = model_path,
-            device = [device_name[0], device_name[1], device_name[2]]
+            device = device
         )
 
 
@@ -232,81 +253,43 @@ def run(model_name,device_name):
                             data_output = json.load(file)
 
                         prompt = data_output["prompt"]
-                        scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
                         init_image = data_output["initial_image"]
+                        num_images = data_output["num_images"]
                         num_infer_steps = data_output["num_infer_steps"]
                         guidance_scale = data_output["guidance_scale"]
                         strength = data_output["strength"]
                         seed = data_output["seed"]
-                        create_gif = False #data_output["create_gif"]
-
-                        if scheduler == "LMSDiscreteScheduler":
-                             #log.info('LMSDiscreteScheduler...')
-                             scheduler = LMSDiscreteScheduler(
-                                    beta_start=0.00085,
-                                    beta_end=0.012,
-                                    beta_schedule="scaled_linear",
-
-                                )
-                        elif scheduler == "PNDMScheduler":
-                            #log.info('PNDMScheduler...')
-                            scheduler = PNDMScheduler(
-
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear",
-                                skip_prk_steps = True,
-
-                            )
-
-                        elif scheduler == "LCMScheduler":
-                            #log.info('LCMScheduler...')
-                            scheduler = LCMScheduler(
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear"
-                            )
-
-                        elif scheduler == "UniPCMultistepScheduler":
-                            #log.info('UniPCMultistepScheduler')
-                            scheduler = UniPCMultistepScheduler(
-                                beta_start=0.00085,
-                                beta_end=0.012,
-                                beta_schedule="scaled_linear"
-                                )
-
-                        else:
-                             #log.info('EulerDiscreteScheduler...')
-                             scheduler = EulerDiscreteScheduler(
-                             beta_start=0.00085,
-                             beta_end=0.012,
-                             beta_schedule="scaled_linear"
-                             )
-
+                        create_gif = False 
 
                         strength = 1.0 if init_image is None else strength
                         log.info('Starting inference...')
                         log.info('Prompt: %s',prompt)
-                        log.info('negative_prompt: %s',negative_prompt)
+
+                        if model_name != "SD_1.5_square_lcm":
+                            log.info('negative_prompt: %s',negative_prompt)
                         log.info('num_inference_steps: %s',num_infer_steps)
+                        log.info('num_images: %s',num_images)
                         log.info('guidance_scale: %s',guidance_scale)
                         log.info('strength: %s',strength)
                         log.info('init_image: %s',init_image)
+
+
+
+                        import time
 
                         if seed is not None:
                             np.random.seed(int(seed))
                             log.info('Seed: %s',seed)
                         else:
-                            ran_seed = random.randrange(4294967294) #4294967294
-                            np.random.seed(int(ran_seed))
-                            log.info('Random Seed: %s',ran_seed)
-
-                        import time
-                        start_time = time.time()
+                            seed = random.randrange(4294967294) #4294967294
+                            np.random.seed(int(seed))
+                            log.info('Random Seed: %s',seed)      
+                        
+                        start_time = time.time()                      
 
                         if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
-                            #print("-------In Inpainting-------")
+                       
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -400,7 +383,7 @@ def run(model_name,device_name):
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
-                                init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
+                                init_image = None if init_image is None else Image.open(init_image),
                                 scheduler = scheduler,
                                 strength = strength,
                                 num_inference_steps = num_infer_steps,
@@ -414,18 +397,29 @@ def run(model_name,device_name):
                         end_time = time.time()
                         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
 
+                        image = "sd_cache.png"
+
                         if model_name == "SD_1.5_square_lcm" or \
-                           model_name == "controlnet_openpose" or \
-                           model_name == "controlnet_openpose_int8" or \
-                           model_name == "controlnet_canny_int8" or \
-                           model_name == "controlnet_canny" or \
-                           model_name == "controlnet_scribble" or \
-                           model_name == "controlnet_scribble_int8":
-                            output.save(os.path.join(weight_path, "..", "cache.png"))
+                        model_name == "controlnet_openpose" or \
+                        model_name == "controlnet_openpose_int8" or \
+                        model_name == "controlnet_canny_int8" or \
+                        model_name == "controlnet_canny" or \
+                        model_name == "controlnet_scribble" or \
+                        model_name == "controlnet_scribble_int8":
+                            
+                            output.save(os.path.join(weight_path, "..", image )) 
+                        
                             src_width,src_height = output.size
                         else:
-                            cv2.imwrite(os.path.join(weight_path, "..", "cache.png"), output) #, output[:, :, ::-1])
+                            cv2.imwrite(os.path.join(weight_path, "..", image), output) #, output[:, :, ::-1])
+                    
                             src_height,src_width, _ = output.shape
+
+                        
+                       
+                        data_output["seed_num"] = seed
+                    
+
 
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
@@ -446,7 +440,6 @@ def run(model_name,device_name):
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             data_output["inference_status"] = "failed"
                             json.dump(data_output, file)
-                            #json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
                             traceback.print_exception("DEBUG THE ERROR", file=file)
 
@@ -455,33 +448,27 @@ def run(model_name,device_name):
 
 def start():
     model_name = sys.argv[1]
-    text_encoder_device = sys.argv[2]
-    unet_pos_device = sys.argv[3]
-    unet_neg_device = sys.argv[4]
-    vae_device = sys.argv[5]
+    device = sys.argv[2]
+ 
 
-    device_name = [text_encoder_device, unet_pos_device, unet_neg_device, vae_device]
+    device_name = device 
     run_thread = threading.Thread(target=run, args=(model_name, device_name))
     run_thread.start()
 
-    #run(model_name,device_name)
-    #print("Looking for GIMP process")
+
     gimp_proc = None
     for proc in psutil.process_iter():
         if "gimp-2.99" in proc.name():
             gimp_proc = proc
             break;
 
-    #print("Done looking for GIMP process")
 
     if gimp_proc:
-     #   print("gimp-2.99 process found:", gimp_proc)
+
         psutil.wait_procs([proc])
         print("exiting..!")
         os._exit(0)
 
-    #else:
-    #    print("no gimp process found!")
 
     run_thread.join()
 
