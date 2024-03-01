@@ -68,7 +68,7 @@ def run(model_name,device_name):
     beta_end=0.012,
     beta_schedule="scaled_linear"
     )
-    #log.info('Loading config file...')
+ 
     import json
     log.info('Model Name: %s',model_name )
     if model_name == "SD_1.4":
@@ -124,7 +124,7 @@ def run(model_name,device_name):
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
-    log.info('supported device_name: %s',device_name)
+
 
     device =  ["CPU","GPU","GPU"]
     device_int8 = ["CPU","GPU","GPU","GPU"]  
@@ -132,23 +132,16 @@ def run(model_name,device_name):
     if device_name ==  "dGPU":
         device =  ["CPU","GPU.1","GPU.1"]
         device_int8 = ["CPU","GPU.1","GPU.1","GPU.1"]  
-    
-    #if device_name ==  "NPU_dGPU":
-    #    device =  ["CPU","GPU.1","GPU.1"]
-    #    device_int8 = ["CPU","GPU.1","NPU","GPU.1"]  
 
     if device_name ==  "NPU":
         device_int8 = ["CPU","GPU","NPU","GPU"]  
-
-
-    
 
 
     if model_name == "SD_1.5_square_int8":
         log.info('device_name: %s',device_int8)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
-        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
@@ -156,7 +149,7 @@ def run(model_name,device_name):
         log.info('device_name: %s',device_int8)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
-        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
@@ -164,7 +157,7 @@ def run(model_name,device_name):
         log.info('device_name: %s',device_int8)
         engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
-        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
@@ -172,14 +165,14 @@ def run(model_name,device_name):
         log.info('device_name: %s',device_int8)
         engine = ControlNetScribbleAdvanced(
         model = model_path,
-        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs,
         swap = swap)
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
-        device = device #[device_name[0], device_name[1], device_name[3]]
+        device = device 
     )
     
     elif model_name == "controlnet_canny":
@@ -204,7 +197,7 @@ def run(model_name,device_name):
         log.info('advanced Inpainting device_name: %s',device_int8)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
-        device = device_int8, #[device_name[0], device_name[1],device_name[2],device_name[3]],
+        device = device_int8, 
         blobs = blobs
         )
 
@@ -260,7 +253,6 @@ def run(model_name,device_name):
                             data_output = json.load(file)
 
                         prompt = data_output["prompt"]
-                        #scheduler = data_output["scheduler"]
                         negative_prompt = data_output["negative_prompt"]
                         init_image = data_output["initial_image"]
                         num_images = data_output["num_images"]
@@ -268,15 +260,14 @@ def run(model_name,device_name):
                         guidance_scale = data_output["guidance_scale"]
                         strength = data_output["strength"]
                         seed = data_output["seed"]
-                        create_gif = False #data_output["create_gif"]
-
-
-
+                        create_gif = False 
 
                         strength = 1.0 if init_image is None else strength
                         log.info('Starting inference...')
                         log.info('Prompt: %s',prompt)
-                        log.info('negative_prompt: %s',negative_prompt)
+
+                        if model_name != "SD_1.5_square_lcm":
+                            log.info('negative_prompt: %s',negative_prompt)
                         log.info('num_inference_steps: %s',num_infer_steps)
                         log.info('num_images: %s',num_images)
                         log.info('guidance_scale: %s',guidance_scale)
@@ -286,9 +277,6 @@ def run(model_name,device_name):
 
 
                         import time
-
-                        #for i in range(num_images):
-                            
 
                         if seed is not None:
                             np.random.seed(int(seed))
@@ -301,7 +289,7 @@ def run(model_name,device_name):
                         start_time = time.time()                      
 
                         if model_name ==  "SD_1.5_Inpainting" or model_name == "SD_1.5_Inpainting_int8":
-                            #print("-------In Inpainting-------")
+                       
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -395,7 +383,7 @@ def run(model_name,device_name):
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
-                                init_image = None if init_image is None else Image.open(init_image), #cv2.imread(init_image),
+                                init_image = None if init_image is None else Image.open(init_image),
                                 scheduler = scheduler,
                                 strength = strength,
                                 num_inference_steps = num_infer_steps,
@@ -419,7 +407,7 @@ def run(model_name,device_name):
                         model_name == "controlnet_scribble" or \
                         model_name == "controlnet_scribble_int8":
                             
-                            output.save(os.path.join(weight_path, "..", image )) #"cache.png"))
+                            output.save(os.path.join(weight_path, "..", image )) 
                         
                             src_width,src_height = output.size
                         else:
@@ -430,7 +418,7 @@ def run(model_name,device_name):
                         
                        
                         data_output["seed_num"] = seed
-                        #i += 1
+                    
 
 
                         data_output["src_height"] = src_height
@@ -452,7 +440,6 @@ def run(model_name,device_name):
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
                             data_output["inference_status"] = "failed"
                             json.dump(data_output, file)
-                            #json.dump({"inference_status": "failed"}, file)
                         with open(os.path.join(weight_path, "..", "error_log.txt"), "w") as file:
                             traceback.print_exception("DEBUG THE ERROR", file=file)
 
@@ -468,24 +455,20 @@ def start():
     run_thread = threading.Thread(target=run, args=(model_name, device_name))
     run_thread.start()
 
-    #run(model_name,device_name)
-    #print("Looking for GIMP process")
+
     gimp_proc = None
     for proc in psutil.process_iter():
         if "gimp-2.99" in proc.name():
             gimp_proc = proc
             break;
 
-    #print("Done looking for GIMP process")
 
     if gimp_proc:
-     #   print("gimp-2.99 process found:", gimp_proc)
+
         psutil.wait_procs([proc])
         print("exiting..!")
         os._exit(0)
 
-    #else:
-    #    print("no gimp process found!")
 
     run_thread.join()
 

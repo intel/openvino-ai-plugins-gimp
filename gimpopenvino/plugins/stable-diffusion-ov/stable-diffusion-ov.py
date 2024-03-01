@@ -298,7 +298,6 @@ class SDRunner:
         if data_output["inference_status"] == "success":
 
 
-            #for i in range(num_images):
             image_new = Gimp.Image.new(
             data_output["src_width"], data_output["src_height"], 0
         )
@@ -318,14 +317,14 @@ class SDRunner:
 
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
             set_name = "Stable Diffusion -" + str(data_output["seed_num"])
-            copy.set_name(set_name) #"Stable Diffusion")
+            copy.set_name(set_name)
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
             image_new.insert_layer(copy, None, -1)
 
             Gimp.displays_flush()
             image.undo_group_end()
             Gimp.context_pop()
-                #i += 1
+           
 
             # Remove temporary layers that were saved
             my_dir = os.path.join(weight_path, "..")
@@ -343,7 +342,7 @@ class SDRunner:
                 "error",
                 image_paths
             )
-            #os.remove(sd_option_cache)
+           
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def is_server_running():
@@ -368,8 +367,6 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
     if "GPU.1" in supported_devices:
         device_name =  "dGPU"
    
-        #if "NPU" in supported_devices:
-        #    device_name = "NPU_dGPU" 
 
     if "NPU" in supported_devices and "GPU.1" not in supported_devices:
         device_name = "NPU"
@@ -434,8 +431,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         for device in config_path_output["supported_devices"]:
            if 'GNA' not in device:
                 supported_devices.append(device)
-
-        device_name_enum = DeviceEnum(supported_devices) #config_path_output["supported_devices"])
         
         list_layers = []
 
@@ -443,8 +438,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             list_layers = image.get_layers()
         except:
             list_layers = image.list_layers()
-        #n_layers = len(list_layers)
-        #print("N LAYERS", n_layers)
+     
         
         if list_layers[0].get_mask() == None:
             n_layers = 1
@@ -567,15 +561,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         seed_text = _("Seed")
         seed_label = Gtk.Label(label=seed_text)
         
-        #vbox.pack_start(seed_label, False, False, 1)
-        
-
-
-        #grid.attach(spin, 1, 6, 1, 1)
-        #spin.show()
-
-
-
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
                                                   _("_Advanced Settings"))
@@ -601,7 +586,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label7.show()  
         invisible_label8.show()           
 
-        def remove_all_device_widgets():
+        def remove_all_advanced_widgets():
             grid.remove(gscale_label)
             gscale_label.hide()
             grid.remove(gscale_spin)
@@ -630,7 +615,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             invisible_label7.show()
             invisible_label8.show() 
 
-        def populate_advanced_devices():
+        def populate_advanced_settings():
 
             grid.attach(num_images_label, 0, 3, 1, 1)
             grid.attach(num_images_spin, 1, 3, 1, 1)              
@@ -658,9 +643,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
         if adv_checkbox.get_active():
-            populate_advanced_devices()
-        #else:
-        #    populate_basic_devices()
+            populate_advanced_settings()
+     
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -673,13 +657,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         prompt_text_label = _("Enter text to generate image")
         prompt_label = Gtk.Label(label=prompt_text_label)
         grid.attach(prompt_label, 0, 1, 1, 1)
-        #vbox.pack_start(prompt_label, False, False, 1)
+       
         prompt_label.show()
 
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
-        #vbox.pack_start(negative_prompt_label, False, False, 1)
+  
         negative_prompt_label.show()
 
         # Negative Prompt text
@@ -688,12 +672,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         negative_prompt_text.set_width_chars(60)
         negative_prompt_text.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["negative_prompt"], -1))
         negative_prompt_text.show()
-
-
-
-
-
-
 
 
         # UI to browse Initial Image
@@ -706,20 +684,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             file_chooser_dialog.hide()
 
         file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
-        #grid.attach(file_chooser_button, 0, 7, 1, 1)
-        #file_chooser_button.show()
+    
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
         
-        #grid.attach(file_entry, 1, 7, 1, 1)
+      
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
-            # print("initial_image",initial_image)
-            file_entry.set_text(initial_image) #.get_path())
-        #file_entry.show()
+          
+            file_entry.set_text(initial_image) 
+    
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -854,9 +831,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_button.set_sensitive(False)
 
         def model_combo_changed(widget):
-            remove_all_device_widgets()
+            remove_all_advanced_widgets()
             if adv_checkbox.get_active():
-                populate_advanced_devices()
+                populate_advanced_settings()
       
 
         model_combo.connect("changed", model_combo_changed)
@@ -943,7 +920,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
  
-                #adv_checkbox.set_sensitive(False)
   
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
@@ -959,7 +935,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)
                 
-                #def async_load_models(python_path, server_path, device_name, model_name, label, spinner, run_button, load_model_button):
+            
                 run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,supported_devices, dialog))
                 run_load_model_thread.start()
 
@@ -1002,9 +978,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     perc_complete = runner.current_step / runner.num_infer_steps
                     progress_bar.set_fraction(perc_complete)
             elif response == 800:
-                remove_all_device_widgets()
+                remove_all_advanced_widgets()
                 if adv_checkbox.get_active():
-                    populate_advanced_devices()
+                    populate_advanced_settings()
              
 
             else:
