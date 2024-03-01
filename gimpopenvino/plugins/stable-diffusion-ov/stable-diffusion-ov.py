@@ -298,35 +298,34 @@ class SDRunner:
         if data_output["inference_status"] == "success":
 
 
-            for i in range(num_images):
-                image_new = Gimp.Image.new(
-                data_output["src_width"], data_output["src_height"], 0
+            #for i in range(num_images):
+            image_new = Gimp.Image.new(
+            data_output["src_width"], data_output["src_height"], 0
+        )
+            display = Gimp.Display.new(image_new)
+            cache_image = "sd_cache.png"
+            result = Gimp.file_load(
+                Gimp.RunMode.NONINTERACTIVE,
+                Gio.file_new_for_path(os.path.join(weight_path, "..", cache_image)),
             )
-                display = Gimp.Display.new(image_new)
-                cache_image = "sd_cache_" + str(i) + ".png"
-                result = Gimp.file_load(
-                    Gimp.RunMode.NONINTERACTIVE,
-                    Gio.file_new_for_path(os.path.join(weight_path, "..", cache_image)),
-                )
-                try:
-                    # 2.99.10
-                    result_layer = result.get_active_layer()
-                except:
-                    # > 2.99.10
-                    result_layers = result.list_layers()
-                    result_layer = result_layers[0]
+            try:
+                # 2.99.10
+                result_layer = result.get_active_layer()
+            except:
+                # > 2.99.10
+                result_layers = result.list_layers()
+                result_layer = result_layers[0]
 
-                copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-                seed_num = "seed_" + str(i)
-                set_name = "Stable Diffusion -" + str(data_output[seed_num])
-                copy.set_name(set_name) #"Stable Diffusion")
-                copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
-                image_new.insert_layer(copy, None, -1)
+            copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
+            set_name = "Stable Diffusion -" + str(data_output["seed_num"])
+            copy.set_name(set_name) #"Stable Diffusion")
+            copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
+            image_new.insert_layer(copy, None, -1)
 
-                Gimp.displays_flush()
-                image.undo_group_end()
-                Gimp.context_pop()
-                i += 1
+            Gimp.displays_flush()
+            image.undo_group_end()
+            Gimp.context_pop()
+                #i += 1
 
             # Remove temporary layers that were saved
             my_dir = os.path.join(weight_path, "..")
@@ -401,9 +400,13 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
 
     dialog.response(SDDialogResponse.LoadModelComplete)
 
-def async_sd_run_func(runner, dialog):
+def async_sd_run_func(runner, dialog,num_images):
     print("Running SD async")
-    runner.run(dialog)
+    for i in range(num_images):
+        if i != 0:
+            runner.seed = None
+        runner.run(dialog)
+        i += 1
     print("async SD done")
     dialog.response(SDDialogResponse.RunInferenceComplete)
 
@@ -932,7 +935,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 spinner.start()
                 spinner.show()
 
-                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog))
+                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog,num_images))
                 run_inference_thread.start()
                 run_button.set_sensitive(False)
                 load_model_button.set_sensitive(False)
