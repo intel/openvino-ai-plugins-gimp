@@ -29,22 +29,7 @@ def setup_python_weights(install_location=None):
         os.mkdir(weight_path)
 
     step = 1
-    print("\n##########")
-    print(
-        "{}>> Reference Models present in weights folder. You can also download them from open model zoo.".format(
-            step
-        )
-    )
-    step += 1
-    print(
-        "{}>> Please move the weights folder from the cloned repository: \n"
-        "openvino-ai-plugins-gimp".format(
-            step
-        )
-    )
-    print("and place in: " + weight_path)
-    step += 1
-
+    print("\n##########\n")
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
     ie = Core()
     supported_devices = ie.available_devices
@@ -66,10 +51,10 @@ def setup_python_weights(install_location=None):
 
 
     print(
-        "{}>> Please add this path to Preferences --> Plug-ins in GIMP : ".format(step),
+        "NOTE ! >> Please add this path to Preferences --> Plug-ins in GIMP : ",
         os.path.join(plugin_loc, "plugins"),
     )
-    print("##########\n")
+    print("\n##########\n")
 
 
 if __name__ == "__main__":

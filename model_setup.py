@@ -29,11 +29,18 @@ if choice == "Y" or choice == "y":
     SD_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
 
     if os.path.isdir(SD_path):
+        
          shutil.rmtree(SD_path)
 
     repo_id="bes-dev/stable-diffusion-v1-4-openvino"
-    download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
-    #print("download_folder", download_folder)
+    
+    while True:
+        try:
+            download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
+            break
+        except Exception as e:
+             print("Error retry:" + str(e))
+    
     shutil.copytree(download_folder, SD_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
@@ -41,69 +48,100 @@ if choice == "Y" or choice == "y":
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights", "stable-diffusion-ov")
 
 def download_quantized_models(repo_id, model_fp16, model_int8):
-    download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+    download_flag = True
+    
     SD_path_FP16 = os.path.join(install_location, model_fp16)
     
     if os.path.isdir(SD_path_FP16):
-            shutil.rmtree(SD_path_FP16)
-  
-    #print("download_folder", download_folder)
-
-    FP16_model = os.path.join(download_folder, "FP16")
-    shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))    
-
-
-    files = glob(os.path.join(FP16_model, '**'), recursive=True)
+            choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
+            if choice == "Y" or choice == "y":
+                download_flag = True
+                shutil.rmtree(SD_path_FP16)
+            
+            else:
+                download_flag = False
+                print("%s download skipped",repo_id)
+                
+    if  download_flag:               
     
-    for f in files:
-        if os.path.isfile(f):
-            base = os.path.basename(f)
-            shutil.copy(f, os.path.join(SD_path_FP16, base))       
-    
-    if model_int8:
-        SD_path_INT8 = os.path.join(install_location, model_int8)
+        while True:
+                try:  
+                    download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+                    break
+                except Exception as e:
+                     print("Error retry:" + str(e))
+          
+            #print("download_folder", download_folder)
 
-        if os.path.isdir(SD_path_INT8):
-            shutil.rmtree(SD_path_INT8)
-        
-        
-        INT8_model = os.path.join(download_folder, "INT8")
-        shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))        
-        #shutil.copy(INT8_model, SD_path_INT8)
-        
-        files = glob(os.path.join(INT8_model, '**'), recursive=True)
+        FP16_model = os.path.join(download_folder, "FP16")
+        shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))    
+
+
+        files = glob(os.path.join(FP16_model, '**'), recursive=True)
         
         for f in files:
             if os.path.isfile(f):
                 base = os.path.basename(f)
-                shutil.copy(f, os.path.join(SD_path_INT8, base))          
+                shutil.copy(f, os.path.join(SD_path_FP16, base))
+    
+        if model_int8:
+            SD_path_INT8 = os.path.join(install_location, model_int8)           
+            
+            if os.path.isdir(SD_path_INT8):
+                    shutil.rmtree(SD_path_INT8)
+
+            INT8_model = os.path.join(download_folder, "INT8")
+            shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))        
+            #shutil.copy(INT8_model, SD_path_INT8)
+            
+            files = glob(os.path.join(INT8_model, '**'), recursive=True)
+            
+            for f in files:
+                if os.path.isfile(f):
+                    base = os.path.basename(f)
+                    shutil.copy(f, os.path.join(SD_path_INT8, base))          
 
 
-    delete_folder=os.path.join(download_folder, "..", "..", "..")
-    shutil.rmtree(delete_folder, ignore_errors=True)
+            delete_folder=os.path.join(download_folder, "..", "..", "..")
+            shutil.rmtree(delete_folder, ignore_errors=True)
     
 def download_model(repo_id, model_1, model_2):
-    download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+    download_flag = True
+            
     sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
     if os.path.isdir(sd_model_1):
+        choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
+        if choice == "Y" or choice == "y":
+            download_flag = True
             shutil.rmtree(sd_model_1)
+        else:
+            download_flag = False
+            print("%s download skipped",repo_id)
+                           
 
-    if repo_id == "Intel/sd-1.5-lcm-openvino":
-        download_model_1 = download_folder
-    else:
-        download_model_1 = os.path.join(download_folder, model_1) 
-    shutil.copytree(download_model_1, sd_model_1)  
-     
-    if model_2:
-        sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
-        if os.path.isdir(sd_model_2):
-                shutil.rmtree(sd_model_2)
-        download_model_2 = os.path.join(download_folder, model_2)
-        shutil.copytree(download_model_2, sd_model_2)
+    if download_flag:
+        while True:
+            try:
+                download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+                break
+            except Exception as e:
+                print("Error retry:" + str(e))
+        if repo_id == "Intel/sd-1.5-lcm-openvino":
+            download_model_1 = download_folder
+        else:
+            download_model_1 = os.path.join(download_folder, model_1) 
+        shutil.copytree(download_model_1, sd_model_1)  
+         
+        if model_2:
+            sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+            if os.path.isdir(sd_model_2):
+                    shutil.rmtree(sd_model_2)
+            download_model_2 = os.path.join(download_folder, model_2)
+            shutil.copytree(download_model_2, sd_model_2)
 
-    delete_folder=os.path.join(download_folder, "../../..")
-    shutil.rmtree(delete_folder, ignore_errors=True)
+        delete_folder=os.path.join(download_folder, "../../..")
+        shutil.rmtree(delete_folder, ignore_errors=True)
     
 def dl_sd_15_square():
     print("Downloading Intel/sd-1.5-square-quantized Models")
@@ -160,6 +198,13 @@ def dl_sd_15_LCM():
     model_2 = None
     download_model(repo_id, model_1, model_2)
 
+def dl_sd_15_Referenceonly():
+    print("Downloading Intel/sd-reference-only")
+    repo_id = "Intel/sd-reference-only"
+    model_fp16 = "controlnet-referenceonly"
+    model_int8 = None
+    download_quantized_models(repo_id, model_fp16, model_int8)
+
 def dl_all():
     dl_sd_15_square()
     dl_sd_15_portrait()
@@ -169,6 +214,7 @@ def dl_all():
     dl_sd_15_canny()
     dl_sd_15_scribble()
     dl_sd_15_LCM()
+    dl_sd_15_Referenceonly()
 
 while True:
     print("=========Chose SD-1.5 models to download =========")
@@ -179,7 +225,8 @@ while True:
     print("5 - SD-1.5 Controlnet-Openpose")
     print("6 - SD-1.5 Controlnet-CannyEdge")
     print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - LCM ")
+    print("8 - SD-1.5 LCM ")
+    print("9 - SD-1.5 Controlnet-ReferenceOnly")
     print("12 - All the above models")
     print("0 - Exit SD-1.5 Model setup")
 
@@ -193,6 +240,7 @@ while True:
     if choice=="6":  dl_sd_15_canny()
     if choice=="7":  dl_sd_15_scribble()
     if choice=="8":  dl_sd_15_LCM()
+    if choice=="9":  dl_sd_15_Referenceonly()
 
     if choice=="12":
         dl_all()

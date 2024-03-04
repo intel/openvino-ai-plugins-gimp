@@ -160,8 +160,8 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
         unet_time_proj_model = os.path.join(model, "unet_time_proj_sym.xml")
         vae_decoder = os.path.join(model, "vae_decoder.xml")
         
-        self.npu_flag = False
-        self.npu_flag_neg = False
+#        self.npu_flag = False
+#        self.npu_flag_neg = False
 
         ####################
         self.load_models(self.core, device, controlnet, text_encoder, unet_time_proj_model, unet_int8_model, vae_decoder, blobs, model)
@@ -214,52 +214,47 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
         self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
         
         if blobs:
-            if device[1] == "NPU" or device[2] == "NPU":
-                device_npu = "NPU"
-                blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+            blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+            if "NPU" in device[1]:      
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
                 with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet_npu = self.core.import_model(f.read(), device_npu)
+                    self.unet = self.core.import_model(f.read(), device[1])
                 print("unet loaded on npu in:", time.time() - start)
-                
-            if device[1] == "GPU" or device[2] == "GPU":
-                print("compiling start on GPU")
-                start = time.time()
-                self.unet_gpu = self.core.compile_model(os.path.join(model, unet_int8_model), "GPU")
-                print("compiling done on GPU in", time.time() - start)
-                
-            if device[1] == "CPU" or device[2] == "CPU":
-                print("compiling start on CPU")
-                start = time.time()
-                self.unet_cpu = self.core.compile_model(os.path.join(model, unet_int8_model), "CPU")
-                print("compiling done on CPU in", time.time() - start)
-
-            
-            # Positive prompt
-            if device[1] == "NPU":
-                self.unet = self.unet_npu
                 self.npu_flag = True
-            elif device[1] == "GPU":
-                self.unet = self.unet_gpu
+            
             else:
-                self.unet = self.unet_cpu
+                print("compiling start on ",device[1])
+                start = time.time()
+                self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
+                print("compiling done in ", time.time() - start)
+                self.npu_flag = False
 
-            # Negative prompt:
-            if device[2] == "NPU":
-                self.unet_neg = self.unet_npu
-                self.npu_flag_neg = True
-            elif device[2] == "GPU":
-                self.unet_neg = self.unet_gpu
+            # Negative Prompt
+            if device[1] == device[2]:
+                self.unet_neg = self.unet
+                self.npu_flag_neg = self.npu_flag
+
             else:
-                self.unet_neg = self.unet_cpu
-
+                if "NPU" in device[2]:   
+                    print("Loading unet blob on npu:",blob_name) 
+                    start = time.time()
+                    with open(os.path.join(model, blob_name), "rb") as f:
+                        self.unet_neg = self.core.import_model(f.read(), device[2])
+                    print("unet loaded on npu in:", time.time() - start)
+                    self.npu_flag_neg = True                        
+                else:
+                    print("compiling start on ",device[1])
+                    start = time.time()              
+                    self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])  
+                    print("compiling done in ", time.time() - start)
+                    self.npu_flag_neg = False
+    
         else:
 
             self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
             self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
 
-        print("unet loaded in:", time.time() - start)
         start = time.time()
         self.vae_decoder = core.compile_model(vae_decoder, device[3])
         self.vae_decoder_out = self.vae_decoder.output(0)
