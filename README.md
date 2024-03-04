@@ -86,8 +86,15 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 5. Follow steps 4,5 from section A.
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
-_Note that the screenshots below are based on the previous UI_
+
 ![](gifs/stable-diffusion.png)
+
+_With Advanced Setting_
+
+![](gifs/stable-diffusion1.png)
+
+
+_Note that the screenshots below are based on the previous UI_
 ![](gifs/stable-diffusion.webp)
 
 

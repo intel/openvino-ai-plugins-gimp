@@ -206,29 +206,17 @@ def list_models(weight_path, SD):
         
 
 
-scheduler_name_enum = StringEnum(
-    "LMSDiscreteScheduler",
-    _("LMSDiscreteScheduler"),
-    "PNDMScheduler",
-    _("PNDMScheduler"),
-    "EulerDiscreteScheduler",
-    _("EulerDiscreteScheduler"),
-    "DPMSolverMultistepScheduler",
-    _("DPMSolverMultistepScheduler"),
-    "UniPCMultistepScheduler",
-    _("UniPCMultistepScheduler"),
-    )
-    
+
     
 class SDRunner:
-    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, scheduler, num_infer_steps, guidance_scale, initial_image,
+    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
                   strength, seed, progress_bar, config_path_output):
         self.procedure = procedure
         self.image = image
         self.drawable = drawable
         self.prompt = prompt
         self.negative_prompt = negative_prompt
-        self.scheduler = scheduler
+        self.num_images = num_images
         self.num_infer_steps = num_infer_steps
         self.guidance_scale = guidance_scale
         self.initial_image = initial_image
@@ -244,7 +232,7 @@ class SDRunner:
         drawable = self.drawable
         prompt = self.prompt
         negative_prompt = self.negative_prompt
-        scheduler = self.scheduler
+        num_images = self.num_images
         num_infer_steps = self.num_infer_steps
         guidance_scale = self.guidance_scale
         initial_image = self.initial_image
@@ -269,7 +257,7 @@ class SDRunner:
         with open(sd_option_cache, "w") as file:
             json.dump({"prompt": prompt,
                        "negative_prompt": negative_prompt,
-                       "scheduler": scheduler,
+                       "num_images": num_images,
                        "num_infer_steps": num_infer_steps,
                        "guidance_scale": guidance_scale,
                        "initial_image": initial_image,
@@ -308,14 +296,16 @@ class SDRunner:
         Gimp.context_pop()
 
         if data_output["inference_status"] == "success":
-            image_new = Gimp.Image.new(
-                data_output["src_width"], data_output["src_height"], 0
-            )
 
+
+            image_new = Gimp.Image.new(
+            data_output["src_width"], data_output["src_height"], 0
+        )
             display = Gimp.Display.new(image_new)
+            cache_image = "sd_cache.png"
             result = Gimp.file_load(
                 Gimp.RunMode.NONINTERACTIVE,
-                Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
+                Gio.file_new_for_path(os.path.join(weight_path, "..", cache_image)),
             )
             try:
                 # 2.99.10
@@ -326,19 +316,21 @@ class SDRunner:
                 result_layer = result_layers[0]
 
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-            copy.set_name("Stable Diffusion")
+            set_name = "Stable Diffusion -" + str(data_output["seed_num"])
+            copy.set_name(set_name)
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
             image_new.insert_layer(copy, None, -1)
 
             Gimp.displays_flush()
             image.undo_group_end()
             Gimp.context_pop()
+           
 
             # Remove temporary layers that were saved
-            #my_dir = os.path.join(weight_path, "..")
-            #for f_name in os.listdir(my_dir):
-            #    if f_name.startswith("cache"):
-            #        os.remove(os.path.join(my_dir, f_name))
+            my_dir = os.path.join(weight_path, "..")
+            for f_name in os.listdir(my_dir):
+                if f_name.startswith("sd_cache"):
+                    os.remove(os.path.join(my_dir, f_name))
 
             self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
             return self.result
@@ -350,7 +342,7 @@ class SDRunner:
                 "error",
                 image_paths
             )
-            #os.remove(sd_option_cache)
+           
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def is_server_running():
@@ -369,7 +361,15 @@ def is_server_running():
 
     return False
 
-def async_load_models(python_path, server_path, device_name, model_name, dialog):
+def async_load_models(python_path, server_path, model_name, supported_devices, dialog):
+
+    device_name = "iGPU"
+    if "GPU.1" in supported_devices:
+        device_name =  "dGPU"
+   
+
+    if "NPU" in supported_devices and "GPU.1" not in supported_devices:
+        device_name = "NPU"
 
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -381,7 +381,7 @@ def async_load_models(python_path, server_path, device_name, model_name, dialog)
         print("No stable-diffusion model server found to kill")
 
 
-    process = subprocess.Popen([python_path, server_path, model_name, device_name[0], device_name[1], device_name[2], device_name[3]], close_fds=True)
+    process = subprocess.Popen([python_path, server_path, model_name,device_name], close_fds=True)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, 65433))
@@ -397,9 +397,13 @@ def async_load_models(python_path, server_path, device_name, model_name, dialog)
 
     dialog.response(SDDialogResponse.LoadModelComplete)
 
-def async_sd_run_func(runner, dialog):
+def async_sd_run_func(runner, dialog,num_images):
     print("Running SD async")
-    runner.run(dialog)
+    for i in range(num_images):
+        if i != 0:
+            runner.seed = None
+        runner.run(dialog)
+        i += 1
     print("async SD done")
     dialog.response(SDDialogResponse.RunInferenceComplete)
 
@@ -427,8 +431,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         for device in config_path_output["supported_devices"]:
            if 'GNA' not in device:
                 supported_devices.append(device)
-
-        device_name_enum = DeviceEnum(supported_devices) #config_path_output["supported_devices"])
         
         list_layers = []
 
@@ -436,8 +438,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             list_layers = image.get_layers()
         except:
             list_layers = image.list_layers()
-        #n_layers = len(list_layers)
-        #print("N LAYERS", n_layers)
+     
         
         if list_layers[0].get_mask() == None:
             n_layers = 1
@@ -468,9 +469,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         config.begin_run(image, run_mode, args)
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
-        sd_option_cache_data = dict(prompt="", negative_prompt="", num_infer_steps=20, guidance_scale=7.5,
+        sd_option_cache_data = dict(prompt="", negative_prompt="", num_images=1,num_infer_steps=20, guidance_scale=7.5,
                                     initial_image=None, strength=0.8, seed="",
-                                    inference_status="success", src_height=512, src_width=512,scheduler="")
+                                    inference_status="success", src_height=512, src_width=512)
 
         sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
 
@@ -518,136 +519,132 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(model_combo, 1, 0, 1, 1)
         model_combo.show()
 
-        # Device Name parameter
-        basic_device_label = Gtk.Label.new_with_mnemonic(_("_Device"))
-        basic_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
-        )
 
-        adv_text_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Text Device"))
-        adv_text_encoder_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "text_encode_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
-        )
+        #number of images
+        num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
+        num_images_spin = GimpUi.prop_spin_button_new(
+            config, "num_images", step_increment=1, page_increment=0.1, digits=0
+        ) 
 
-        adv_unet_encoder_device_label = Gtk.Label.new_with_mnemonic(_("_Unet Device"))
-        adv_unet_encoder_combo = GimpUi.prop_string_combo_box_new(
-            config, "unet_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
-        )
 
-        adv_vae_decoder_device_label = Gtk.Label.new_with_mnemonic(_("_VAE Device"))
-        adv_vae_decoder_device_combo = GimpUi.prop_string_combo_box_new(
-            config, "vae_decoder_device_name", device_name_enum.get_tree_model_no_npu(), 0, 1
-        )
+  
 
-        adv_unet_positive_device_label = Gtk.Label.new_with_mnemonic(_("_Unet + Device"))
-        adv_unet_positive_combo = GimpUi.prop_string_combo_box_new(
-            config, "unet_positive_device_name", device_name_enum.get_tree_model(), 0, 1
+        # num_infer_steps parameter
+        steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
+        
+        
+        steps_spin = GimpUi.prop_spin_button_new(
+            config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
+        
+        
 
-        adv_unet_negative_device_label = Gtk.Label.new_with_mnemonic(_("_Unet - Device"))
-        adv_unet_negative_combo = GimpUi.prop_string_combo_box_new(
-            config, "unet_negative_device_name", device_name_enum.get_tree_model(), 0, 1
+        # guidance_scale parameter
+        gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
+        
+        
+        gscale_spin = GimpUi.prop_spin_button_new(
+            config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
+        
+        
 
-        adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_device_selection",
-                                                  _("_Advanced Device Selection"))
+        # seed
+        seed = Gtk.Entry.new()
+        
+        seed.set_width_chars(40)
+        seed.set_placeholder_text(_("If left blank, random seed will be set.."))
+
+        seed.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["seed"], -1))
+        
+
+        seed_text = _("Seed")
+        seed_label = Gtk.Label(label=seed_text)
+        
+
+        adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
+                                                  _("_Advanced Settings"))
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
+        grid.attach(adv_checkbox, 3, 0, 1, 1)
 
-        # Scheduler Name parameter
-        scheduler_label = Gtk.Label.new_with_mnemonic(_("_Scheduler"))
-        scheduler_combo = GimpUi.prop_string_combo_box_new(
-            config, "scheduler", scheduler_name_enum.get_tree_model(), 0, 1
-        )
-        scheduler_label.show()
-        scheduler_combo.show()
+        invisible_label4 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label5 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label6 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label7 = Gtk.Label.new_with_mnemonic(_("_"))
+        invisible_label8 = Gtk.Label.new_with_mnemonic(_("_"))
 
-        def remove_all_device_widgets():
-            grid.remove(basic_device_label)
-            basic_device_label.hide()
-            grid.remove(basic_device_combo)
-            basic_device_combo.hide()
-            grid.remove(adv_checkbox)
-            grid.remove(scheduler_label)
-            grid.remove(scheduler_combo)
-            grid.remove(adv_unet_positive_device_label)
-            grid.remove(adv_unet_positive_combo)
-            grid.remove(adv_unet_negative_device_label)
-            grid.remove(adv_unet_negative_combo)
-            grid.remove(adv_text_encoder_device_label)
-            grid.remove(adv_text_encoder_device_combo)
-            grid.remove(adv_unet_encoder_device_label)
-            grid.remove(adv_unet_encoder_combo)
-            grid.remove(adv_vae_decoder_device_label)
-            grid.remove(adv_vae_decoder_device_combo)
-            grid.remove(adv_checkbox)
-            grid.remove(scheduler_label)
-            grid.remove(scheduler_combo)
-            adv_text_encoder_device_label.hide()
-            adv_text_encoder_device_combo.hide()
-            adv_unet_encoder_device_label.hide()
-            adv_unet_encoder_combo.hide()
-            adv_vae_decoder_device_label.hide()
-            adv_vae_decoder_device_combo.hide()
-            adv_unet_positive_device_label.hide()
-            adv_unet_positive_combo.hide()
-            adv_unet_negative_device_label.hide()
-            adv_unet_negative_combo.hide()
+        grid.attach(invisible_label4,0, 3, 1, 1)
+        grid.attach(invisible_label5,0, 4, 1, 1)
+        grid.attach(invisible_label6,0, 5, 1, 1)
+        grid.attach(invisible_label7,0, 6, 1, 1)
+        grid.attach(invisible_label8,0, 7, 1, 1)    
+    
+        invisible_label4.show()
+        invisible_label5.show()
+        invisible_label6.show()
+        invisible_label7.show()  
+        invisible_label8.show()           
 
-        def populate_advanced_devices():
-            grid.attach(adv_text_encoder_device_label, 2, 0, 1, 1)
-            grid.attach(adv_text_encoder_device_combo, 3, 0, 1, 1)
-            model_name = config.get_property("model_name")
-            if model_name=="SD_1.5_square_int8" or \
-               model_name=="controlnet_openpose_int8" or  \
-               model_name=="SD_1.5_Inpainting_int8" or  \
-               model_name=="controlnet_canny_int8" or  \
-               model_name=="controlnet_scribble_int8":
-                grid.attach(adv_unet_positive_device_label, 2, 1, 1, 1)
-                grid.attach(adv_unet_positive_combo,        3, 1, 1, 1)
-                grid.attach(adv_unet_negative_device_label, 2, 2, 1, 1)
-                grid.attach(adv_unet_negative_combo,        3, 2, 1, 1)
-                grid.attach(adv_vae_decoder_device_label,  2, 3, 1, 1)
-                grid.attach(adv_vae_decoder_device_combo,  3, 3, 1, 1)
-                grid.attach(adv_checkbox,                  3, 4, 1, 1)
-                grid.attach(scheduler_label,               2, 5, 1, 1)
-                grid.attach(scheduler_combo,               3, 5, 1, 1)
-                adv_text_encoder_device_label.show()
-                adv_text_encoder_device_combo.show()
-                adv_unet_positive_device_label.show()
-                adv_unet_positive_combo.show()
-                adv_unet_negative_device_label.show()
-                adv_unet_negative_combo.show()
-                adv_vae_decoder_device_label.show()
-                adv_vae_decoder_device_combo.show()
-            else:
-                grid.attach(adv_unet_encoder_device_label, 2, 1, 1, 1)
-                grid.attach(adv_unet_encoder_combo,        3, 1, 1, 1)
-                grid.attach(adv_vae_decoder_device_label,  2, 2, 1, 1)
-                grid.attach(adv_vae_decoder_device_combo,  3, 2, 1, 1)
-                grid.attach(adv_checkbox,                  3, 3, 1, 1)
-                grid.attach(scheduler_label,               2, 4, 1, 1)
-                grid.attach(scheduler_combo,               3, 4, 1, 1)
-                adv_text_encoder_device_label.show()
-                adv_text_encoder_device_combo.show()
-                adv_unet_encoder_device_label.show()
-                adv_unet_encoder_combo.show()
-                adv_vae_decoder_device_label.show()
-                adv_vae_decoder_device_combo.show()
+        def remove_all_advanced_widgets():
+            grid.remove(gscale_label)
+            gscale_label.hide()
+            grid.remove(gscale_spin)
+            gscale_spin.hide()
+           
+            grid.remove(steps_label)
+            steps_label.hide()
+            grid.remove(steps_spin)
+            steps_spin.hide()
 
-        def populate_basic_devices():
-            grid.attach(basic_device_label, 2, 0, 1, 1)
-            grid.attach(basic_device_combo, 3, 0, 1, 1)
-            grid.attach(adv_checkbox,       3, 1, 1, 1)
-            grid.attach(scheduler_label,    2, 2, 1, 1)
-            grid.attach(scheduler_combo,    3, 2, 1, 1)
-            basic_device_label.show()
-            basic_device_combo.show()
+            grid.remove(num_images_label)
+            num_images_label.hide()
+            grid.remove(num_images_spin)
+            num_images_spin.hide()            
+            
+
+            grid.remove(seed)
+            seed.hide()
+
+            grid.remove(seed_label)
+            seed_label.hide()
+
+            invisible_label4.show()
+            invisible_label5.show()
+            invisible_label6.show()
+            invisible_label7.show()
+            invisible_label8.show() 
+
+        def populate_advanced_settings():
+
+            grid.attach(num_images_label, 0, 3, 1, 1)
+            grid.attach(num_images_spin, 1, 3, 1, 1)              
+           
+            grid.attach(steps_label, 0, 4, 1, 1)
+            grid.attach(steps_spin, 1, 4, 1, 1)
+            grid.attach(gscale_label, 0, 5, 1, 1)
+            grid.attach(gscale_spin, 1, 5, 1, 1)
+            grid.attach(seed, 1, 6, 1, 1)
+            grid.attach(seed_label, 0, 6, 1, 1)
+            steps_label.show()
+            steps_spin.show()
+            gscale_label.show()
+            gscale_spin.show()
+            seed_label.show()
+            seed.show()
+            num_images_label.show()
+            num_images_spin.show()               
+        
+            invisible_label4.hide()
+            invisible_label5.hide()
+            invisible_label6.hide()   
+            invisible_label7.hide()
+            invisible_label8.hide()           
+
 
         if adv_checkbox.get_active():
-            populate_advanced_devices()
-        else:
-            populate_basic_devices()
+            populate_advanced_settings()
+     
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -660,13 +657,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         prompt_text_label = _("Enter text to generate image")
         prompt_label = Gtk.Label(label=prompt_text_label)
         grid.attach(prompt_label, 0, 1, 1, 1)
-        #vbox.pack_start(prompt_label, False, False, 1)
+       
         prompt_label.show()
 
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
-        #vbox.pack_start(negative_prompt_label, False, False, 1)
+  
         negative_prompt_label.show()
 
         # Negative Prompt text
@@ -675,45 +672,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         negative_prompt_text.set_width_chars(60)
         negative_prompt_text.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["negative_prompt"], -1))
         negative_prompt_text.show()
-
-        # num_infer_steps parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-        grid.attach(label, 0, 3, 1, 1)
-        label.show()
-        spin = GimpUi.prop_spin_button_new(
-            config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
-        )
-        grid.attach(spin, 1, 3, 1, 1)
-        spin.show()
-
-        # guidance_scale parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
-        grid.attach(label, 0, 4, 1, 1)
-        label.show()
-        spin = GimpUi.prop_spin_button_new(
-            config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
-        )
-        grid.attach(spin, 1, 4, 1, 1)
-        spin.show()
-
-        # seed
-        seed = Gtk.Entry.new()
-        grid.attach(seed, 1, 5, 1, 1)
-        seed.set_width_chars(40)
-        seed.set_placeholder_text(_("If left blank, random seed will be set.."))
-
-        seed.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["seed"], -1))
-        seed.show()
-
-        seed_text = _("Seed")
-        seed_label = Gtk.Label(label=seed_text)
-        grid.attach(seed_label, 0, 5, 1, 1)
-        #vbox.pack_start(seed_label, False, False, 1)
-        seed_label.show()
-
-
-        grid.attach(spin, 1, 6, 1, 1)
-        spin.show()
 
 
         # UI to browse Initial Image
@@ -726,20 +684,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             file_chooser_dialog.hide()
 
         file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
-        #grid.attach(file_chooser_button, 0, 7, 1, 1)
-        #file_chooser_button.show()
+    
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
         
-        #grid.attach(file_entry, 1, 7, 1, 1)
+      
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
-            # print("initial_image",initial_image)
-            file_entry.set_text(initial_image) #.get_path())
-        #file_entry.show()
+          
+            file_entry.set_text(initial_image) 
+    
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -773,7 +730,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             spin.show()
             
         if n_layers == 1:
-            grid.attach(initialImage_checkbox, 1, 7, 1, 1)
+            grid.attach(initialImage_checkbox, 3, 1, 1, 1)
             initialImage_checkbox.show()
             grid.attach(invisible_label1,1, 8, 1, 1)
             grid.attach(invisible_label2,1, 9, 1, 1)
@@ -830,37 +787,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         progress_bar.show()
 
 
-        device_text = None
-        device_pos_unet = None
-        device_neg_unet = None
-        device_vae = None
+
         model_name = config.get_property("model_name")
 
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
-            scheduler_label.hide()
-            scheduler_combo.hide()
+   
 
 
         if is_server_running():
             run_button.set_sensitive(True)
-            if adv_checkbox.get_active():
-                device_text = config.get_property("text_encode_device_name")
-                if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
-                    device_pos_unet = config.get_property("unet_positive_device_name")
-                    device_neg_unet = config.get_property("unet_negative_device_name")
-                else:
-                    device_pos_unet = config.get_property("unet_device_name")
-                    device_neg_unet = device_pos_unet
-                device_vae = config.get_property("vae_decoder_device_name")
-            else:
-                device = config.get_property("device_name")
-                device_text = device
-                device_pos_unet = device
-                device_neg_unet = device
-                device_vae = device
-
+        
+       
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -872,60 +811,39 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if model_name_tmp == "SD_1.5_square_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
-                scheduler_label.hide()
-                scheduler_combo.hide()
+    
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
-                scheduler_label.show()
-                scheduler_combo.show()
 
-            if adv_checkbox.get_active():
-                device_text_tmp = config.get_property("text_encode_device_name")
-                if (model_name=="SD_1.5_square_int8"       or
-                    model_name=="controlnet_openpose_int8" or
-                    model_name=="SD_1.5_Inpainting_int8"   or
-                    model_name=="controlnet_canny_int8"    or
-                    model_name=="controlnet_scribble_int8"):
-                    device_pos_unet_tmp = config.get_property("unet_positive_device_name")
-                    device_neg_unet_tmp = config.get_property("unet_negative_device_name")
-                else:
-                    device_pos_unet_tmp = config.get_property("unet_device_name")
-                    device_neg_unet_tmp = device_pos_unet_tmp
-                device_vae_tmp = config.get_property("vae_decoder_device_name")
+            if "controlnet" in config.get_property("model_name"):
+                
+                initialImage_checkbox.set_active(True)
             else:
-                device_tmp = config.get_property("device_name")
-                device_text_tmp = device_tmp
-                device_pos_unet_tmp = device_tmp
-                device_neg_unet_tmp = device_tmp
-                device_vae_tmp = device_tmp
-            if (model_name_tmp==model_name           and
-                device_text_tmp==device_text         and
-                device_pos_unet_tmp==device_pos_unet and
-                device_neg_unet_tmp==device_neg_unet and
-                device_vae_tmp==device_vae):
+                initialImage_checkbox.set_active(False)
+
+           
+
+
+            if (model_name_tmp==model_name):
                 run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
 
         def model_combo_changed(widget):
-            remove_all_device_widgets()
+            remove_all_advanced_widgets()
             if adv_checkbox.get_active():
-                populate_advanced_devices()
-            else:
-                populate_basic_devices()
-
+                populate_advanced_settings()
+      
 
         model_combo.connect("changed", model_combo_changed)
         model_combo.connect("changed", model_sensitive_combo_changed)
-        basic_device_combo.connect("changed", model_sensitive_combo_changed)
-        adv_text_encoder_device_combo.connect("changed", model_sensitive_combo_changed)
-        adv_unet_encoder_combo.connect("changed", model_sensitive_combo_changed)
-        adv_vae_decoder_device_combo.connect("changed", model_sensitive_combo_changed)
+     
+    
+
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
 
-        adv_unet_positive_combo.connect("changed", model_sensitive_combo_changed)
-        adv_unet_negative_combo.connect("changed", model_sensitive_combo_changed)
+     
 
         # Wait for user to click
         dialog.show()
@@ -942,20 +860,37 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if response == Gtk.ResponseType.OK:
 
                 model_combo.set_sensitive(False)
-                basic_device_combo.set_sensitive(False)
-                adv_text_encoder_device_combo.set_sensitive(False)
-                adv_unet_encoder_combo.set_sensitive(False)
-                adv_vae_decoder_device_combo.set_sensitive(False)
-                adv_checkbox.set_sensitive(False)
-                adv_unet_positive_combo.set_sensitive(False)
-                adv_unet_negative_combo.set_sensitive(False)
-
+          
+                #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
-                scheduler = config.get_property("scheduler")
-                num_infer_steps = config.get_property("num_infer_steps")
-                guidance_scale = config.get_property("guidance_scale")
-                strength = config.get_property("strength")
+          
+
+                        
+
+                if adv_checkbox.get_active():
+                            
+                    num_images = config.get_property("num_images") 
+                    num_infer_steps = config.get_property("num_infer_steps")
+                    guidance_scale = config.get_property("guidance_scale")
+                    strength = config.get_property("strength")
+                    if len(seed.get_text()) != 0:
+                        seed = seed.get_text()
+                    else:
+                        seed = None
+
+                else:
+                    num_images = 1
+                    num_infer_steps = 20
+                    if config.get_property("model_name") == "SD_1.5_square_lcm":
+                        num_infer_steps = 4
+
+                    guidance_scale = 7.5
+                    seed = None
+                    strength = 1.0
+
+
+
 
 
                 if initialImage_checkbox.get_active() and n_layers == 1:
@@ -966,13 +901,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 else:
                     initial_image = None
                     
-                if len(seed.get_text()) != 0:
-                    seed = seed.get_text()
-                else:
-                    seed = None
+
            
 
-                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,scheduler, num_infer_steps, guidance_scale, initial_image,
+                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, progress_bar, config_path_output)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
@@ -980,21 +912,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 spinner.start()
                 spinner.show()
 
-                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog))
+                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog,num_images))
                 run_inference_thread.start()
                 run_button.set_sensitive(False)
                 load_model_button.set_sensitive(False)
                 continue
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
-                basic_device_combo.set_sensitive(False)
-                adv_text_encoder_device_combo.set_sensitive(False)
-                adv_unet_encoder_combo.set_sensitive(False)
-                adv_vae_decoder_device_combo.set_sensitive(False)
-                adv_checkbox.set_sensitive(False)
-                adv_unet_positive_combo.set_sensitive(False)
-                adv_unet_negative_combo.set_sensitive(False)
-
+ 
+  
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
                 run_button.set_sensitive(False)
@@ -1005,29 +931,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 model_name = config.get_property("model_name")
 
-                if adv_checkbox.get_active():
-                    device_text = config.get_property("text_encode_device_name")
-                    if model_name=="SD_1.5_square_int8" or model_name=="controlnet_openpose_int8" or  model_name=="SD_1.5_Inpainting_int8" or model_name=="controlnet_canny_int8" or  model_name=="controlnet_scribble_int8":
-                        device_pos_unet = config.get_property("unet_positive_device_name")
-                        device_neg_unet = config.get_property("unet_negative_device_name")
-                    else:
-                        device_pos_unet = config.get_property("unet_device_name")
-                        device_neg_unet = device_pos_unet
-                    device_vae = config.get_property("vae_decoder_device_name")
-                    device_name = [device_text, device_pos_unet, device_neg_unet, device_vae]
-                else:
-                    device = config.get_property("device_name")
-                    device_text = device
-                    device_pos_unet = device
-                    device_neg_unet = device
-                    device_vae = device
-                    device_name = [device, device, device, device]
 
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)
                 
-                #def async_load_models(python_path, server_path, device_name, model_name, label, spinner, run_button, load_model_button):
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, device_name, model_name, dialog))
+            
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,supported_devices, dialog))
                 run_load_model_thread.start()
 
                 continue
@@ -1048,13 +957,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_button.set_sensitive(True)
                 load_model_button.set_sensitive(True)
                 model_combo.set_sensitive(True)
-                basic_device_combo.set_sensitive(True)
-                adv_text_encoder_device_combo.set_sensitive(True)
-                adv_unet_encoder_combo.set_sensitive(True)
-                adv_vae_decoder_device_combo.set_sensitive(True)
-                adv_checkbox.set_sensitive(True)
-                adv_unet_positive_combo.set_sensitive(True)
-                adv_unet_negative_combo.set_sensitive(True)
+           
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
                 if run_inference_thread:
@@ -1075,11 +978,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     perc_complete = runner.current_step / runner.num_infer_steps
                     progress_bar.set_fraction(perc_complete)
             elif response == 800:
-                remove_all_device_widgets()
+                remove_all_advanced_widgets()
                 if adv_checkbox.get_active():
-                    populate_advanced_devices()
-                else:
-                    populate_basic_devices()
+                    populate_advanced_settings()
+             
 
             else:
 #                dialog.destroy()
@@ -1091,6 +993,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 class StableDiffusion(Gimp.PlugIn):
     ## Parameters ##
     __gproperties__ = {
+        "num_images": (
+        int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
+        GObject.ParamFlags.READWRITE,),        
         "num_infer_steps": (
         int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32,
         GObject.ParamFlags.READWRITE,),
@@ -1099,13 +1004,7 @@ class StableDiffusion(Gimp.PlugIn):
         "strength": (
         float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
         GObject.ParamFlags.READWRITE,),
-        "device_name": (
-            str,
-            _("Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
+
         "model_name": (
             str,
             _("Model Name"),
@@ -1113,53 +1012,12 @@ class StableDiffusion(Gimp.PlugIn):
             "SD_1.4",
             GObject.ParamFlags.READWRITE,
         ),    
-        "scheduler": (
-            str,
-            _("Scheduler"),
-            "Scheduler Name: 'LMSDiscreteScheduler', 'PNDMScheduler','EulerDiscreteScheduler'",
-            "LMSDiscreteScheduler",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "text_encode_device_name": (
-            str,
-            _("Text Encoder Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "unet_device_name": (
-            str,
-            _("Unet Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "vae_decoder_device_name": (
-            str,
-            _("VAE Decoder Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "advanced_device_selection": (
+
+        "advanced_setting": (
             bool,
-            _("_Advanced Device Selection"),
-            "Advanced Device Selection",
+            _("_Advanced Settings"),
+            "Advanced Settings",
             False,
-            GObject.ParamFlags.READWRITE,
-        ),
-        "unet_positive_device_name": (
-            str,
-            _("Unet Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "unet_negative_device_name": (
-            str,
-            _("Unet Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
             GObject.ParamFlags.READWRITE,
         ),
         
@@ -1210,18 +1068,14 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 
             # procedure.add_argument_from_property(self, "initial_image")
+            procedure.add_argument_from_property(self, "num_images")
             procedure.add_argument_from_property(self, "num_infer_steps")
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
             procedure.add_argument_from_property(self, "model_name")
-            procedure.add_argument_from_property(self, "scheduler") 
-            procedure.add_argument_from_property(self, "device_name")
-            procedure.add_argument_from_property(self, "text_encode_device_name")
-            procedure.add_argument_from_property(self, "unet_device_name")
-            procedure.add_argument_from_property(self, "vae_decoder_device_name")
-            procedure.add_argument_from_property(self, "advanced_device_selection")
-            procedure.add_argument_from_property(self, "unet_positive_device_name")
-            procedure.add_argument_from_property(self, "unet_negative_device_name")
+ 
+            procedure.add_argument_from_property(self, "advanced_setting")
+           
             procedure.add_argument_from_property(self, "use_initial_image")
 
 
