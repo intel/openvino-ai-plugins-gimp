@@ -830,6 +830,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         if is_server_running():
             run_button.set_sensitive(True)
+            if adv_checkbox.get_active():
+                if "int8" in model_name:
+                    device_power_mode = config.get_property("power_mode")
+                
+                else:
+                    device_power_mode = None
+
         
        
 
@@ -854,10 +861,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             else:
                 initialImage_checkbox.set_active(False)
 
+            if adv_checkbox.get_active():
+                if "int8" in model_name:
+                    device_power_mode_tmp = config.get_property("power_mode")
+                
+                else:
+                    device_power_mode_tmp = None
+
+
            
 
 
-            if (model_name_tmp==model_name):
+            if (model_name_tmp==model_name   and
+                device_power_mode_tmp==device_power_mode):
                 run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
