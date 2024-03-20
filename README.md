@@ -35,6 +35,7 @@ This plugin is tested on Ubuntu 22.04. Building GIMP from source is recommended.
 For detailed steps and tips please refer to [Linux Installation Guide](./Docs/linux_install_guide.md).
 
 # OpenVINO™ Image Generator Plugin with Stable Diffusion
+#### Power Mode is enabled for int8 SD models and systems that has a "NPU" only 
 #### A. Prompt to Image
 1. Create or choose a layer
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins
@@ -93,9 +94,12 @@ _With Advanced Setting_
 
 ![](gifs/stable-diffusion1.png)
 
+_With Power Mode in Advanced Setting for SD int8 based models_
+
+![](gifs/stable-diffusion2.png)
 
 _Note that the screenshots below are based on the previous UI_
-![](gifs/stable-diffusion.webp)
+
 
 
 ### OpenVINO™ Semantic Segmentation Plugin
