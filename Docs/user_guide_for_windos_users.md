@@ -211,7 +211,7 @@ gimp-2.99.exe
 - Create `GIMP.bat` in the directory `C:\Users\Public`.
 
     ```sh
-    call C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupbars.bat
+    call C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
     cd "C:\Program Files\GIMP 2.99\bin"
     .\gimp-2.99.exe 
     ```
