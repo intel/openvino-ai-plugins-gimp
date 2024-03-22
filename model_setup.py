@@ -236,6 +236,7 @@ while True:
 
     if choice=="12":
         dl_all()
+        print("Complete downloaing all models. Exiting SD-1.5 Model setup.........")
         break
     
     if choice=="0":
