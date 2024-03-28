@@ -821,6 +821,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
         model_name = config.get_property("model_name")
+        device_power_mode = None
 
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
@@ -833,8 +834,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if adv_checkbox.get_active():
                 if "int8" in model_name:
                     device_power_mode = config.get_property("power_mode")
+                else:    
+                    device_power_mode = None                
+
                 
-                else:
+            else:
                     device_power_mode = None
 
         
@@ -845,6 +849,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # if model / devices are changed from what is currently loaded.
         def model_sensitive_combo_changed(widget):
             model_name_tmp = config.get_property("model_name")
+            device_power_mode_tmp = None
 
             # LCM model has no negative prompt
             if model_name_tmp == "SD_1.5_square_lcm":
