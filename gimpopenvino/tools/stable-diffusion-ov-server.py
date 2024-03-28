@@ -133,8 +133,10 @@ def run(model_name,device_name):
         device =  ["CPU","GPU.1","GPU.1"]
         device_int8 = ["CPU","GPU.1","GPU.1","GPU.1"]  
 
-    if device_name ==  "NPU":
+    if device_name ==  "Balanced_NPU":
         device_int8 = ["CPU","GPU","NPU","GPU"]  
+    if device_name ==  "NPU":
+        device_int8 = ["CPU","NPU","NPU","GPU"]     
 
 
     if model_name == "SD_1.5_square_int8":
