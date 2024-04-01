@@ -6,7 +6,7 @@
 
 ### Pre-requisite for execute on Intel NPU
 
->__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO™ is supported.
+>__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO™ is supported. Please note only Intel's ARC GPU is supported incase you have external GPU. 
 
 - Hardware:
   - Intel Core Ultra platform
@@ -240,19 +240,19 @@ Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For o
 
     ![](figs/gimp_execute_SD.png)
 
-- Change the selected fields to set "Stable Diffusion" configuration, then click "Load Models" to the load models into the target devices.
+- Change the selected fields to set "Stable Diffusion" configuration and choose the desired "Power Mode" you want, then click "Load Models" to the load models into the target devices based on your power mode selection. 
 
     ![](figs/gimp_load_model.png)
 
-    > **Notes:** It takes time in this step.
+    > **Notes:** It takes time in this step. 
 
 - Finally, you can optionally enter any text or changes the parameters in the selected field, then click "Generate" to generate image.
 
     ![](figs/gimp_sd_ui.png)
 
     >**Notes:**
-    > - Text encoder and VAE can currently run on CPU, or GPU, not NPU.
-    > - This demo is based on the following configuration for the most efficient, optimized and good quality image generation:
-    >   - Text encoder on CPU
-    >   - Unet model runs on GPU and NPU in parallel.
-    >   - VAE decoder run on GPU
+    > - Power Mode is now enabled- Users can select between the following options depending on their use case:
+    >   - Best Performance
+    >   - Best Power Efficiency
+    >   - Balanced
+    > - If you wish to generate more images in single run, please modify the Number of Images section.
