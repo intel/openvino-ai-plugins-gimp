@@ -2,11 +2,11 @@
 
 # User guide for Windows Users
 
-## Install GIMP AI plugins with OpenVINO™ Backend on GIMP
+## Install GIMP AI plugins with OpenVINO™ Backend on 
 
-### Pre-requisite for execute on Intel NPU
+>__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU. Please note only Intel's ARC GPU is supported incase you have an external GPU. 
 
->__Notes:__ To get NPU support, please following below configurations. If you are not seeking NPU version, you also can run this pulgin on any Intel CPU and GPU which OpenVINO™ is supported. Please note only Intel's ARC GPU is supported incase you have external GPU. 
+### Pre-requisite for execution on Intel NPU
 
 - Hardware:
   - Intel Core Ultra platform
@@ -252,7 +252,7 @@ Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For o
 
     >**Notes:**
     > - Power Mode is now enabled- Users can select between the following options depending on their use case:
-    >   - Best Performance
+    >   - Best Performance (Only Intel's ARC GPU supported incase there is an external GPU)
     >   - Best Power Efficiency
     >   - Balanced
     > - If you wish to generate more images in single run, please modify the Number of Images section.
