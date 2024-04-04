@@ -37,7 +37,7 @@ def setup_python_weights(install_location=None):
     for i in supported_devices:
         if "Intel" not in ie.get_property(i, "FULL_DEVICE_NAME"):
             supported_devices.remove(i)
-    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ DELETE THIS AFTER VALIDATION",supported_devices)
+    
     
     py_dict = {
         "python_path" : python_path,
