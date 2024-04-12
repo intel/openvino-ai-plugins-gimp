@@ -27,7 +27,7 @@ def get_sr(img,s, model_name="sr_1033", weight_path=None,device="CPU"):
         channel_list = [b, g, r]
         output_list = []
         for img_c in channel_list:
-            output = run(img_c, os.path.join(weight_path, "superresolution-ov", "edsr_mtl.xml"), device, model_name)
+            output = run(img_c, os.path.join(weight_path, "superresolution-ov", "edsr.xml"), device, model_name)
             output_list.append(output)
         out = cv2.merge([output_list[0], output_list[1], output_list[2]], 3)
         out = cv2.resize(out, (0, 0), fx=s / 2, fy=s / 2)

@@ -17,8 +17,7 @@
 
 import logging
 import sys
-from argparse import ArgumentParser, SUPPRESS
-from pathlib import Path
+
 from time import perf_counter
 
 import cv2
@@ -26,12 +25,12 @@ import numpy as np
 from openvino.inference_engine import IECore
 
 
-from models_ov import OutputTransform, SegmentationModel, SalientObjectDetectionModel
-import monitors
-from pipelines import get_user_config, AsyncPipeline
-from images_capture import open_images_capture
+from models_ov import  SegmentationModel 
 
-from helpers import resolution
+from pipelines import get_user_config, AsyncPipeline
+
+
+
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO, stream=sys.stdout)
 log = logging.getLogger()

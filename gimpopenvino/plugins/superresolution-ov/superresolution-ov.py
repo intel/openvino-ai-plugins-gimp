@@ -80,6 +80,9 @@ model_name_enum = StringEnum(
     _("esrgan"),
     "sr_1033",
     _("sr_1033"),
+       "sr_1032",
+    _("sr_1032"),
+
 )
 
 

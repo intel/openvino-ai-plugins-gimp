@@ -17,8 +17,6 @@
 import logging
 import sys
 
-from pathlib import Path
-from time import perf_counter
 
 import os
 import random
@@ -36,9 +34,8 @@ from gimpopenvino.tools.tools_utils import get_weight_path
 #sys.path.append(str(Path(__file__).resolve().parents[2] / 'common/python'))
 # engine
 from  models_ov.stable_diffusion_engine_NEW import StableDiffusionEngine
-from performance_metrics import PerformanceMetrics
 
-import monitors
+
 
 
 
