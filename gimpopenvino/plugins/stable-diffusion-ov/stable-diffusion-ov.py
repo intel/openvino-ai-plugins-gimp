@@ -188,6 +188,9 @@ def list_models(weight_path, SD):
     if SD == "SD_1.5":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
 
+    if SD == "SD_2.1":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1")    
+
     if SD == "SD_1.5_square_int8":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
         if os.path.isdir(dir_path):
@@ -199,7 +202,7 @@ def list_models(weight_path, SD):
         unet = Path(file) / 'unet.xml'
         vae = Path(file) / 'vae_decoder.xml'
         if os.path.isfile(text) and os.path.isfile(vae):
-                model = "SD_1.5_" + os.path.basename(file)
+                model = SD + "_" + os.path.basename(file)
                 model_list.append(model)
 
     return model_list   
@@ -462,6 +465,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
+                          list_models(config_path_output["weight_path"],"SD_2.1") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +

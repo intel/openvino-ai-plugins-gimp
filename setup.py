@@ -37,10 +37,10 @@ setup(
         "opencv-python<=4.3",
         "scikit-image",
         "timm==0.4.5",
-        "transformers",
+        "transformers>=4.37.0",
         "diffusers",
         "controlnet-aux>=0.0.6",
-        "openvino==2023.1.0",
+        "openvino==2023.3.0",
         "psutil",
         "matplotlib"
         
