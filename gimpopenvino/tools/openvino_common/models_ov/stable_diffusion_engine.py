@@ -547,7 +547,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             guidance_scale=7.5,
             eta=0.0,
             create_gif=False,
-            model_name=None,
+            model=None,
             callback=None,
             callback_userdata=None
     ):
@@ -560,6 +560,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             return_tensors="np",
         )
         text_embeddings = self.text_encoder(text_input.input_ids)[self._text_encoder_output]
+        
 
         # do classifier free guidance
         do_classifier_free_guidance = guidance_scale > 1.0
@@ -594,7 +595,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         latent_timestep = timesteps[:1]
 
         # get the initial random noise unless the user supplied it
-        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler,model_name)
+        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler,model)
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
         # eta (η) is only used with the DDIMScheduler, it will be ignored for other schedulers.
@@ -647,7 +648,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         return image
 
     def prepare_latents(self, image: PIL.Image.Image = None, latent_timestep: torch.Tensor = None,
-                        scheduler=LMSDiscreteScheduler,model_name=None):
+                        scheduler=LMSDiscreteScheduler,model=None):
         """
         Function for getting initial latents for starting generation
 
@@ -680,7 +681,7 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         moments = self.vae_encoder(input_image)[self._vae_e_output]
 
-        if "SD_2.1" in model_name:
+        if "SD_2.1" in model:
             latents = moments * 0.18215
 
         else:

@@ -393,6 +393,10 @@ def run(model_name,device_name):
                                             beta_end=0.012,
                                             beta_schedule="scaled_linear",
                                             prediction_type = "v_prediction") 
+                            model = model_path
+                            if "SD_2.1" in model_name:
+                                model = model_name
+                            
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -403,7 +407,7 @@ def run(model_name,device_name):
                                 guidance_scale = guidance_scale,
                                 eta = 0.0,
                                 create_gif = bool(create_gif),
-                                model_name = model_name,
+                                model = model,
                                 callback = progress_callback,
                                 callback_userdata = conn
                             )
