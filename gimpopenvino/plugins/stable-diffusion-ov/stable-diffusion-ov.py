@@ -183,27 +183,30 @@ def list_models(weight_path, SD):
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
-        return model_list  
-        
-    if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
-
-    if SD == "SD_2.1":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1")    
+        return model_list     
 
     if SD == "SD_1.5_square_int8":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
+    
+            
+    if SD == "SD_1.5":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
 
-    for file in os.scandir(dir_path): #, recursive=True):
-        text = Path(file) / 'text_encoder.xml'
-        unet = Path(file) / 'unet.xml'
-        vae = Path(file) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(vae):
-                model = SD + "_" + os.path.basename(file)
-                model_list.append(model)
+    if SD == "SD_2.1":
+       
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1") 
+
+    if os.path.isdir(dir_path):
+        for file in os.scandir(dir_path): #, recursive=True):
+            text = Path(file) / 'text_encoder.xml'
+            unet = Path(file) / 'unet.xml'
+            vae = Path(file) / 'vae_decoder.xml'
+            if os.path.isfile(text) and os.path.isfile(vae):
+                    model = SD + "_" + os.path.basename(file)
+                    model_list.append(model)
 
     return model_list   
         
