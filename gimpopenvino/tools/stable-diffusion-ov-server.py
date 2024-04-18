@@ -28,7 +28,7 @@ import shutil
 from PIL import Image
 
 # scheduler
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler,EulerDiscreteScheduler
+from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler,EulerDiscreteScheduler
 # utils 
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
