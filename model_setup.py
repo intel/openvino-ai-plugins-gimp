@@ -74,6 +74,9 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
             #print("download_folder", download_folder)
 
         FP16_model = os.path.join(download_folder, "FP16")
+        # on some systems, the FP16 subfolder is not created resulting in a installation crash 
+        if not os.path.isdir(FP16_model):
+            os.mkdir(FP16_model)
         shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
         shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
 
@@ -250,6 +253,7 @@ while True:
 
     if choice=="12":
         dl_all()
+        print("Complete downloaing all models. Exiting SD-1.5 Model setup.........")
         break
     
     if choice=="0":
