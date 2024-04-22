@@ -26,7 +26,7 @@ Please raise a PR for any new features, modifications, or bug fixes.
 - Note that these plugins have been tested with 2023.1.0 and 2023.2.0
 
 ### Windows
-For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windos_users.md).
+For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windows_users.md).
 
 ### Linux
 This plugin is tested on Ubuntu 22.04. Building GIMP from source is recommended.<br>
