@@ -1,5 +1,5 @@
 """
- Copyright (C) 2020 Intel Corporation
+ Copyright (C) 2020-2024 Intel Corporation
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 import cv2
 import numpy as np
+import math
 
 
 class Detection:
@@ -32,6 +33,18 @@ class Detection:
 
     def top_right_point(self):
         return self.xmax, self.ymax
+
+    def get_coords(self):
+        return self.xmin, self.ymin, self.xmax, self.ymax
+
+
+def clip_detections(detections, size):
+    for detection in detections:
+        detection.xmin = max(int(detection.xmin), 0)
+        detection.ymin = max(int(detection.ymin), 0)
+        detection.xmax = min(int(detection.xmax), size[1])
+        detection.ymax = min(int(detection.ymax), size[0])
+    return detections
 
 
 class DetectionWithLandmarks(Detection):
@@ -72,18 +85,19 @@ class OutputTransform:
 
 
 class InputTransform:
-    def __init__(self, reverse_input_channels, mean_values, scale_values):
-        self.is_trivial = not (reverse_input_channels or mean_values or scale_values)
+    def __init__(self, reverse_input_channels=False, mean_values=None, scale_values=None):
         self.reverse_input_channels = reverse_input_channels
-        self.mean_values = np.array(mean_values, dtype=np.float32) if mean_values else np.array([0., 0., 0.])
-        self.scale_values = np.array(scale_values, dtype=np.float32) if scale_values else np.array([1., 1., 1.])
+        self.is_trivial = not (reverse_input_channels or mean_values or scale_values)
+        self.means = np.array(mean_values, dtype=np.float32) if mean_values else np.array([0., 0., 0.])
+        self.std_scales = np.array(scale_values, dtype=np.float32) if scale_values else np.array([1., 1., 1.])
 
     def __call__(self, inputs):
         if self.is_trivial:
             return inputs
         if self.reverse_input_channels:
             inputs = cv2.cvtColor(inputs, cv2.COLOR_BGR2RGB)
-        return (inputs - self.mean_values) / self.scale_values
+        return (inputs - self.means) / self.std_scales
+
 
 def load_labels(label_file):
     with open(label_file, 'r') as f:
@@ -91,28 +105,77 @@ def load_labels(label_file):
     return labels_map
 
 
-def resize_image(image, size, keep_aspect_ratio=False):
+def resize_image(image, size, keep_aspect_ratio=False, interpolation=cv2.INTER_LINEAR):
     if not keep_aspect_ratio:
-        resized_frame = cv2.resize(image, size)
+        resized_frame = cv2.resize(image, size, interpolation=interpolation)
     else:
         h, w = image.shape[:2]
         scale = min(size[1] / h, size[0] / w)
-        resized_frame = cv2.resize(image, None, fx=scale, fy=scale)
+        resized_frame = cv2.resize(image, None, fx=scale, fy=scale, interpolation=interpolation)
     return resized_frame
 
 
-def resize_image_letterbox(image, size):
+def resize_image_with_aspect(image, size, interpolation=cv2.INTER_LINEAR):
+    return resize_image(image, size, keep_aspect_ratio=True, interpolation=interpolation)
+
+
+def pad_image(image, size):
+    h, w = image.shape[:2]
+    if h != size[1] or w != size[0]:
+        image = np.pad(image, ((0, size[1] - h), (0, size[0] - w), (0, 0)),
+                               mode='constant', constant_values=0)
+    return image
+
+
+def resize_image_letterbox(image, size, interpolation=cv2.INTER_LINEAR):
     ih, iw = image.shape[0:2]
     w, h = size
     scale = min(w / iw, h / ih)
     nw = int(iw * scale)
     nh = int(ih * scale)
-    image = cv2.resize(image, (nw, nh))
+    image = cv2.resize(image, (nw, nh), interpolation=interpolation)
     dx = (w - nw) // 2
     dy = (h - nh) // 2
     resized_image = np.pad(image, ((dy, dy + (h - nh) % 2), (dx, dx + (w - nw) % 2), (0, 0)),
-                           mode='constant', constant_values=128)
+                           mode='constant', constant_values=0)
     return resized_image
+
+
+def crop_resize(image, size):
+    desired_aspect_ratio = size[1] / size[0] # width / height
+    if desired_aspect_ratio == 1:
+        if (image.shape[0] > image.shape[1]):
+            offset = (image.shape[0] - image.shape[1]) // 2
+            cropped_frame = image[offset:image.shape[1] + offset]
+        else:
+            offset = (image.shape[1] - image.shape[0]) // 2
+            cropped_frame = image[:, offset:image.shape[0] + offset]
+    elif desired_aspect_ratio < 1:
+        new_width = math.floor(image.shape[0] * desired_aspect_ratio)
+        offset = (image.shape[1] - new_width) // 2
+        cropped_frame = image[:, offset:new_width + offset]
+    elif desired_aspect_ratio > 1:
+        new_height = math.floor(image.shape[1] / desired_aspect_ratio)
+        offset = (image.shape[0] - new_height) // 2
+        cropped_frame = image[offset:new_height + offset]
+
+    return cv2.resize(cropped_frame, size)
+
+
+RESIZE_TYPES = {
+    'crop' : crop_resize,
+    'standard': resize_image,
+    'fit_to_window': resize_image_with_aspect,
+    'fit_to_window_letterbox': resize_image_letterbox,
+}
+
+
+INTERPOLATION_TYPES = {
+    'LINEAR': cv2.INTER_LINEAR,
+    'CUBIC': cv2.INTER_CUBIC,
+    'NEAREST': cv2.INTER_NEAREST,
+    'AREA': cv2.INTER_AREA,
+}
 
 
 def nms(x1, y1, x2, y2, scores, thresh, include_boundaries=False, keep_top_k=None):
@@ -143,3 +206,8 @@ def nms(x1, y1, x2, y2, scores, thresh, include_boundaries=False, keep_top_k=Non
         order = order[np.where(overlap <= thresh)[0] + 1]
 
     return keep
+
+
+def softmax(logits, axis=None, keepdims=False):
+    exp = np.exp(logits - np.max(logits))
+    return exp / np.sum(exp, axis=axis, keepdims=keepdims)

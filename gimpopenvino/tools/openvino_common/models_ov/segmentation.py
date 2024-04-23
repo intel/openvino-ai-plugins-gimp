@@ -1,5 +1,5 @@
 """
- Copyright (c) 2020 Intel Corporation
+ Copyright (c) 2020-2024 Intel Corporation
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -17,62 +17,47 @@
 import cv2
 import numpy as np
 
-from .model import Model
+from models.image_model import ImageModel
+from models.types import ListValue, StringValue
+from models.utils import load_labels
 
 
-class SegmentationModel(Model):
-    def __init__(self, ie, model_path):
-        super().__init__(ie, model_path)
+class SegmentationModel(ImageModel):
+    __model__ = 'Segmentation'
 
-        self.input_blob_name = self.prepare_inputs()
-        self.out_blob_name = self.prepare_outputs()
+    def __init__(self, model_adapter, configuration=None, preload=False):
+        super().__init__(model_adapter, configuration, preload)
+        self._check_io_number(1, 1)
+        if self.path_to_labels:
+            self.labels = load_labels(self.path_to_labels)
 
-    def prepare_inputs(self):
-        if len(self.net.input_info) != 1:
-            raise RuntimeError("Demo supports topologies only with 1 input")
+        self.output_blob_name = self._get_outputs()
 
-        blob_name = next(iter(self.net.input_info))
-        blob = self.net.input_info[blob_name]
-        blob.precision = "U8"
-        blob.layout = "NCHW"
+    def _get_outputs(self):
+        layer_name = next(iter(self.outputs))
+        layer_shape = self.outputs[layer_name].shape
 
-        input_size = blob.input_data.shape
-        if len(input_size) == 4 and input_size[1] == 3:
-            self.n, self.c, self.h, self.w = input_size
-        else:
-            raise RuntimeError("3-channel 4-dimensional model's input is expected")
-
-        return blob_name
-
-    def prepare_outputs(self):
-        if len(self.net.outputs) != 1:
-            raise RuntimeError("Demo supports topologies only with 1 output")
-
-        blob_name = next(iter(self.net.outputs))
-        blob = self.net.outputs[blob_name]
-
-        out_size = blob.shape
-        if len(out_size) == 3:
+        if len(layer_shape) == 3:
             self.out_channels = 0
-        elif len(out_size) == 4:
-            self.out_channels = out_size[1]
+        elif len(layer_shape) == 4:
+            self.out_channels = layer_shape[1]
         else:
-            raise Exception("Unexpected output blob shape {}. Only 4D and 3D output blobs are supported".format(out_size))
+            self.raise_error("Unexpected output layer shape {}. Only 4D and 3D output layers are supported".format(layer_shape))
 
-        return blob_name
+        return layer_name
 
-    def preprocess(self, inputs):
-        image = inputs
-        resized_image = cv2.resize(image, (self.w, self.h))
-        meta = {'original_shape': image.shape,
-                'resized_shape': resized_image.shape}
-        resized_image = resized_image.transpose((2, 0, 1))
-        resized_image = resized_image.reshape((self.n, self.c, self.h, self.w))
-        dict_inputs = {self.input_blob_name: resized_image}
-        return dict_inputs, meta
+    @classmethod
+    def parameters(cls):
+        parameters = super().parameters()
+        parameters.update({
+            'labels': ListValue(description="List of class labels"),
+            'path_to_labels': StringValue(description="Path to file with labels. Overrides the labels, if they sets via 'labels' parameter")
+        })
+
+        return parameters
 
     def postprocess(self, outputs, meta):
-        predictions = outputs[self.out_blob_name].squeeze()
+        predictions = outputs[self.output_blob_name].squeeze()
         input_image_height = meta['original_shape'][0]
         input_image_width = meta['original_shape'][1]
 
@@ -86,11 +71,12 @@ class SegmentationModel(Model):
 
 
 class SalientObjectDetectionModel(SegmentationModel):
+    __model__ = 'Salient_Object_Detection'
 
     def postprocess(self, outputs, meta):
         input_image_height = meta['original_shape'][0]
         input_image_width = meta['original_shape'][1]
-        result = outputs[self.out_blob_name].squeeze()
+        result = outputs[self.output_blob_name].squeeze()
         result = 1/(1 + np.exp(-result))
         result = cv2.resize(result, (input_image_width, input_image_height), 0, 0, interpolation=cv2.INTER_NEAREST)
         return result

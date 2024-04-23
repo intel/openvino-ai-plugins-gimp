@@ -20,28 +20,7 @@
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
   - [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
-  - [OpenVINO™ 2023.2](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.2/windows/w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip) or later version
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
-
-
-### Install OpenVINO™
-
->__Notes:__ Use OpenVINO™ `2023.2` as an example.
-
-Please following below steps to download and install the OpenVINO™ package.
-
-- Check download [page](https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html?VERSION=v_2023_2_0&OP_SYSTEM=WINDOWS&DISTRIBUTION=ARCHIVE) of OpenVINO™ website, then click "Download Archives"
-
-    ![](figs/OpenVINO_installation.png)
-
-- Download compressed package [w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.2/windows/w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip)
-
-    ![](figs/OpenVINO_installation_archives.png)
-
-- Unzip `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64.zip` to `C:\Users\Public\`
-
-> __Notes:__ Use `C:\Users\Public\` as an example, you can unzip it to anywhere that you want.
-
 
 
 ### Install Python
@@ -114,7 +93,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
 
 
-### Install GIMP AI plugins with OpenVINO™ Backend
+### Install GIMP AI plugins 
 
  - Open command prompt and download it from Github by git with below instruction.
 
@@ -126,15 +105,6 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     ```
     > __Notes__:
     > This is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
-
-- Use same command prompt that used in previous step to include OpenVINO™ environment by below command.
-
-    ```sh
-    C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
-    ```
-    > __Notes__:
-    > - Folder name of `w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64` is for OpenVINO™ `2023.2` version and it depends on OpenVINO™ version.
-    > - Please ensure the OpenVINO™ environment is set, otherwise, NPU will not work for GIMP AI plugins with OpenVINO™ Backend.
 
  - Use same command prompt that used in previous steps and follow the command below to install it.
 
@@ -166,7 +136,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     > - The downloaded models include FP16 and INT8 precision, and INT8 precision can be executed on MTL NPU.
     > - Weights is saved at `C:\Users\\<user_name>\openvino-ai-plugins-gimp\weights`.
 
-## Set up GIMP AI plugins with OpenVINO™ Backend on GIMP
+## Set up GIMP AI plugins 
 
 Please follow below steps to setup plugin at first time and then you can use GIMP to execute GIMP AI plugins with OpenVINO™ Backend to run Stable-Diffusion or other features.
 
@@ -194,34 +164,7 @@ With previous section, the GIMP AI plugins with OpenVINO™ Backend is installed
 
 ## Execute GIMP
 
-To make GIMP AI plugins with OpenVINO™ Backend can work with GIMP, please choose one of below two methods to execute it.
-
-### Execute by commands in cmd prompt
-
-Open command prompt, then follow below command to execute GIMP in command prompt.
-
-```sh
-C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
-cd "C:\Program Files\GIMP 2.99\bin"
-gimp-2.99.exe
-```
-
-### One-click execution by GIMP.bat file
-
-- Create `GIMP.bat` in the directory `C:\Users\Public`.
-
-    ```sh
-    call C:\Users\Public\w_openvino_toolkit_windows_2023.2.0.13089.cfd42bd2cb0_x86_64\setupvars.bat
-    cd "C:\Program Files\GIMP 2.99\bin"
-    .\gimp-2.99.exe 
-    ```
-
- - And then double click `GIMP.bat` or open command prompt executes `GIMP.bat` by below command.
-
-    ```sh
-    C:\Users\Public\GIMP.bat
-    ```
-
+You can now simply open Gimp from the start menu as you would any normal Windows application.
 
 ## Execute Stable-Diffusion – SD1.5_square_int8
 

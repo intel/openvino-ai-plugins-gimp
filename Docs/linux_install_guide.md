@@ -1,25 +1,3 @@
-# Install OpenVINO
-1. Download the latest [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your version of Ubuntu.
-
-   https://github.com/gblong1/openvino-ai-plugins-gimp/assets/22227580/79ce7302-4f53-4451-89a2-47d3ef8a29c8
-
-
-3. Extract the archive
-   ```sh
-   tar -xvf <ov-release-name>.tar.gz
-   ```
-4. Create an intel directory under `/opt` and move the extracted files to that directory
-   ```sh
-   sudo mkdir /opt/intel
-   sudo chown <user>:<group> /opt/intel
-   mv <ov-release-name> /opt/intel/.
-   ```
-5. Link the release as `openvino` under `/opt/intel`
-   ```sh
-   cd /opt/intel
-   ln -sf <ov-release-name> openvino
-   ```
-
 # Build GIMP
 1. Create a directory where you will download and build all of the sources for GIMP
     ```sh
@@ -73,13 +51,10 @@
 2. Run install script, and download models. The following steps will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
    ```sh
    chmod +x openvino-ai-plugins-gimp/install.sh
-   source /opt/intel/openvino/setupvars.sh
    ./openvino-ai-plugins-gimp/install.sh
    ```
    At the end of plugin setup, you will be prompted to setup the AI models used with OpenVINO™. Before proceeding, make note of the plugin directory and add that to the plugin path for GIMP before proceeding with model download.
    Start the GIMP application (`gimp-2.99`), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins].  
-
-https://github.com/gblong1/openvino-ai-plugins-gimp/assets/22227580/1bab09ae-9383-4d53-9615-eb87d2212e82
 
    Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.
 
@@ -88,10 +63,8 @@ https://github.com/gblong1/openvino-ai-plugins-gimp/assets/22227580/1bab09ae-938
 # Verify Installation
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```sh
-   source /opt/intel/openvino/setupvars.sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
    gimp-2.99
    ```
 
-https://github.com/gblong1/openvino-ai-plugins-gimp/assets/22227580/a6222235-2017-45f8-9594-f49ab4107a70
 

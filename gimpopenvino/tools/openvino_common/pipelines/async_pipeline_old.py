@@ -1,5 +1,5 @@
 """
- Copyright (C) 2020-2024 Intel Corporation
+ Copyright (C) 2020 Intel Corporation
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
  limitations under the License.
 """
 
-from time import perf_counter
+import logging
+import threading
+from collections import deque
 from typing import Dict, Set
-
-from performance_metrics import PerformanceMetrics
+import os
 
 
 def parse_devices(device_string):
@@ -54,32 +55,25 @@ def parse_value_per_device(devices: Set[str], values_string: str)-> Dict[str, in
 
 
 def get_user_config(flags_d: str, flags_nstreams: str, flags_nthreads: int)-> Dict[str, str]:
-    from openvino import Core, properties
     config = {}
 
     devices = set(parse_devices(flags_d))
 
-
     device_nstreams = parse_value_per_device(devices, flags_nstreams)
-    core = Core()
     for device in devices:
-        supported_properties = core.get_property(device, properties.supported_properties())
         if device == 'CPU':  # CPU supports a few special performance-oriented keys
             # limit threading for CPU portion of inference
             if flags_nthreads:
                 config['CPU_THREADS_NUM'] = str(flags_nthreads)
 
-            config['ENABLE_CPU_PINNING'] = 'NO'
-            if "CPU_THROUGHPUT_STREAMS" in supported_properties:
-                # for CPU execution, more throughput-oriented execution via streams
-                config['CPU_THROUGHPUT_STREAMS'] = str(device_nstreams.get(device, 'CPU_THROUGHPUT_AUTO'))
-            else:
-                config["NUM_STREAMS"] = str(device_nstreams.get(device, -1))
+            config['CPU_BIND_THREAD'] = 'NO'
+
+            # for CPU execution, more throughput-oriented execution via streams
+            config['CPU_THROUGHPUT_STREAMS'] = str(device_nstreams[device]) \
+                if device in device_nstreams else 'CPU_THROUGHPUT_AUTO'
         elif device == 'GPU':
-            if "GPU_THROUGHPUT_STREAMS" in supported_properties:
-                config['GPU_THROUGHPUT_STREAMS'] = str(device_nstreams.get(device, 'GPU_THROUGHPUT_AUTO'))
-            else:
-                config["NUM_STREAMS"] = str(device_nstreams.get(device, -1))
+            config['GPU_THROUGHPUT_STREAMS'] = str(device_nstreams[device]) \
+                if device in device_nstreams else 'GPU_THROUGHPUT_AUTO'
             if 'MULTI' in flags_d and 'CPU' in devices:
                 # multi-device execution with the CPU + GPU performs best with GPU throttling hint,
                 # which releases another CPU thread (that is otherwise used by the GPU driver for active polling)
@@ -88,56 +82,73 @@ def get_user_config(flags_d: str, flags_nstreams: str, flags_nthreads: int)-> Di
 
 
 class AsyncPipeline:
-    def __init__(self, model):
+    def __init__(self, ie, model, model_path, plugin_config, device='CPU', max_num_requests=1):
         self.model = model
-        self.model.load()
+        self.logger = logging.getLogger()
+        
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
+        self.logger.info('Model Cached')        
 
-        self.completed_results = {}
-        self.callback_exceptions = []
-        self.model.model_adapter.set_callback(self.callback)
+        ie.set_config(config={"CACHE_DIR": os.path.join(model_path, '..', 'cache')}, device_name=device)
+        self.logger.info('SR Model Cached')
+        self.logger.info('Loading network to {} plugin...'.format(device))
+        
+        self.exec_net = ie.load_network(network=self.model.net, device_name=device,
+                                        config=plugin_config, num_requests=max_num_requests)
+        if max_num_requests == 0:
+            # ExecutableNetwork doesn't allow creation of additional InferRequests. Reload ExecutableNetwork
+            # +1 to use it as a buffer of the pipeline
+            self.exec_net = ie.load_network(network=self.model.net, device_name=device,
+                                            config=plugin_config, num_requests=len(self.exec_net.requests) + 1)
 
-        self.preprocess_metrics = PerformanceMetrics()
-        self.inference_metrics = PerformanceMetrics()
-        self.postprocess_metrics = PerformanceMetrics()
+        self.empty_requests = deque(self.exec_net.requests)
+        self.completed_request_results = {}
+        self.callback_exceptions = {}
+        self.event = threading.Event()
 
-    def callback(self, request, callback_args):
+    def inference_completion_callback(self, status, callback_args):
         try:
-            get_result_fn, (id, meta, preprocessing_meta, start_time) = callback_args
-            self.completed_results[id] = (get_result_fn(request), meta, preprocessing_meta, start_time)
+            request, id, meta, preprocessing_meta = callback_args
+            if status != 0:
+                raise RuntimeError('Infer Request has returned status code {}'.format(status))
+            raw_outputs = {key: blob.buffer for key, blob in request.output_blobs.items()}
+            self.completed_request_results[id] = (raw_outputs, meta, preprocessing_meta)
+            self.empty_requests.append(request)
         except Exception as e:
             self.callback_exceptions.append(e)
+        self.event.set()
 
-    def submit_data(self, inputs, id, meta={}):
-        preprocessing_start_time = perf_counter()
+    def submit_data(self, inputs, id, meta):
+        request = self.empty_requests.popleft()
+        if len(self.empty_requests) == 0:
+            self.event.clear()
         inputs, preprocessing_meta = self.model.preprocess(inputs)
-        self.preprocess_metrics.update(preprocessing_start_time)
-
-        infer_start_time = perf_counter()
-        callback_data = id, meta, preprocessing_meta, infer_start_time
-        self.model.infer_async(inputs, callback_data)
+        request.set_completion_callback(py_callback=self.inference_completion_callback,
+                                        py_data=(request, id, meta, preprocessing_meta))
+        request.async_infer(inputs=inputs)
 
     def get_raw_result(self, id):
-        if id in self.completed_results:
-            return self.completed_results.pop(id)
+        if id in self.completed_request_results:
+            return self.completed_request_results.pop(id)
         return None
 
     def get_result(self, id):
         result = self.get_raw_result(id)
         if result:
-            raw_result, meta, preprocess_meta, infer_start_time = result
-            self.inference_metrics.update(infer_start_time)
-
-            postprocessing_start_time = perf_counter()
-            result = self.model.postprocess(raw_result, preprocess_meta), {**meta, **preprocess_meta}
-            self.postprocess_metrics.update(postprocessing_start_time)
-            return result
+            raw_result, meta, preprocess_meta = result
+            return self.model.postprocess(raw_result, preprocess_meta), meta
         return None
 
     def is_ready(self):
-        return self.model.is_ready()
+        return len(self.empty_requests) != 0
+
+    def has_completed_request(self):
+        return len(self.completed_request_results) != 0
 
     def await_all(self):
-        self.model.await_all()
+        for request in self.exec_net.requests:
+            request.wait()
 
     def await_any(self):
-        self.model.await_any()
+        if len(self.empty_requests) == 0:
+            self.event.wait()

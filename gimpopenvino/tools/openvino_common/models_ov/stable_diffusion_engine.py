@@ -3,13 +3,11 @@ Copyright(C) 2022-2023 Intel Corporation
 SPDX - License - Identifier: Apache - 2.0
 
 """
-from .model import Model
-
 import inspect
 from typing import Union, Optional, Any, List, Dict
 import numpy as np
 # openvino
-from openvino.runtime import Core, Model
+from openvino.runtime import Core
 # tokenizer
 from transformers import CLIPTokenizer
 import torch
@@ -21,7 +19,7 @@ from diffusers.schedulers import (DDIMScheduler,
                                   EulerDiscreteScheduler,
                                   EulerAncestralDiscreteScheduler)
 
-from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
+
 from diffusers.image_processor import VaeImageProcessor
 from diffusers.utils.torch_utils import randn_tensor
 from diffusers.utils import PIL_INTERPOLATION
@@ -485,17 +483,22 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 class StableDiffusionEngine(DiffusionPipeline):
     def __init__(
             self,
-            # scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
+        
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
             device=["CPU", "CPU", "CPU"]
     ):
-        # self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+       
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except:
-            self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
-            self.tokenizer.save_pretrained(model)
+            while True:
+                try:
+                    self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+                    self.tokenizer.save_pretrained(model)
+                    break
+                except:
+                    print("Retry Token Download...")
 
         # self.scheduler = scheduler
         # models
@@ -555,6 +558,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             return_tensors="np",
         )
         text_embeddings = self.text_encoder(text_input.input_ids)[self._text_encoder_output]
+        
 
         # do classifier free guidance
         do_classifier_free_guidance = guidance_scale > 1.0
@@ -589,7 +593,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         latent_timestep = timesteps[:1]
 
         # get the initial random noise unless the user supplied it
-        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler)
+        latents, meta = self.prepare_latents(init_image, latent_timestep, scheduler,model)
 
         # prepare extra kwargs for the scheduler step, since not all schedulers have the same signature
         # eta (η) is only used with the DDIMScheduler, it will be ignored for other schedulers.
@@ -611,7 +615,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
             # print("latent_model_input:", latent_model_input)
             # predict the noise residual
-            noise_pred = self.unet([latent_model_input, float(t), text_embeddings])[self._unet_output]
+            noise_pred = self.unet([latent_model_input, np.array(t, dtype=np.float32), text_embeddings])[self._unet_output]
             # print("noise_pred:",noise_pred)
             # perform guidance
             if do_classifier_free_guidance:
@@ -630,8 +634,8 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         # scale and decode the image latents with vae
         
-        if self.height == 512 and self.width == 512:
-            latents = 1 / 0.18215 * latents
+        #if self.height == 512 and self.width == 512:
+        latents = 1 / 0.18215 * latents
 
         image = self.vae_decoder(latents)[self._vae_d_output]
 
@@ -642,7 +646,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         return image
 
     def prepare_latents(self, image: PIL.Image.Image = None, latent_timestep: torch.Tensor = None,
-                        scheduler=LMSDiscreteScheduler):
+                        scheduler=LMSDiscreteScheduler,model=None):
         """
         Function for getting initial latents for starting generation
 
@@ -675,14 +679,22 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         moments = self.vae_encoder(input_image)[self._vae_e_output]
 
-        mean, logvar = np.split(moments, 2, axis=1)
+        if "SD_2.1" in model:
+            latents = moments * 0.18215
 
-        std = np.exp(logvar * 0.5)
-        latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
+        else:
+
+            mean, logvar = np.split(moments, 2, axis=1)
+
+            std = np.exp(logvar * 0.5)
+            latents = (mean + std * np.random.randn(*mean.shape)) * 0.18215
 
         latents = scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
         return latents, meta
-
+ 
+       
+        
+  
     def postprocess_image(self, image: np.ndarray, meta: Dict):
         """
         Postprocessing for decoded image. Takes generated image decoded by VAE decoder, unpad it to initila image size (if required),

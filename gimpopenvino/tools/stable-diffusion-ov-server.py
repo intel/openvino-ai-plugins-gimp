@@ -28,7 +28,7 @@ import shutil
 from PIL import Image
 
 # scheduler
-from diffusers import LCMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler,EulerAncestralDiscreteScheduler,DDIMScheduler, UniPCMultistepScheduler
+from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler,EulerDiscreteScheduler
 # utils 
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
@@ -96,6 +96,11 @@ def run(model_name,device_name):
     elif model_name == "SD_1.5_Inpainting_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
         blobs = True
+    elif model_name == "SD_2.1_square_base":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square_base")
+    elif model_name == "SD_2.1_square":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square")
+    
     elif model_name == "controlnet_referenceonly":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
 
@@ -382,6 +387,16 @@ def run(model_name,device_name):
                                 callback_userdata = conn
                         )          
                         else:
+                            if model_name == "SD_2.1_square":
+                                scheduler = EulerDiscreteScheduler(
+                                            beta_start=0.00085,
+                                            beta_end=0.012,
+                                            beta_schedule="scaled_linear",
+                                            prediction_type = "v_prediction") 
+                            model = model_path
+                            if "SD_2.1" in model_name:
+                                model = model_name
+                            
                             output = engine(
                                 prompt = prompt,
                                 negative_prompt = negative_prompt,
@@ -392,7 +407,7 @@ def run(model_name,device_name):
                                 guidance_scale = guidance_scale,
                                 eta = 0.0,
                                 create_gif = bool(create_gif),
-                                model = model_path,
+                                model = model,
                                 callback = progress_callback,
                                 callback_userdata = conn
                             )
