@@ -3,13 +3,7 @@ Copyright(C) 2022-2023 Intel Corporation
 SPDX - License - Identifier: Apache - 2.0
 
 """
-
-
-
 from tokenize import untokenize
-#from .model import Model
-
-
 
 import inspect
 from typing import List, Optional, Union, Dict

@@ -3,8 +3,6 @@ Copyright(C) 2022-2023 Intel Corporation
 SPDX - License - Identifier: Apache - 2.0
 
 """
-
-
 import inspect
 from typing import Union, Optional, Any, List, Dict
 import numpy as np
