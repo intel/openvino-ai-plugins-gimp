@@ -20,11 +20,6 @@ Please raise a PR for any new features, modifications, or bug fixes.
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-
-### Install OpenVINO™
-- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system. Please follow the instructions to download and install OpenVINO™ from the archive. **Do not use pypi for installation.**
-- Note that these plugins have been tested with 2023.1.0 and 2023.2.0
-
 ### Windows
 For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windows_users.md).
 
