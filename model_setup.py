@@ -221,7 +221,7 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    dl_sd_21_square()
+    #dl_sd_21_square()
 
 while True:
     print("=========Chose SD models to download =========")
@@ -234,7 +234,7 @@ while True:
     print("7 - SD-1.5 Controlnet-Scribble")
     print("8 - SD-1.5 LCM ")
     print("9 - SD-1.5 Controlnet-ReferenceOnly")
-    print("10 - SD-2.1 Square (768x768)")
+#    print("10 - SD-2.1 Square (768x768)")
     print("12 - All the above models")
     print("0 - Exit SD Model setup")
 
@@ -249,7 +249,7 @@ while True:
     if choice=="7":  dl_sd_15_scribble()
     if choice=="8":  dl_sd_15_LCM()
     if choice=="9":  dl_sd_15_Referenceonly()
-    if choice=="10":  dl_sd_21_square()
+    #if choice=="10":  dl_sd_21_square()
 
     if choice=="12":
         dl_all()
