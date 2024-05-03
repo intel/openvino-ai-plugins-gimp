@@ -19,8 +19,8 @@ setup(
         # Indicate who your project is intended for
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python :: 3.8",
-        # 'Programming Language :: Python :: 2.7 :: Only',
+        "Programming Language :: Python :: 3.X",
+        
     ],
     keywords="sample, setuptools, development",  # Optional
     packages=find_packages(),
@@ -37,14 +37,13 @@ setup(
         "opencv-python<=4.3",
         "scikit-image",
         "timm==0.4.5",
-        "transformers",
+        "transformers>=4.37.0",
         "diffusers",
         "controlnet-aux>=0.0.6",
-        "openvino==2023.1.0",
+        "openvino",
         "psutil",
         "matplotlib"
         
         
     ]
 )
-

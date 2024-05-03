@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
 # Copyright(C) 2022-2023 Intel Corporation
 # SPDX - License - Identifier: Apache - 2.0
 
-# !/usr/bin/env python3
 # coding: utf-8
 """
 Perform Stable-diffusion on the current layer.
@@ -183,24 +183,30 @@ def list_models(weight_path, SD):
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
-        return model_list  
-        
-    if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
+        return model_list     
 
     if SD == "SD_1.5_square_int8":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
         if os.path.isdir(dir_path):
             model_list.append(SD)
         return model_list
+    
+            
+    if SD == "SD_1.5":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
 
-    for file in os.scandir(dir_path): #, recursive=True):
-        text = Path(file) / 'text_encoder.xml'
-        unet = Path(file) / 'unet.xml'
-        vae = Path(file) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(vae):
-                model = "SD_1.5_" + os.path.basename(file)
-                model_list.append(model)
+    if SD == "SD_2.1":
+       
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1") 
+
+    if os.path.isdir(dir_path):
+        for file in os.scandir(dir_path): #, recursive=True):
+            text = Path(file) / 'text_encoder.xml'
+            unet = Path(file) / 'unet.xml'
+            vae = Path(file) / 'vae_decoder.xml'
+            if os.path.isfile(text) and os.path.isfile(vae):
+                    model = SD + "_" + os.path.basename(file)
+                    model_list.append(model)
 
     return model_list   
         
@@ -361,15 +367,22 @@ def is_server_running():
 
     return False
 
-def async_load_models(python_path, server_path, model_name, supported_devices, dialog):
+def async_load_models(python_path, server_path, model_name, supported_devices, device_power_mode,dialog):
 
     device_name = "iGPU"
     if "GPU.1" in supported_devices:
         device_name =  "dGPU"
    
+    if "NPU" in supported_devices: # and "GPU.1" not in supported_devices:
+        if device_power_mode == "Balanced":
+            device_name = "Balanced_NPU"
+        if device_power_mode == "Best power efficiency":
+            device_name = "NPU"
+        if device_power_mode == "Best Performance" and "GPU.1" in supported_devices:
+            device_name = "dGPU"
 
-    if "NPU" in supported_devices and "GPU.1" not in supported_devices:
-        device_name = "NPU"
+
+
 
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -455,6 +468,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         else:
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
+                          list_models(config_path_output["weight_path"],"SD_2.1") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
@@ -463,7 +477,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"controlnet_scribble") + 
                           list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
 
-        model_name_enum = DeviceEnum(model_list)            
+        model_name_enum = DeviceEnum(model_list)  
+        if "NPU" in supported_devices:
+            supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
+        else:
+            supported_modes = ["Best performance"]
+        device_name_enum = DeviceEnum(supported_modes)        
         
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
@@ -560,6 +579,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         seed_text = _("Seed")
         seed_label = Gtk.Label(label=seed_text)
+
+
+        adv_power_mode_label = Gtk.Label.new_with_mnemonic(_("_Power Mode"))
+        adv_power_mode_combo = GimpUi.prop_string_combo_box_new(
+            config, "power_mode", device_name_enum.get_tree_model(), 0, 1
+        )
         
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
@@ -609,6 +634,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.remove(seed_label)
             seed_label.hide()
 
+            grid.remove(adv_power_mode_label)
+            adv_power_mode_label.hide()
+            grid.remove(adv_power_mode_combo)
+            adv_power_mode_combo.hide()       
+
             invisible_label4.show()
             invisible_label5.show()
             invisible_label6.show()
@@ -626,6 +656,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(gscale_spin, 1, 5, 1, 1)
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
+            model_name = config.get_property("model_name")
+            if "int8" in model_name:
+                grid.attach(adv_power_mode_label, 0, 7, 1, 1)
+                grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
+                adv_power_mode_label.show()
+                adv_power_mode_combo.show()
+
+
+
             steps_label.show()
             steps_spin.show()
             gscale_label.show()
@@ -789,6 +828,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
         model_name = config.get_property("model_name")
+        device_power_mode = None
 
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
@@ -798,6 +838,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         if is_server_running():
             run_button.set_sensitive(True)
+            if adv_checkbox.get_active():
+                if "int8" in model_name:
+                    device_power_mode = config.get_property("power_mode")
+                else:    
+                    device_power_mode = None                
+
+                
+            else:
+                    device_power_mode = None
+
         
        
 
@@ -806,6 +856,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # if model / devices are changed from what is currently loaded.
         def model_sensitive_combo_changed(widget):
             model_name_tmp = config.get_property("model_name")
+            device_power_mode_tmp = None
 
             # LCM model has no negative prompt
             if model_name_tmp == "SD_1.5_square_lcm":
@@ -822,10 +873,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             else:
                 initialImage_checkbox.set_active(False)
 
+            if adv_checkbox.get_active():
+                if "int8" in model_name:
+                    device_power_mode_tmp = config.get_property("power_mode")
+                
+                else:
+                    device_power_mode_tmp = None
+
+
            
 
 
-            if (model_name_tmp==model_name):
+            if (model_name_tmp==model_name   and
+                device_power_mode_tmp==device_power_mode):
                 run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
@@ -838,10 +898,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         model_combo.connect("changed", model_combo_changed)
         model_combo.connect("changed", model_sensitive_combo_changed)
-     
-    
-
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
+        adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
 
      
 
@@ -864,9 +922,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
-          
-
-                        
+                                  
 
                 if adv_checkbox.get_active():
                             
@@ -888,8 +944,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     guidance_scale = 7.5
                     seed = None
                     strength = 1.0
-
-
 
 
 
@@ -931,12 +985,28 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 model_name = config.get_property("model_name")
 
+                if adv_checkbox.get_active():
+                
+                    if "int8" in model_name:
+                        device_power_mode = config.get_property("power_mode")
+                      
+                    else:
+                        device_power_mode = None
+                  
+                else:
+                    
+                    if "int8" in model_name:
+                        device_power_mode = "Best performance"
+                      
+                    else:
+                        device_power_mode = None
+
 
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)
                 
             
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,supported_devices, dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,supported_devices, device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue
@@ -1020,6 +1090,14 @@ class StableDiffusion(Gimp.PlugIn):
             False,
             GObject.ParamFlags.READWRITE,
         ),
+
+        "power_mode": (
+            str,
+            _("Power Mode"),
+            "Power Mode: 'Balanced', 'Best performance'",
+            "Best performance",
+            GObject.ParamFlags.READWRITE,
+        ),        
         
         "use_initial_image": (
             bool,
@@ -1075,6 +1153,7 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "model_name")
  
             procedure.add_argument_from_property(self, "advanced_setting")
+            procedure.add_argument_from_property(self, "power_mode")
            
             procedure.add_argument_from_property(self, "use_initial_image")
 

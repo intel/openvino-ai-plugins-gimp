@@ -16,64 +16,127 @@
 
 import logging
 import sys
-from argparse import ArgumentParser, SUPPRESS
-from pathlib import Path
-from time import perf_counter
 
+import numpy as np
+
+import openvino as ov
 
 import cv2
-from openvino.inference_engine import IECore
+import os
 
-from  models_ov.SuperResolution import SuperResolution
-from performance_metrics import PerformanceMetrics
-from pipelines import get_user_config, AsyncPipeline
-import monitors
-from images_capture import open_images_capture
+
 
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger()
 
+def convert_result_to_image(result,model_name) -> np.ndarray:
+    """
+    Convert network result of floating point numbers to image with integer
+    values from 0-255. Values outside this range are clipped to 0 and 255.
 
-def run(frame, model_path, device, model_name):
- 
-     log.info('Initializing Inference Engine...')
-     ie = IECore()
+    :param result: a single superresolution network result in N,C,H,W shape
+    """
+    if "edsr" in model_name:
+        
+        result = result[0]
+        result = result.transpose(1, 2, 0)
+        
+        result[result < 0] = 0
+        result[result > 255] = 255
+        result = result.astype(np.uint8)
+        return result
+        
+    result = result.squeeze(0).transpose(1, 2, 0)
+    result *= 255
+    result[result < 0] = 0
+    result[result > 255] = 255
+    result = result.astype(np.uint8)
+    return result
 
-     plugin_config = get_user_config(device, '', None)
-     log.info('Loading network: %s',model_name)
-     log.info('Device: %s',device)
-     log.info('frame.shape: %s',frame.shape)
-     
-     
-     model = SuperResolution(ie, model_path, frame.shape, model_name)
-     pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
+
+def run(image, model_path, device, model_name):
+    
+    if model_name == "edsr":
+        h,w = image.shape
+    else:
+        h,w,_ = image.shape
+
+    core = ov.Core()
+    core.set_property({'CACHE_DIR': os.path.join(model_path, '..','cache')})
+    model = core.read_model(model=model_path)
+
+    if "esrgan" in model_name or "edsr" in model_name:
+        original_image_key = model.inputs.pop()
+      
+        
+    else:
+        original_image_key, bicubic_image_key = model.inputs
+      
+
+   
+        input_height, _ = list(original_image_key.shape)[2:]
+        target_height, _ = list(bicubic_image_key.shape)[2:]
+    
+        upsample_factor = int(target_height / input_height)
+
+    shapes = {}
+    for input_layer in model.inputs:
+        if input_layer.names.pop() in ["0","input.1","x.1"]:
+            shapes[input_layer] = input_layer.partial_shape
+    
+            shapes[input_layer][2] = h
+            shapes[input_layer][3] = w
+        elif input_layer.names.pop() == "1":
+            shapes[input_layer] = input_layer.partial_shape
+            shapes[input_layer][2] = upsample_factor * h
+            shapes[input_layer][3] = upsample_factor * w
+        
+    model.reshape(shapes)
+
+    compiled_model = core.compile_model(model=model, device_name=device)
+    if "esrgan" in model_name or "edsr" in model_name:
+        original_image_key = compiled_model.inputs.pop()
+    else:
+        original_image_key, bicubic_image_key = compiled_model.inputs
+    output_key = compiled_model.output(0)
+
+    
+    if "edsr" in model_name:
+        image = np.expand_dims(image, axis=-1)
+    
+    input_image_original = np.expand_dims(image.transpose(2, 0, 1), axis=0)
+    if "esrgan" in model_name :
+        input_image_original = input_image_original / 255.0
+    
+   
+
+    if "esrgan" in model_name or "edsr" in model_name:
+        result = compiled_model(
+        {
+            original_image_key.any_name: input_image_original,
+          
+        }
+        )[output_key]
 
 
-     log.info('Starting inference...')
+    else:
 
-     if pipeline.is_ready():
-        start_time = perf_counter()
-        pipeline.submit_data(frame, 0, {'frame': frame, 'start_time': start_time})
-     else:
-                # Wait for empty request
-        pipeline.await_any()
+        bicubic_image = cv2.resize(
+        src=image, dsize=(w*upsample_factor, h*upsample_factor), interpolation=cv2.INTER_CUBIC)
+        input_image_bicubic = np.expand_dims(bicubic_image.transpose(2, 0, 1), axis=0)
+        input_image_bicubic.shape
+    
+        result = compiled_model(
+            {
+                original_image_key.any_name: input_image_original,
+                bicubic_image_key.any_name: input_image_bicubic,
+            }
+        )[output_key]
 
-     if pipeline.callback_exceptions:
-                raise pipeline.callback_exceptions[0]
+    result_image = convert_result_to_image(result,model_name)
+    return result_image
 
-     pipeline.await_all()
-        # Process all completed requests
-     results = pipeline.get_result(0)
-     while results is None:
-            log.info("WAIT for results")
-     if results:
-            log.info('We got some results')
-           
-            result_frame, frame_meta = results
-            input_frame = frame_meta['frame']
-       
-     return result_frame
 
 if __name__ == "__main__":
     import numpy as np

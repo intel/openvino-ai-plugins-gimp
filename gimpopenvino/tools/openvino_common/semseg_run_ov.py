@@ -17,21 +17,22 @@
 
 import logging
 import sys
-from argparse import ArgumentParser, SUPPRESS
-from pathlib import Path
+
 from time import perf_counter
 
 import cv2
 import numpy as np
-from openvino.inference_engine import IECore
+from openvino import AsyncInferQueue, Core, PartialShape, layout_helpers, get_version, Dimension
+from adapters import create_core, OpenvinoAdapter
 
 
-from models_ov import OutputTransform, SegmentationModel, SalientObjectDetectionModel
-import monitors
+from models_ov.segmentation import  SegmentationModel 
+
 from pipelines import get_user_config, AsyncPipeline
-from images_capture import open_images_capture
 
-from helpers import resolution
+from performance_metrics import PerformanceMetrics
+from models import OutputTransform
+
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO, stream=sys.stdout)
 log = logging.getLogger()
@@ -104,23 +105,28 @@ def render_segmentation(frame, masks, visualiser, only_masks=False):
  
 
 
-def get_model(ie, model):
+#def get_model(ie, model):
     
-        return SegmentationModel(ie, model), SegmentationVisualizer(None)
+  #      return SegmentationModel(ie, model), SegmentationVisualizer(None)
     
 
 
 def run(frame, model_path, device):
     
     log.info('Initializing Inference Engine...')
-    ie = IECore()
+ 
+    
 
     plugin_config = get_user_config(device, '', None)
+    model_adapter = OpenvinoAdapter(create_core(), model_path, device=device, plugin_config=plugin_config,max_num_requests=1, model_parameters={})
+    model = SegmentationModel.create_model('segmentation', model_adapter, None)
+    visualizer = SegmentationVisualizer(None)
+    model.log_layers_info()
 
-    model, visualizer = get_model(ie, model_path)
+    #model, visualizer = get_model(ie, model_path)
     log.info('Loading network: %s',model_path )
     log.info('Device: %s',device)   
-    pipeline = AsyncPipeline(ie, model, model_path, plugin_config, device, 1)
+    pipeline = AsyncPipeline(model)
     log.info('Starting inference...')
 
     if pipeline.is_ready():

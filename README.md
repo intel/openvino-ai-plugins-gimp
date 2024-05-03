@@ -4,10 +4,8 @@
 
 ## Current list of plugins:
 [1] Super-Resolution <br>
-[2] Style-Transfer <br>
-[3] Inpainting <br>
-[4] Semantic-Segmentation <br>
-[5] Stable-Diffusion (Supports - SD 1.4, SD 1.5 (landscape, portrait, and Latent Consistency Model), SD 1.5 Inpainting, SD 1.5 Controlnet-OpenPose, SD 1.5 Controlnet-CannyEdge, SD 1.5 Controlnet-Scribble) <br>
+[2] Semantic-Segmentation <br>
+[3] Stable-Diffusion (Supports - SD 1.4, SD 1.5 (landscape, portrait, and Latent Consistency Model), SD 1.5 Inpainting, SD 1.5 Controlnet-OpenPose, SD 1.5 Controlnet-CannyEdge, SD 1.5 Controlnet-Scribble) <br>
 
 # Objectives
 [1] Provides a set of OpenVINO™ based plugins that add AI features to GIMP. <br>
@@ -22,19 +20,15 @@ Please raise a PR for any new features, modifications, or bug fixes.
 ![gimp-screenshot](gimp-screenshot.PNG)
 
 ## Installation Steps
-
-### Install OpenVINO™
-- Download and install [OpenVINO™](https://github.com/openvinotoolkit/openvino/releases) for your operating system. Please follow the instructions to download and install OpenVINO™ from the archive. **Do not use pypi for installation.**
-- Note that these plugins have been tested with 2023.1.0 and 2023.2.0
-
 ### Windows
-For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windos_users.md).
+For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windows_users.md).
 
 ### Linux
 This plugin is tested on Ubuntu 22.04. Building GIMP from source is recommended.<br>
 For detailed steps and tips please refer to [Linux Installation Guide](./Docs/linux_install_guide.md).
 
 # OpenVINO™ Image Generator Plugin with Stable Diffusion
+#### Power Mode is enabled for int8 SD models and systems that has a "NPU" only 
 #### A. Prompt to Image
 1. Create or choose a layer
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins
@@ -93,9 +87,12 @@ _With Advanced Setting_
 
 ![](gifs/stable-diffusion1.png)
 
+_With Power Mode in Advanced Setting for SD int8 based models_
+
+![](gifs/stable-diffusion2.png)
 
 _Note that the screenshots below are based on the previous UI_
-![](gifs/stable-diffusion.webp)
+
 
 
 ### OpenVINO™ Semantic Segmentation Plugin
@@ -104,18 +101,7 @@ _Note that the screenshots below are based on the previous UI_
 ### OpenVINO™ Super Resolution Plugin
 ![](gifs/super-res.webp)
 
-### OpenVINO™ Style Transfer Plugin
-![](gifs/style-transfer.webp)
 
-### OpenVINO™ Inpainting Plugin
-1. Open an image in GIMP.
-2. Make sure there is alpha channel added to the image by right clicking on the image from layer section and selecting “Add alpha channel”
-3. Add a new transparent layer of the same size as original image.
-4. Select paint brush with white foreground color and black background color. Choose the thickness of the brush
-10. Now paint the object that you want to remove from the image.
-11. Select the new layer and image at the same. You should see “two items selected in layer section”
-
-![](gifs/inpainting.webp)
 
 
 # Acknowledgements

@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
 # Copyright(C) 2022-2023 Intel Corporation
 # SPDX - License - Identifier: Apache - 2.0
 
-#!/usr/bin/env python3
 # coding: utf-8
 """
 Perform superresolution on the current layer.
@@ -80,6 +80,9 @@ model_name_enum = StringEnum(
     _("esrgan"),
     "sr_1033",
     _("sr_1033"),
+       "sr_1032",
+    _("sr_1032"),
+
 )
 
 

@@ -8,7 +8,7 @@ opencv-python<=4.3
 scikit-image
 timm==0.4.5
 diffusers
-openvino==2022.3.0
+openvino
 transformers
 tqdm==4.64.0
 huggingface_hub
