@@ -196,7 +196,6 @@ def list_models(weight_path, SD):
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
 
     if SD == "SD_2.1":
-       
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1") 
 
     if os.path.isdir(dir_path):
@@ -368,22 +367,6 @@ def is_server_running():
     return False
 
 def async_load_models(python_path, server_path, model_name, supported_devices, device_power_mode,dialog):
-
-    device_name = "iGPU"
-    if "GPU.1" in supported_devices:
-        device_name =  "dGPU"
-   
-    if "NPU" in supported_devices: # and "GPU.1" not in supported_devices:
-        if device_power_mode == "Balanced":
-            device_name = "Balanced_NPU"
-        if device_power_mode == "Best power efficiency":
-            device_name = "NPU"
-        if device_power_mode == "Best Performance" and "GPU.1" in supported_devices:
-            device_name = "dGPU"
-
-
-
-
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((HOST, PORT))
@@ -394,7 +377,7 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
         print("No stable-diffusion model server found to kill")
 
 
-    process = subprocess.Popen([python_path, server_path, model_name,device_name], close_fds=True)
+    process = subprocess.Popen([python_path, server_path, model_name, supported_devices, device_power_mode], close_fds=True)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, 65433))
@@ -478,6 +461,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
 
         model_name_enum = DeviceEnum(model_list)  
+        
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
         else:
@@ -538,29 +522,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(model_combo, 1, 0, 1, 1)
         model_combo.show()
 
-
         #number of images
         num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
         num_images_spin = GimpUi.prop_spin_button_new(
             config, "num_images", step_increment=1, page_increment=0.1, digits=0
         ) 
 
-
-  
-
         # num_infer_steps parameter
         steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-        
-        
+               
         steps_spin = GimpUi.prop_spin_button_new(
             config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
-        
-        
 
         # guidance_scale parameter
         gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
-        
         
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
@@ -611,6 +587,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label7.show()  
         invisible_label8.show()           
 
+        def power_modes_supported(model_name):
+            print("Garth debug - power modes called on ", model_name, "from line 591 of ",__file__)
+            if "int8" in model_name or "lcm" in model_name:
+                return True
+            return False
+        
         def remove_all_advanced_widgets():
             grid.remove(gscale_label)
             gscale_label.hide()
@@ -657,7 +639,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
             model_name = config.get_property("model_name")
-            if "int8" in model_name:
+            
+            if power_modes_supported(model_name):
                 grid.attach(adv_power_mode_label, 0, 7, 1, 1)
                 grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
                 adv_power_mode_label.show()
@@ -758,6 +741,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image", 
                                     _("_Use Inital Image (Default: Selected layer in Canvas)"))   
 
+
         def populate_init_image_section():
             grid.attach(file_chooser_button, 0, 8, 1, 1)
             file_chooser_button.show()
@@ -833,23 +817,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
-   
-
 
         if is_server_running():
             run_button.set_sensitive(True)
-            if adv_checkbox.get_active():
-                if "int8" in model_name:
-                    device_power_mode = config.get_property("power_mode")
-                else:    
-                    device_power_mode = None                
-
-                
-            else:
-                    device_power_mode = None
-
-        
-       
+            if adv_checkbox.get_active() and power_modes_supported(model_name): 
+                device_power_mode = config.get_property("power_mode")           
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -879,11 +851,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 
                 else:
                     device_power_mode_tmp = None
-
-
-           
-
-
+    
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
                 run_button.set_sensitive(True)
@@ -900,9 +868,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         model_combo.connect("changed", model_sensitive_combo_changed)
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
         adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
-
-     
-
+ 
         # Wait for user to click
         dialog.show()
      
@@ -923,9 +889,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
                                   
-
                 if adv_checkbox.get_active():
-                            
                     num_images = config.get_property("num_images") 
                     num_infer_steps = config.get_property("num_infer_steps")
                     guidance_scale = config.get_property("guidance_scale")
@@ -945,8 +909,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     seed = None
                     strength = 1.0
 
-
-
                 if initialImage_checkbox.get_active() and n_layers == 1:
                     if len(file_entry.get_text()) != 0:
                         initial_image = file_entry.get_text()
@@ -954,9 +916,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                         initial_image = os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png")
                 else:
                     initial_image = None
-                    
-
-           
+                      
 
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, progress_bar, config_path_output)
@@ -974,7 +934,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
  
-  
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
                 run_button.set_sensitive(False)
@@ -985,28 +944,17 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 model_name = config.get_property("model_name")
 
-                if adv_checkbox.get_active():
-                
-                    if "int8" in model_name:
-                        device_power_mode = config.get_property("power_mode")
-                      
+                if power_modes_supported(model_name):
+                    print("garth debug - line 974-",__file__)
+                    if adv_checkbox.get_active():
+                        device_power_mode = config.get_property("power_mode")     
                     else:
-                        device_power_mode = None
-                  
-                else:
-                    
-                    if "int8" in model_name:
-                        device_power_mode = "Best performance"
-                      
-                    else:
-                        device_power_mode = None
-
+                        device_power_mode = "Best performance" 
 
                 server = "stable-diffusion-ov-server.py"
-                server_path = os.path.join(config_path, server)
-                
-            
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,supported_devices, device_power_mode,dialog))
+                server_path = os.path.join(config_path, server)  
+
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,str(supported_devices)[1:-1], device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue
