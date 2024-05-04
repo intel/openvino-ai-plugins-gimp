@@ -1,13 +1,14 @@
 :<<BATCH
     @echo off
     echo **** openvino-ai-plugins-gimp Setup started **** 
+    echo %~dp0
     python -m pip install virtualenv | find /V "already satisfied"
 
     python -m virtualenv gimpenv3
     echo -----activating python venv------------------------------------------------------------------
     call "gimpenv3\Scripts\activate"
-    pip install -r openvino-ai-plugins-gimp\plugin-requirements.txt | find /V "already satisfied"
-    pip install openvino-ai-plugins-gimp\.
+    pip install -r %~dp0\plugin-requirements.txt | find /V "already satisfied"
+    pip install %~dp0\.
 
     echo *** openvino-ai-plugins-gimp Installed ***
     python -c "import gimpopenvino; gimpopenvino.setup_python_weights()"
@@ -25,11 +26,9 @@
     ) else ( set "continue=n"
     )
 		
-
-	
     if %continue%==y (
 	echo **** OpenVINO MODEL SETUP STARTED ****
-	gimpenv3\Scripts\python.exe openvino-ai-plugins-gimp\model_setup.py
+	gimpenv3\Scripts\python.exe %~dp0\model_setup.py
     ) else ( echo Model setup skipped. Please make sure you have all the required models setup.
     )
 		
