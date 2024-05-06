@@ -8,31 +8,37 @@ from pathlib import Path
 from glob import glob
 from openvino.runtime import Core
 
-
 other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
 src_dir = os.path.join("openvino-ai-plugins-gimp", "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-access_token  = "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"
+access_token  = "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" # remove me later, eh? 
 
 core = Core()
 cpu_type = core.get_property('CPU','full_device_name'.upper())
 os_type = platform.system().lower()
 npu_driver_version = None
+npu_arch = None
+
 if "ultra" in cpu_type.lower():
     npu_arch = core.get_property('NPU','DEVICE_ARCHITECTURE')
+    if npu_arch.upper() == "AUTO_DETECT":
+        npu_arch = "4000"
     try:	
         if os_type == "windows":
-            command = "get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceID -like 'PCI\VEN_8086&DEV_7D1D*'} | Select-Object -ExpandProperty DriverVersion"
-            npu_driver_version = subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).split(".")
+            if npu_arch == "3270":
+                npu_devid = "PCI\VEN_8086&DEV_7D1D"
+            else:
+                npu_devid = "PCI\VEN_8086&DEV_643E"
+            command = "get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceID -like '"+npu_devid+"*'} | Select-Object -ExpandProperty DriverVersion"
+            npu_driver_version = subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
         elif os_type == "linux":
             command = "modinfo intel_vpu | grep ^version | awk '{print $2}'"
-            npu_driver_version = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).split(".")
+            npu_driver_version = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split(".")
         else:
             raise ValueError(f"Unsupported OS type {os_type}")          
     except Exception as e:
         print(f"Error: {e}")
-
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
@@ -79,10 +85,12 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
                 print("%s download skipped",repo_id)
                 
     if  download_flag:               
+        revision = None
         if npu_driver_version is not None: 
             if os_type == "windows":
+                print("GARTH DEBUG - NPU Driver version =", npu_driver_version)
                 if int(npu_driver_version[3]) < 2016:
-                    revision = "v0.1.1-"+str(npu_arch)
+                    revision = "v0.1.0-"+str(npu_arch)
                 else:
                     revision = "v0.1.0-"+str(npu_arch)
             else:
@@ -91,7 +99,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         
         while True:
                 try:  
-                    download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision="v0.1")
+                    download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
                     break
                 except Exception as e:
                      print("Error retry:" + str(e))
