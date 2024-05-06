@@ -1,16 +1,38 @@
+import platform
+import subprocess
 from huggingface_hub import snapshot_download
 import os
 import sys
 import shutil
 from pathlib import Path
 from glob import glob
+from openvino.runtime import Core
 
 
 other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
 src_dir = os.path.join("openvino-ai-plugins-gimp", "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-access_token  = None
+access_token  = "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"
+
+core = Core()
+cpu_type = core.get_property('CPU','full_device_name'.upper())
+os_type = platform.system().lower()
+npu_driver_version = None
+if "ultra" in cpu_type.lower():
+    npu_arch = core.get_property('NPU','DEVICE_ARCHITECTURE')
+    try:	
+        if os_type == "windows":
+            command = "get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceID -like 'PCI\VEN_8086&DEV_7D1D*'} | Select-Object -ExpandProperty DriverVersion"
+            npu_driver_version = subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).split(".")
+        elif os_type == "linux":
+            command = "modinfo intel_vpu | grep ^version | awk '{print $2}'"
+            npu_driver_version = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).split(".")
+        else:
+            raise ValueError(f"Unsupported OS type {os_type}")          
+    except Exception as e:
+        print(f"Error: {e}")
+
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
@@ -27,13 +49,10 @@ install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gi
 
 if choice == "Y" or choice == "y":
     SD_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
-
     if os.path.isdir(SD_path):
-        
          shutil.rmtree(SD_path)
 
     repo_id="bes-dev/stable-diffusion-v1-4-openvino"
-    
     while True:
         try:
             download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
@@ -49,24 +68,30 @@ install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gi
 
 def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
-    
     SD_path_FP16 = os.path.join(install_location, model_fp16)
-    
     if os.path.isdir(SD_path_FP16):
             choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
             if choice == "Y" or choice == "y":
                 download_flag = True
                 shutil.rmtree(SD_path_FP16)
-            
             else:
                 download_flag = False
                 print("%s download skipped",repo_id)
                 
     if  download_flag:               
-    
+        if npu_driver_version is not None: 
+            if os_type == "windows":
+                if int(npu_driver_version[3]) < 2016:
+                    revision = "v0.1.1-"+str(npu_arch)
+                else:
+                    revision = "v0.1.0-"+str(npu_arch)
+            else:
+                # add more checking once we figure out Linux versioning
+                revision = "v0.2.0-"+str(npu_arch)
+        
         while True:
                 try:  
-                    download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+                    download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision="v0.1")
                     break
                 except Exception as e:
                      print("Error retry:" + str(e))
@@ -99,7 +124,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
     
 def download_model(repo_id, model_1, model_2):
     download_flag = True
-
+    
     if "sd-2.1" in repo_id:
         sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)
         
@@ -143,8 +168,8 @@ def download_model(repo_id, model_1, model_2):
         shutil.rmtree(delete_folder, ignore_errors=True)
     
 def dl_sd_15_square():
-    print("Downloading Intel/sd-1.5-square-quantized Models")
-    repo_id = "Intel/sd-1.5-square-quantized"
+    print("Downloading gblong1/sd-1.5-square-quantized Models")
+    repo_id = "gblong1/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
     download_quantized_models(repo_id, model_fp16, model_int8)
