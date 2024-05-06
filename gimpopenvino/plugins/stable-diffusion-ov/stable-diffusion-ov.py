@@ -376,8 +376,7 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
     except:
         print("No stable-diffusion model server found to kill")
 
-
-    process = subprocess.Popen([python_path, server_path, model_name, supported_devices, device_power_mode], close_fds=True)
+    process = subprocess.Popen([python_path, server_path, model_name, str(supported_devices), device_power_mode], close_fds=True)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, 65433))
@@ -588,7 +587,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            print("Garth debug - power modes called on ", model_name, "from line 591 of ",__file__)
             if "int8" in model_name or "lcm" in model_name:
                 return True
             return False
@@ -812,7 +810,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
         model_name = config.get_property("model_name")
-        device_power_mode = None
+        device_power_mode = "best performance"
 
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
@@ -945,7 +943,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 model_name = config.get_property("model_name")
 
                 if power_modes_supported(model_name):
-                    print("garth debug - line 974-",__file__)
                     if adv_checkbox.get_active():
                         device_power_mode = config.get_property("power_mode")     
                     else:
@@ -954,7 +951,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)  
 
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name,str(supported_devices)[1:-1], device_power_mode,dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices)[1:-1], device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue

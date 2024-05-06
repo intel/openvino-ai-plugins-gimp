@@ -131,14 +131,16 @@ def run(model_name, available_devices, power_mode):
             if model_config['power modes supported'].lower() == "yes":
                 device_list = model_config[power_mode.lower()]
             else:
-                device_list = model_config['best_performance']
+                device_list = model_config['best performance']
 
         # if there is a dGPU available, choose that instead of integrated, unless we are trying to save power for some reason. 
         for device in available_devices:
-            if isinstance(device, str)  and \
-               device.lower() == 'dgpu' and \
-               power_mode.lower() != 'best power efficiency':
-                device_list = [device.replace('GPU','GPU.1') if isinstance(device, str) else device for device in device_list]
+            if isinstance(device, str) and device.lower() == 'dgpu':
+                if power_mode.lower() != 'best power efficiency':
+                    device_list = [device.replace('GPU','GPU.1') if isinstance(device, str) else device for device in device_list]
+                else:
+                    device_list = [device.replace('GPU','GPU.0') if isinstance(device, str) else device for device in device_list]
+
 
     except KeyError as e:
         log.error(f"Key Error {e}. Only CPU will be used.")
