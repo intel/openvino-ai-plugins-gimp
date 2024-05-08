@@ -88,9 +88,8 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         revision = None
         if npu_driver_version is not None: 
             if os_type == "windows":
-                print("GARTH DEBUG - NPU Driver version =", npu_driver_version)
                 if int(npu_driver_version[3]) < 2016:
-                    revision = "v0.1.0-"+str(npu_arch)
+                    revision = "v0.0.5-"+str(npu_arch)
                 else:
                     revision = "v0.1.0-"+str(npu_arch)
             else:
@@ -113,9 +112,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
         shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
 
-
-
-    
+   
         if model_int8:
             SD_path_INT8 = os.path.join(install_location, model_int8)           
             
@@ -231,8 +228,8 @@ def dl_sd_15_scribble():
     model_int8 = "controlnet-scribble-int8"
     download_quantized_models(repo_id, model_fp16, model_int8)
 def dl_sd_15_LCM():
-    print("Downloading Intel/sd-1.5-lcm-openvino")
-    repo_id = "Intel/sd-1.5-lcm-openvino"
+    print("Downloading gblong1/sd-1.5-lcm-openvino")
+    repo_id = "gblong1/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
     download_model(repo_id, model_1, model_2)
