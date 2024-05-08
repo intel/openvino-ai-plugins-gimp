@@ -778,19 +778,36 @@ class LatentConsistencyEngine(DiffusionPipeline):
         # text features
 
         print("Text Device:", device[0])
-        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
+        if "NPU" in device[0]:    
+            blob_name = "text_encoder.blob"
+            with open(os.path.join(model, blob_name), "rb") as f:
+                self.text_encoder = self.core.import_model(f.read(), device[0])
+        else:
+            self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
+        
         self._text_encoder_output = self.text_encoder.output(0)
 
         # diffusion
         print("unet Device:", device[1])
-        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1])
+        if "NPU" in device[1]:    
+            blob_name = "unet.blob"
+            with open(os.path.join(model, blob_name), "rb") as f:
+                self.unet = self.core.import_model(f.read(), device[1])
+        else:    
+                self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1])
+        
         self._unet_output = self.unet.output(0)
         self.infer_request = self.unet.create_infer_request()
 
         # decoder
         print("Vae Device:", device[2])
-
-        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
+        if "NPU" in device[2]:    
+            blob_name = "vae_decoder.blob"
+            with open(os.path.join(model, blob_name), "rb") as f:
+                self.vae_decoder = self.core.import_model(f.read(), device[2])
+        else:    
+            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
+        
         self.infer_request_vae = self.vae_decoder.create_infer_request()
         self.safety_checker = None #pipe.safety_checker
         self.feature_extractor = None #pipe.feature_extractor
