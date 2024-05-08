@@ -57,7 +57,6 @@ def progress_callback(i, conn):
     conn.sendall(tosend)
 
 def run(model_name, available_devices, power_mode):
-    print("garth debug - run called on ",model_name," with power_mode =",power_mode)
     weight_path = get_weight_path()
     blobs = False
 
@@ -131,16 +130,14 @@ def run(model_name, available_devices, power_mode):
             if model_config['power modes supported'].lower() == "yes":
                 device_list = model_config[power_mode.lower()]
             else:
-                device_list = model_config['best performance']
+                device_list = model_config['best_performance']
 
         # if there is a dGPU available, choose that instead of integrated, unless we are trying to save power for some reason. 
         for device in available_devices:
-            if isinstance(device, str) and device.lower() == 'dgpu':
-                if power_mode.lower() != 'best power efficiency':
-                    device_list = [device.replace('GPU','GPU.1') if isinstance(device, str) else device for device in device_list]
-                else:
-                    device_list = [device.replace('GPU','GPU.0') if isinstance(device, str) else device for device in device_list]
-
+            if isinstance(device, str)  and \
+               device.lower() == 'dgpu' and \
+               power_mode.lower() != 'best power efficiency':
+                device_list = [device.replace('GPU','GPU.1') if isinstance(device, str) else device for device in device_list]
 
     except KeyError as e:
         log.error(f"Key Error {e}. Only CPU will be used.")
@@ -153,65 +150,59 @@ def run(model_name, available_devices, power_mode):
         log.info('device_name: %s',device_list)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
-        device = device_list, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_openpose_int8":
         log.info('device_name: %s',device_list)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
-        device = device_list, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_canny_int8":
         log.info('device_name: %s',device_list)
         engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
-        device = device_list, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_scribble_int8":
         log.info('device_name: %s',device_list)
         engine = ControlNetScribbleAdvanced(
         model = model_path,
-        device = device_list, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
         device= device_list
-    )
+        )
     
     elif model_name == "controlnet_canny":
         engine = ControlNetCannyEdge(
         model = model_path,
         device= device_list
-    )    
+        )    
     
     elif model_name == "controlnet_scribble":
         engine = ControlNetScribble(
         model = model_path,
         device= device_list
-    )
+        )
 
     elif model_name ==  "SD_1.5_square_lcm":
-        # device = ["CPU","NPU","GPU"]  
         engine = LatentConsistencyEngine(
         model = model_path,
         device= device_list
-    )
+        )
 
     elif model_name == "SD_1.5_Inpainting_int8":
         log.info('advanced Inpainting device_name: %s',device_list)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
-        device = device_list, 
-        blobs = blobs
+        device = device_list
         )
 
     elif model_name == "controlnet_openpose":
