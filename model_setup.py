@@ -9,7 +9,7 @@ from glob import glob
 from openvino.runtime import Core
 
 other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
-src_dir = os.path.join("openvino-ai-plugins-gimp", "weights")
+src_dir = os.path.join(os.path.dirname(__file__), "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
 access_token  = "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" # remove me later, eh? 
@@ -97,14 +97,12 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
                 revision = "v0.2.0-"+str(npu_arch)
         
         while True:
-                try:  
-                    download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
-                    break
-                except Exception as e:
-                     print("Error retry:" + str(e))
-          
-            #print("download_folder", download_folder)
-
+            try:  
+                download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
+                break
+            except Exception as e:
+                print("Error retry:" + str(e))
+ 
         FP16_model = os.path.join(download_folder, "FP16")
         # on some systems, the FP16 subfolder is not created resulting in a installation crash 
         if not os.path.isdir(FP16_model):
@@ -131,8 +129,7 @@ def download_model(repo_id, model_1, model_2):
     download_flag = True
     
     if "sd-2.1" in repo_id:
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)
-        
+        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
     else:        
         sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
@@ -145,15 +142,26 @@ def download_model(repo_id, model_1, model_2):
             download_flag = False
             print("%s download skipped",repo_id)
                            
-
     if download_flag:
+        revision = None
+        if npu_driver_version is not None: 
+            if os_type == "windows":
+                if int(npu_driver_version[3]) < 2016:
+                    revision = "v0.0.5-"+str(npu_arch)
+                else:
+                    revision = "v0.1.0-"+str(npu_arch)
+            else:
+                # add more checking once we figure out Linux versioning
+                revision = "v0.2.0-"+str(npu_arch)
+        
         while True:
-            try:
-                download_folder = snapshot_download(repo_id=repo_id, token=access_token)
-                break
+            try:  
+               download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
+               break
             except Exception as e:
                 print("Error retry:" + str(e))
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
+        
+        if repo_id == "gblong1/sd-1.5-lcm-openvino":
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
