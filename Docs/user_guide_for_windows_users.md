@@ -20,7 +20,7 @@
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
   - [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
-  - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
+  - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel-sandbox/GIMP-ML-OV) from Github.
 
 
 ### Install Python
@@ -101,7 +101,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     cd C:\Users\Public\
     mkdir GIMP
     cd GIMP
-    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
+    git clone https://github.com/intel-sandbox/GIMP-ML-OV.git
     ```
     > __Notes__:
     > This is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
@@ -168,7 +168,7 @@ You can now simply open Gimp from the start menu as you would any normal Windows
 
 ## Execute Stable-Diffusion – SD1.5_square_int8
 
-Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For other features, please refer to [OpenVINO™ Image Generator Plugin with Stable Diffusion](https://github.com/intel/openvino-ai-plugins-gimp/tree/main?tab=readme-ov-file#openvino-image-generator-plugin-with-stable-diffusion) section.
+Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For other features, please refer to [OpenVINO™ Image Generator Plugin with Stable Diffusion](https://github.com/intel-sandbox/GIMP-ML-OV/tree/main?tab=readme-ov-file#openvino-image-generator-plugin-with-stable-diffusion) section.
 
 - Following previous section to launch GIMP
 
