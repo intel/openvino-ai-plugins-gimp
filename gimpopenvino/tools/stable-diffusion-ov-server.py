@@ -78,8 +78,6 @@ def run(model_name, available_devices, power_mode):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square")
     elif model_name == "SD_1.5_square_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
-        blobs = True
-        swap = True
     elif model_name == "SD_1.5_landscape":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape")
     elif model_name == "SD_1.5_portrait_512x768":
@@ -90,7 +88,6 @@ def run(model_name, available_devices, power_mode):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
     elif model_name == "SD_1.5_Inpainting_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
-        blobs = True
     elif model_name == "SD_2.1_square_base":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square_base")
     elif model_name == "SD_2.1_square":
@@ -105,19 +102,12 @@ def run(model_name, available_devices, power_mode):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
     elif model_name=="controlnet_openpose_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
-        blobs = True
-        swap = True
     elif model_name=="controlnet_canny_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
-        blobs = True
-        swap = True
     elif model_name=="controlnet_scribble_int8":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
-        blobs = True
-        swap = True   
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-        
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
