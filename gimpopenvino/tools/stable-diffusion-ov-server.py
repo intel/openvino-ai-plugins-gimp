@@ -42,6 +42,7 @@ sys.path.extend([plugin_loc])
 from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
+from models_ov.stable_diffusion_3 import StableDiffusionThreeEngine
 
 from  models_ov.controlnet_openpose import ControlNetOpenPose
 from  models_ov.controlnet_canny_edge import ControlNetCannyEdge
@@ -92,6 +93,10 @@ def run(model_name, available_devices, power_mode):
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square_base")
     elif model_name == "SD_2.1_square":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square")
+    elif model_name == "SD_3.0_square_int8":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0", "square_int8")
+    elif model_name == "SD_3.0_square_int4":
+        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0", "square_int4")
     elif model_name == "controlnet_referenceonly":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
     elif model_name == "controlnet_openpose":
@@ -111,7 +116,7 @@ def run(model_name, available_devices, power_mode):
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
-    device_list = ["CPU","CPU","CPU","CPU"]
+    device_list = ["CPU","CPU","CPU","CPU","CPU"]
     model_config = []
     model_config_file_name = os.path.join(model_path, "config.json")
     try:
@@ -206,7 +211,11 @@ def run(model_name, available_devices, power_mode):
         model = model_path,
         device = ["CPU", "GPU", "GPU", "GPU"]
         )
-
+    elif model_name == "SD_3.0_square_int8" or model_name == "SD_3.0_square_int4":
+        engine = StableDiffusionThreeEngine(
+            model = model_path,
+            device= device_list
+        )
     else:
         engine = StableDiffusionEngine(
             model = model_path,
@@ -345,6 +354,16 @@ def run(model_name, available_devices, power_mode):
                                 callback_userdata = conn,
                                 seed = seed
                         )
+                        elif "SD_3.0" in model_name:
+                            output = engine(
+                                prompt = prompt,
+                                negative_prompt = negative_prompt,
+                                num_inference_steps = num_infer_steps,
+                                guidance_scale = guidance_scale,
+                                callback = progress_callback,
+                                callback_userdata = conn,
+                                seed = seed
+                        )
                         elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
                             output = engine(
                                 prompt = prompt,
@@ -403,31 +422,17 @@ def run(model_name, available_devices, power_mode):
 
                         image = "sd_cache.png"
 
-                        if model_name == "SD_1.5_square_lcm" or \
-                        model_name == "controlnet_openpose" or \
-                        model_name == "controlnet_openpose_int8" or \
-                        model_name == "controlnet_canny_int8" or \
-                        model_name == "controlnet_canny" or \
-                        model_name == "controlnet_scribble" or \
-                        model_name == "controlnet_scribble_int8":
-                            
+                        if "SD_3.0" in model_name or "controlnet" in model_name or model_name == "SD_1.5_square_lcm" :
                             output.save(os.path.join(weight_path, "..", image )) 
-                        
                             src_width,src_height = output.size
                         else:
                             cv2.imwrite(os.path.join(weight_path, "..", image), output) #, output[:, :, ::-1])
-                    
                             src_height,src_width, _ = output.shape
 
                         
-                       
                         data_output["seed_num"] = seed
-                    
-
-
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
-
                         data_output["inference_status"] = "success"
 
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:

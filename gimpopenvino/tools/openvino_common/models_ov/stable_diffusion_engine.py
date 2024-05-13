@@ -255,10 +255,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
             # expand the latents if we are doing classifier free guidance
             noise_pred = []
             latent_model_input = latents
-
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-
-
 
             latent_model_input_gpu = latent_model_input
             latent_model_input_neg = latent_model_input

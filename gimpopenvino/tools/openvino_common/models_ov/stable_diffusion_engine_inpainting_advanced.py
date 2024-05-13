@@ -198,7 +198,7 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
 
 
         if blobs:
-            blob_name = "unet_int8_NPU.blob"           
+            blob_name = "unet_int8.blob"           
             # Postive Prompt
             if "NPU" in device[1]:    
                 with open(os.path.join(model, blob_name), "rb") as f:

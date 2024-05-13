@@ -198,6 +198,15 @@ def list_models(weight_path, SD):
     if SD == "SD_2.1":
         dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1") 
 
+    if SD == "SD_3.0":
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0","square_int8")
+        if os.path.isdir(dir_path):
+            model_list.append(SD + "_square_int8")
+        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0","square_int4") 
+        if os.path.isdir(dir_path):
+            model_list.append(SD + "_square_int4")
+        return model_list
+    
     if os.path.isdir(dir_path):
         for file in os.scandir(dir_path): #, recursive=True):
             text = Path(file) / 'text_encoder.xml'
@@ -451,6 +460,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
                           list_models(config_path_output["weight_path"],"SD_1.5") +
                           list_models(config_path_output["weight_path"],"SD_2.1") +
+                          list_models(config_path_output["weight_path"],"SD_3.0") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
