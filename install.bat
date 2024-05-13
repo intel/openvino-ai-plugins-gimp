@@ -1,7 +1,6 @@
 :<<BATCH
     @echo off
     echo **** openvino-ai-plugins-gimp Setup started **** 
-    echo %~dp0
     python -m pip install virtualenv | find /V "already satisfied"
 
     python -m virtualenv gimpenv3
