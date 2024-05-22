@@ -26,7 +26,7 @@ if "ultra" in cpu_type.lower():
         npu_arch = "4000"
     try:	
         if os_type == "windows":
-            if npu_arch == "3270":
+            if npu_arch == "3720":
                 npu_devid = "PCI\VEN_8086&DEV_7D1D"
             else:
                 npu_devid = "PCI\VEN_8086&DEV_643E"
