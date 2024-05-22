@@ -20,3 +20,4 @@ einops
 sentencepiece
 protobuf
 openvino-nightly==2024.2.0.dev20240501
+distro
