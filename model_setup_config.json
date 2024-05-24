@@ -28,7 +28,7 @@
     "npu_devid_selection":{
         "windows": {
             "3720": "PCI\\VEN_8086&DEV_7D1D",
-            "default": "PCI\\VEN_8086&DEV_643E"
+            "4000": "PCI\\VEN_8086&DEV_643E"
         },
         "linux" : {
             "default":"NPU"
