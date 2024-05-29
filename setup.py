@@ -19,8 +19,8 @@ setup(
         # Indicate who your project is intended for
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python :: 3.8",
-        # 'Programming Language :: Python :: 2.7 :: Only',
+        "Programming Language :: Python :: 3.X",
+        
     ],
     keywords="sample, setuptools, development",  # Optional
     packages=find_packages(),
