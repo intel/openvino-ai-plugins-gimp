@@ -1,0 +1,72 @@
+{
+    "reference_only":{
+
+        "npu_devid_selection":{
+            "windows": {
+                "NPU_ARCH_NUMBER": "PCI****",
+                "default": ""
+            },
+            "linux" : {
+                "":""
+            }    
+        },
+        "revision_selection": {
+            "model_name": {
+                "windows": {
+                    "npu_driver_version": "revision_value"
+                },
+                "linux": {
+                    "kernel_version": {
+                        "npu_driver_version": "revision_value"
+                    }
+                }
+            },
+            "default":"Empty_Revision_string"
+        }  
+    },
+
+    "npu_devid_selection":{
+        "windows": {
+            "3720": "PCI\\VEN_8086&DEV_7D1D"
+        },
+        "linux" : {
+            "default":"NPU"
+        }      
+    },
+    "revision_selection": {
+        "sd_15_square":{
+            "windows": {
+                "<2016": "v0.0.5",
+                "default": "v0.1.0"
+            },
+            "linux": {
+                "6.5": {
+                    "1.0.0": "v0.2.65"
+                },
+                "6.8": {
+                    "1.2.0": "v0.2.68"
+                }
+            }
+        },
+
+        "sd_15_LCM":{
+            "windows": {
+                "<2016": "v0.0.5",
+                "default": "v0.1.0"
+            },
+            "linux": {
+                "6.5": {
+                    "1.0.0": ""
+                },
+                "6.8": {
+                    "1.2.0": ""
+                }
+            }
+        },
+
+        "default": ""
+    }
+
+    
+    
+}
