@@ -109,7 +109,7 @@ def run(model_name, available_devices, power_mode):
             if model_config['power modes supported'].lower() == "yes":
                 device_list = model_config[power_mode.lower()]
             else:
-                device_list = model_config['best_performance']
+                device_list = model_config['best performance']
 
         # if there is a dGPU available, choose that instead of integrated, unless we are trying to save power for some reason. 
         for device in available_devices:
