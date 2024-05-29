@@ -289,8 +289,11 @@ def dl_all():
     dl_sd_15_Referenceonly()
     #dl_sd_21_square()
 
-while True:
-    print("=========Chose SD models to download =========")
+def show_menu():
+    """
+    Display the menu options for downloading models.
+    """
+    print("=========Choose SD models to download=========")
     print("1 - SD-1.5 Square (512x512)")
     print("2 - SD-1.5 Portrait")
     print("3 - SD-1.5 Landscape")
@@ -298,31 +301,42 @@ while True:
     print("5 - SD-1.5 Controlnet-Openpose")
     print("6 - SD-1.5 Controlnet-CannyEdge")
     print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - SD-1.5 LCM ")
+    print("8 - SD-1.5 LCM")
     print("9 - SD-1.5 Controlnet-ReferenceOnly")
-#    print("10 - SD-2.1 Square (768x768)")
+    # print("10 - SD-2.1 Square (768x768)")
     print("12 - All the above models")
     print("0 - Exit SD Model setup")
 
-    choice = input("Enter the Number for the model you want to download: ")
+def main():
+    while True:
+        show_menu()
+        choice = input("Enter the number for the model you want to download: ")
 
-    if choice=="1":  dl_sd_15_square()
-    if choice=="2":  dl_sd_15_portrait()
-    if choice=="3":  dl_sd_15_landscape()
-    if choice=="4":  dl_sd_15_inpainting()
-    if choice=="5":  dl_sd_15_openpose()
-    if choice=="6":  dl_sd_15_canny()
-    if choice=="7":  dl_sd_15_scribble()
-    if choice=="8":  dl_sd_15_LCM()
-    if choice=="9":  dl_sd_15_Referenceonly()
-    #if choice=="10":  dl_sd_21_square()
+        if choice == "0":
+            print("Exiting SD Model setup...")
+            break
+        elif choice == "12":
+            dl_all()
+            print("Completed downloading all models. Exiting SD Model setup...")
+            break
+        else:
+            download_functions = {
+                "1": dl_sd_15_square,
+                "2": dl_sd_15_portrait,
+                "3": dl_sd_15_landscape,
+                "4": dl_sd_15_inpainting,
+                "5": dl_sd_15_openpose,
+                "6": dl_sd_15_canny,
+                "7": dl_sd_15_scribble,
+                "8": dl_sd_15_LCM,
+                "9": dl_sd_15_Referenceonly,
+                # "10": dl_sd_21_square,
+            }
+            func = download_functions.get(choice)
+            if func:
+                func()
+            else:
+                print("Invalid choice")
 
-    if choice=="12":
-        dl_all()
-        print("Complete downloaing all models. Exiting SD-1.5 Model setup.........")
-        break
-    
-    if choice=="0":
-        print("Exiting SD Model setup.........")
-        break
-    
+if __name__ == "__main__":
+    main()
