@@ -56,10 +56,7 @@ def progress_callback(i, conn):
     tosend = bytes(str(i), 'utf-8')
     conn.sendall(tosend)
 
-
-
-
-def run(model_name,device_name):
+def run(model_name, available_devices, power_mode):
     weight_path = get_weight_path()
     blobs = False
 
@@ -71,147 +68,126 @@ def run(model_name,device_name):
  
     import json
     log.info('Model Name: %s',model_name )
-    if model_name == "SD_1.4":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-    elif model_name == "SD_1.5_square_lcm":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
-      
+    # Define the model path mappings
+    model_paths = {
+        "SD_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
+        "SD_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+        "SD_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
+        "SD_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
+        "SD_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "SD_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
+        "SD_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
+        "SD_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
+        "SD_1.5_Inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5-inpainting"],
+        "SD_1.5_Inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8"],
+        "SD_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
+        "SD_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
+        "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
+        "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
+        "controlnet_scribble": ["stable-diffusion-ov", "controlnet-scribble"],
+        "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
+        "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
+        "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
+    }
 
-    elif model_name == "SD_1.5_portrait":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait")
-    elif model_name == "SD_1.5_square":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square")
-    elif model_name == "SD_1.5_square_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
-        blobs = True
-        swap = True
-    elif model_name == "SD_1.5_landscape":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape")
-    elif model_name == "SD_1.5_portrait_512x768":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768")
-    elif model_name == "SD_1.5_landscape_768x512":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512")
-    elif model_name == "SD_1.5_Inpainting":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
-    elif model_name == "SD_1.5_Inpainting_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
-        blobs = True
-    elif model_name == "SD_2.1_square_base":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square_base")
-    elif model_name == "SD_2.1_square":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1", "square")
-    
-    elif model_name == "controlnet_referenceonly":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
+    # Default path if model_name is not in the dictionary
+    default_path = ["stable-diffusion-ov", "stable-diffusion-1.4"]
 
-    elif model_name == "controlnet_openpose":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
-    elif model_name == "controlnet_canny":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
-    elif model_name == "controlnet_scribble": 
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
-    elif model_name=="controlnet_openpose_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
-        blobs = True
-        swap = True
-    elif model_name=="controlnet_canny_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
-        blobs = True
-        swap = True
-    elif model_name=="controlnet_scribble_int8":
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
-        blobs = True
-        swap = True   
-    else:
-        model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-        device_name = ["CPU","GPU","GPU"]
+    # Get the model path based on the model_name
+    model_path = os.path.join(weight_path, *model_paths.get(model_name, default_path))
 
 
     log.info('Initializing Inference Engine...')
     log.info('Model Path: %s',model_path )
+    device_list = ["CPU","CPU","CPU","CPU","CPU"]
+    model_config = []
+    model_config_file_name = os.path.join(model_path, "config.json")
+    try:
+        with open(model_config_file_name,'r') as file:
+            model_config = json.load(file)
+            if model_config['power modes supported'].lower() == "yes":
+                device_list = model_config[power_mode.lower()]
+            else:
+                device_list = model_config['best_performance']
 
+        # if there is a dGPU available, choose that instead of integrated, unless we are trying to save power for some reason. 
+        for device in available_devices:
+            if isinstance(device, str)  and \
+               device.lower() == 'dgpu' and \
+               power_mode.lower() != 'best power efficiency':
+                device_list = [device.replace('GPU','GPU.1') if isinstance(device, str) else device for device in device_list]
 
-    device =  ["CPU","GPU","GPU"]
-    device_int8 = ["CPU","GPU","GPU","GPU"]  
-    
-    if device_name ==  "dGPU":
-        device =  ["CPU","GPU.1","GPU.1"]
-        device_int8 = ["CPU","GPU.1","GPU.1","GPU.1"]  
-
-    if device_name ==  "Balanced_NPU":
-        device_int8 = ["CPU","GPU","NPU","GPU"]  
-    if device_name ==  "NPU":
-        device_int8 = ["CPU","NPU","NPU","GPU"]     
-
+    except KeyError as e:
+        log.error(f"Key Error {e}. Only CPU will be used.")
+    except FileNotFoundError:
+        log.error("Configuration file is unable to be opened. Only CPU will be used.")
+    except json.JSONDecodeError:
+        log.error("Error decoding JSON from config.json")        
 
     if model_name == "SD_1.5_square_int8":
-        log.info('device_name: %s',device_int8)
+        log.info('device_name: %s',device_list)
         engine = StableDiffusionEngineAdvanced(
         model = model_path,
-        device = device_int8, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_openpose_int8":
-        log.info('device_name: %s',device_int8)
+        log.info('device_name: %s',device_list)
         engine = ControlNetOpenPoseAdvanced(
         model = model_path,
-        device = device_int8, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_canny_int8":
-        log.info('device_name: %s',device_int8)
+        log.info('device_name: %s',device_list)
         engine = ControlNetCannyEdgeAdvanced(
         model = model_path,
-        device = device_int8, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name == "controlnet_scribble_int8":
-        log.info('device_name: %s',device_int8)
+        log.info('device_name: %s',device_list)
         engine = ControlNetScribbleAdvanced(
         model = model_path,
-        device = device_int8, 
-        blobs = blobs,
-        swap = swap)
+        device = device_list
+        )
 
     elif model_name ==  "SD_1.5_Inpainting":
         engine = StableDiffusionEngineInpainting(
         model = model_path,
-        device = device 
-    )
+        device= device_list
+        )
     
     elif model_name == "controlnet_canny":
         engine = ControlNetCannyEdge(
         model = model_path,
-        device = device
-    )    
+        device= device_list
+        )    
     
     elif model_name == "controlnet_scribble":
         engine = ControlNetScribble(
         model = model_path,
-        device = device
-    )
+        device= device_list
+        )
 
     elif model_name ==  "SD_1.5_square_lcm":
         engine = LatentConsistencyEngine(
         model = model_path,
-        device = device
-    )
+        device= device_list
+        )
 
     elif model_name == "SD_1.5_Inpainting_int8":
-        log.info('advanced Inpainting device_name: %s',device_int8)
+        log.info('advanced Inpainting device_name: %s',device_list)
         engine = StableDiffusionEngineInpaintingAdvanced(
         model = model_path,
-        device = device_int8, 
-        blobs = blobs
+        device = device_list
         )
 
     elif model_name == "controlnet_openpose":
         engine = ControlNetOpenPose(
         model = model_path,
-        device = device
+        device= device_list
         )
     
     elif model_name == "controlnet_referenceonly":
@@ -223,7 +199,7 @@ def run(model_name,device_name):
     else:
         engine = StableDiffusionEngine(
             model = model_path,
-            device = device
+            device= device_list
         )
 
 
@@ -416,31 +392,17 @@ def run(model_name,device_name):
 
                         image = "sd_cache.png"
 
-                        if model_name == "SD_1.5_square_lcm" or \
-                        model_name == "controlnet_openpose" or \
-                        model_name == "controlnet_openpose_int8" or \
-                        model_name == "controlnet_canny_int8" or \
-                        model_name == "controlnet_canny" or \
-                        model_name == "controlnet_scribble" or \
-                        model_name == "controlnet_scribble_int8":
-                            
+                        if "controlnet" in model_name or model_name == "SD_1.5_square_lcm" :
                             output.save(os.path.join(weight_path, "..", image )) 
-                        
                             src_width,src_height = output.size
                         else:
                             cv2.imwrite(os.path.join(weight_path, "..", image), output) #, output[:, :, ::-1])
-                    
                             src_height,src_width, _ = output.shape
 
                         
-                       
                         data_output["seed_num"] = seed
-                    
-
-
                         data_output["src_height"] = src_height
                         data_output["src_width"] = src_width
-
                         data_output["inference_status"] = "success"
 
                         with open(os.path.join(weight_path, "..", "gimp_openvino_run_sd.json"), "w") as file:
@@ -464,31 +426,29 @@ def run(model_name,device_name):
 
 
 def start():
+    #
+    # args: model_name, supported_devices, device_power_mode
+    # 
+    #
     model_name = sys.argv[1]
-    device = sys.argv[2]
- 
+    device_list = sys.argv[2]
+    power_mode = sys.argv[3]
 
-    device_name = device 
-    run_thread = threading.Thread(target=run, args=(model_name, device_name))
+    run_thread = threading.Thread(target=run, args=(model_name, device_list, power_mode))
     run_thread.start()
-
 
     gimp_proc = None
     for proc in psutil.process_iter():
         if "gimp-2.99" in proc.name():
             gimp_proc = proc
             break;
-
-
+    
     if gimp_proc:
-
         psutil.wait_procs([proc])
         print("exiting..!")
         os._exit(0)
 
-
     run_thread.join()
-
 
 if __name__ == "__main__":
    start()
