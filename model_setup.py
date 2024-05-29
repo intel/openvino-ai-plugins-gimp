@@ -30,7 +30,7 @@ npu_driver_version = None
 npu_arch = None
 linux_kernel_version = None
 
-if "ultra" in cpu_type.lower() or "genuine" in cpu_type.lower(): #bypass this test for RVP
+if "ultra" in cpu_type.lower(): #bypass this test for RVP
     npu_arch = core.get_property('NPU','DEVICE_ARCHITECTURE')
     try:	
         if os_type == "windows":
@@ -100,20 +100,22 @@ def get_revsion(model_name=None):
     if model_name is not None:
         # Get the revision selection configuration
         revision_config = mode_config['revision_selection'] 
-        if os_type == "windows":
-            if int(npu_driver_version[3]) < 2016:
-                revision = revision_config['windows']['<2016'] + "-" + str(npu_arch)
-            else: 
-                #TODO: change "default" setting with a value of npu_driver_version[3] && "<2016" to default??
-                revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
-        elif os_type == "linux":
-            try:
+        try: 
+            if os_type == "windows":
+                if model_name in revision_config:
+                    if int(npu_driver_version[3]) < 2016:
+                        revision = revision_config[model_name]['windows']['<2016'] + "-" + str(npu_arch)
+                    else: 
+                        revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
+                else:
+                    revision = revision_config['default']
+            elif os_type == "linux":
                 revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version] + "-" + str(npu_arch)
-            except KeyError:
-                        raise ValueError(f"Configuration mismatch of linux kernel : {linux_kernel_version} & npu driver : {npu_driver_version} versions")
+        except KeyError:
+            raise ValueError(f"Configuration mismatch! {os} & npu driver : {npu_driver_version} versions")
     return revision
                 
-def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
+def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
     SD_path_FP16 = os.path.join(install_location, model_fp16)
     if os.path.isdir(SD_path_FP16):
@@ -128,7 +130,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
     if  download_flag:               
         revision = None
         if npu_driver_version is not None:
-           revision = get_revsion(model_name)
+           revision = get_revsion(repo_id)
            
         while True:
             try:  
@@ -159,7 +161,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
             delete_folder=os.path.join(download_folder, "..", "..", "..")
             shutil.rmtree(delete_folder, ignore_errors=True)
     
-def download_model(repo_id, model_1, model_2, model_name=None):
+def download_model(repo_id, model_1, model_2):
     download_flag = True
     
     if "sd-2.1" in repo_id:
@@ -179,7 +181,7 @@ def download_model(repo_id, model_1, model_2, model_name=None):
     if download_flag:
         revision = None
         if npu_driver_version is not None: 
-            revision = get_revsion(model_name)
+            revision = get_revsion(repo_id)
         while True:
             try:  
                download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
@@ -210,7 +212,7 @@ def dl_sd_15_square():
     repo_id = "Intel/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
-    download_quantized_models(repo_id, model_fp16, model_int8,model_name="sd_15_square") # model_name should match in model_setup_config.json
+    download_quantized_models(repo_id, model_fp16, model_int8) 
 
 def dl_sd_21_square():
     print("Downloading Intel/sd-2.1-square-quantized Models")
@@ -224,7 +226,7 @@ def dl_sd_15_portrait():
     repo_id = "Intel/sd-1.5-portrait-quantized"
     model_1 = "portrait"
     model_2 = "portrait_512x768"
-    download_model(repo_id, model_1, model_2,"")
+    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_landscape():
     print("Downloading Intel/sd-1.5-landscape-quantized Models")
@@ -266,7 +268,7 @@ def dl_sd_15_LCM():
     repo_id = "Intel/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
-    download_model(repo_id, model_1, model_2,"sd_15_LCM")
+    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
