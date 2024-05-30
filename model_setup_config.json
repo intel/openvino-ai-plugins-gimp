@@ -1,45 +1,24 @@
 {
-    "reference_only":{
-
-        "npu_devid_selection":{
-            "windows": {
-                "NPU_ARCH_NUMBER": "PCI****",
-                "default": ""
-            },
-            "linux" : {
-                "":""
-            }    
-        },
-        "revision_selection": {
-            "model_name": {
-                "windows": {
-                    "npu_driver_version": "revision_value"
-                },
-                "linux": {
-                    "kernel_version": {
-                        "npu_driver_version": "revision_value"
-                    }
-                }
-            },
-            "default":"Empty_Revision_string"
-        }  
-    },
-
-    "npu_devid_selection":{
+    "_about": "This config will ensure that the proper models are downloaded for systems which have an NPU (Intel Core Utlra series processors)",
+    "npu_devid_selection": {
+        "_about" : "General NPU device selection",
         "windows": {
-            "3720": "PCI\\VEN_8086&DEV_7D1D"
+            "3720": "PCI\\VEN_8086&DEV_7D1D" 
         },
-        "linux" : {
-            "default":"NPU"
-        }      
+        "linux": {
+            "default": "NPU" 
+        }
     },
     "revision_selection": {
-        "Intel/sd-1.5-square-quantized":{
+        "_about" : "General revision selection based on model, OS, and driver version",
+        "Intel/sd-1.5-square-quantized": {
             "windows": {
-                "<2016": "v0.0.5",
-                "default": "v0.1.0"
+                "_about" : "There are different blobs needed based on driver revision",
+                "<2016": "v0.0.5", 
+                "default": "v0.1.0" 
             },
             "linux": {
+                "_about" : "Blobs are specific to the linux kernel revision",
                 "6.5": {
                     "1.0.0": "v0.2.65"
                 },
@@ -48,13 +27,14 @@
                 }
             }
         },
-
-        "Intel/sd-1.5-lcm-openvino":{
+        "Intel/sd-1.5-lcm-openvino": {
             "windows": {
-                "<2016": "v0.0.5",
+                "_about" : "There are different blobs needed based on driver revision",
+                "<2016": "v0.0.5", 
                 "default": "v0.1.0"
             },
             "linux": {
+                "_about" : "Blobs are specific to the linux kernel revision",
                 "6.5": {
                     "1.0.0": ""
                 },
@@ -63,10 +43,6 @@
                 }
             }
         },
-
-        "default": "main"
+        "default": "main" 
     }
-
-    
-    
 }

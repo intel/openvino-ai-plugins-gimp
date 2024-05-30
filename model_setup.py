@@ -30,38 +30,48 @@ npu_driver_version = None
 npu_arch = None
 linux_kernel_version = None
 
-if "ultra" in cpu_type.lower(): #bypass this test for RVP
-    npu_arch = core.get_property('NPU','DEVICE_ARCHITECTURE')
-    try:	
+# Constants
+MIN_UBUNTU_VERSION = [22, 4]
+LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
+LINUX_KERNEL_COMMAND = "uname -r"
+WINDOWS_NPU_COMMAND_TEMPLATE = "get-WmiObject Win32_PnPSignedDriver | Where-Object {{$_.DeviceID -like '{npu_devid}*'}} | Select-Object -ExpandProperty DriverVersion"
+
+def get_windows_npu_info(npu_arch, npu_devid_selection):
+    npu_devid = npu_devid_selection['windows'][npu_arch]
+    command = WINDOWS_NPU_COMMAND_TEMPLATE.format(npu_devid=npu_devid)
+    return subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
+
+def get_linux_npu_info():
+    linux_distro = distro.id().lower()
+    os_version = list(map(int, distro.version().split('.')))
+    
+    if linux_distro != "ubuntu" or os_version < MIN_UBUNTU_VERSION:
+        raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version}; Minimum Ubuntu OS version required: {MIN_UBUNTU_VERSION}")
+
+    npu_driver_version = subprocess.check_output(LINUX_NPU_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
+    kernel_version = subprocess.check_output(LINUX_KERNEL_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
+
+    npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
+    linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
+
+    return npu_driver_version, linux_kernel_version
+
+def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
+    try:
         if os_type == "windows":
-            npu_devid_selection = mode_config['npu_devid_selection'] 
-            #TODO: for future platforms, find "npu_arch" version and add its value in model_setup_config.json 
-            npu_devid = npu_devid_selection['windows'][npu_arch]
-            command = "get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceID -like '"+npu_devid+"*'} | Select-Object -ExpandProperty DriverVersion"
-            npu_driver_version = subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
-        elif os_type == "linux": 
-            linux_distro = distro.id()  # Get Linux distribution name
-            os_version = distro.version() # Get Linux OS version      
-            os_version = [int(part) for part in os_version.split('.')]
-            os_version_min = [22, 4] # Minimum Ubuntu OS version. 
-            if linux_distro.lower() == "ubuntu" and os_version >= os_version_min:
-                #Get NPU driver version
-                command = "dpkg -l | grep NPU  | awk '{print $3}'"
-                npu_driver_version = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
-                command  = "uname -r"
-                #Get Linux kernel version.
-                kernel_version = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
-                pattern = r"\d\.\d\.\d"
-                npu_driver_version = re.findall(pattern, npu_driver_version[0])[0]  
-                pattern = r"\d\.\d"
-                linux_kernel_version =re.findall(pattern, kernel_version)[0]
-            
-            else:
-                raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version} ; Minimum Ubuntu OS version required: {os_version_min}")
+            return get_windows_npu_info(npu_arch, npu_devid_selection), None
+        elif os_type == "linux":
+            return get_linux_npu_info()
         else:
-            raise ValueError(f"Unsupported OS type {os_type}")          
+            raise ValueError(f"Unsupported OS type {os_type}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error getting NPU info: {e}")
+        return None, None
+
+if "ultra" in cpu_type.lower(): # bypass this test for RVP
+    npu_arch = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+    npu_devid_selection = mode_config['npu_devid_selection']
+    npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
@@ -131,7 +141,6 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         revision = None
         if npu_driver_version is not None:
            revision = get_revsion(repo_id)
-           
         while True:
             try:  
                 download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
@@ -146,7 +155,6 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
         shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
 
-   
         if model_int8:
             SD_path_INT8 = os.path.join(install_location, model_int8)           
             
@@ -238,9 +246,8 @@ def dl_sd_15_landscape():
 def dl_sd_15_inpainting():
     print("Downloading Intel/sd-1.5-inpainting-quantized Models")
     repo_id = "Intel/sd-1.5-inpainting-quantized"
-    model_fp16 = "stable-diffusion-1.5-inpainting"
-    model_int8 = "stable-diffusion-1.5-inpainting-int8"
-    
+    model_fp16 = os.path.join("stable-diffusion-1.5", "inpainting")
+    model_int8 = os.path.join("stable-diffusion-1.5", "inpainting_int8")
     download_quantized_models(repo_id, model_fp16, model_int8)
 
 def dl_sd_15_openpose():
