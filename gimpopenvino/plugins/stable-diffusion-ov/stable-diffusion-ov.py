@@ -104,12 +104,10 @@ def list_models(weight_path, SD):
     model_list = []    
     model_paths = {
         "SD_1.4": "stable-diffusion-1.4",
-        "SD_1.5_Inpainting": "stable-diffusion-1.5-inpainting",
         "controlnet_openpose": "controlnet-openpose",
         "controlnet_canny": "controlnet-canny",
         "controlnet_scribble": "controlnet-scribble",
         "controlnet_referenceonly": "controlnet-referenceonly",
-        "SD_1.5_Inpainting_int8": "stable-diffusion-1.5-inpainting-int8",
         "controlnet_openpose_int8": "controlnet-openpose-int8",
         "controlnet_canny_int8": "controlnet-canny-int8",
         "controlnet_scribble_int8": "controlnet-scribble-int8",
@@ -132,7 +130,7 @@ def list_models(weight_path, SD):
     elif SD in model_paths:
         if check_files_exist(dir_path, standard_files):
             model_list.append(SD)
-    elif SD == "SD_1.5_Inpainting_int8" or SD == "controlnet_openpose_int8" or SD == "controlnet_canny_int8" or SD == "controlnet_scribble_int8" or SD == "SD_1.5_square_int8":
+    elif SD == "controlnet_openpose_int8" or SD == "controlnet_canny_int8" or SD == "controlnet_scribble_int8":
         if os.path.isdir(dir_path):
             model_list.append(SD)
     
