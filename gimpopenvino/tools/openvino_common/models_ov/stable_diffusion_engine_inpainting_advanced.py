@@ -172,86 +172,43 @@ class StableDiffusionEngineInpaintingAdvanced(DiffusionPipeline):
         except:
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
-                
 
         # models
-
         self.core = Core()
-        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')}) #adding caching to reduce init time
+        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
         print("Setting caching")
-        # text features
-
-        print("Text Device:",device[0])
-        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
-
+        
+        print("Text Device:", device[0])
+        self.text_encoder = self.load_model(model, "text_encoder", device[0])
         self._text_encoder_output = self.text_encoder.output(0)
 
-        # diffusion
-        print("unet Device:",device[1])
-        print("unet-neg Device:",device[2])
-
-        start = time.time()
+        print("unet Device:", device[1])
+        print("unet-neg Device:", device[2])
         self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
-        print("compile_model for unet_time_proj on 'CPU'  ", time.time() - start)
 
-        unet_int8_model = "unet_int8.xml"
+        self.unet = self.load_model(model, "unet_int8", device[1])
+        self.unet_neg = self.unet if device[1] == device[2] else self.load_model(model, "unet_int8", device[2])
 
-
-        if blobs:
-            blob_name = "unet_int8_NPU.blob"           
-            # Postive Prompt
-            if "NPU" in device[1]:    
-                with open(os.path.join(model, blob_name), "rb") as f:
-                    self.unet = self.core.import_model(f.read(), device[1])
-            else:    
-                self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
-                
-            # Negative Prompt
-            if device[1] == device[2]:
-                self.unet_neg = self.unet
-            else:
-                if "NPU" in device[2]:    
-                    with open(os.path.join(model, blob_name), "rb") as f:
-                        self.unet_neg = self.core.import_model(f.read(), device[2])
-                else:    
-                    self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])           
-        else:
-            self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
-            self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
-
-        print( "num unet inputs = ", len(self.unet.inputs))
-
-
-
-        # decoder
-        print("VAE Device:",device[3])
-     
-        start = time.time()
-        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[3])
-        print("vae decoder loaded in:", time.time() - start)
-
-        # encoder
-
-        #self.vae_encoder = None
-        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[3])  #uncomment for prompt+init_image usecase.
-
-
-
+        print("VAE Device:", device[3])
+        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
+        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
 
         self._vae_d_output = self.vae_decoder.output(0)
         self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
-
-
-
         self.height = self.unet.input("latent_model_input").shape[2] * 8
         self.width = self.unet.input("latent_model_input").shape[3] * 8
-    
 
         self.infer_request_neg = self.unet_neg.create_infer_request()
         self.infer_request = self.unet.create_infer_request()
-        self.infer_request_time_proj = self.unet_time_proj.create_infer_request()     
+        self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
 
 
+    def load_model(self, model, model_name, device):
+        if "NPU" in device:
+            with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
+                return self.core.import_model(f.read(), device)
+        return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+    
 
     def __call__(
             self,

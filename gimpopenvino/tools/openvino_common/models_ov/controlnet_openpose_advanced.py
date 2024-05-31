@@ -247,7 +247,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
         self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
         
         if blobs:
-            blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+            blob_name = "unet_controlnet_int8.blob" 
             if "NPU" in device[1]:      
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()

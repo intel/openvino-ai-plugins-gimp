@@ -194,8 +194,16 @@ Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For o
     ![](figs/gimp_sd_ui.png)
 
     >**Notes:**
-    > - Power Mode is now enabled- Users can select between the following options depending on their use case:
+    > - Power Mode is now enabled- Users can select between the following options depending on their use case for more detail please check next session:
     >   - Best Performance (Only Intel's ARC GPU supported incase there is an external GPU)
     >   - Best Power Efficiency
     >   - Balanced
     > - If you wish to generate more images in single run, please modify the Number of Images section.
+
+### Detail of Power Mode
+
+| Power mode | Execution detail |
+|----------:|:----------------|
+| Best Performance | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
+| Best Power Efficiency | Text Device:   CPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
+| Balanced | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |

@@ -1,0 +1,48 @@
+{
+    "_about": "This config will ensure that the proper models are downloaded for systems which have an NPU (Intel Core Utlra series processors)",
+    "npu_devid_selection": {
+        "_about" : "General NPU device selection",
+        "windows": {
+            "3720": "PCI\\VEN_8086&DEV_7D1D" 
+        },
+        "linux": {
+            "default": "NPU" 
+        }
+    },
+    "revision_selection": {
+        "_about" : "General revision selection based on model, OS, and driver version",
+        "Intel/sd-1.5-square-quantized": {
+            "windows": {
+                "_about" : "There are different blobs needed based on driver revision",
+                "<2016": "v0.0.5", 
+                "default": "v0.1.0" 
+            },
+            "linux": {
+                "_about" : "Blobs are specific to the linux kernel revision",
+                "6.5": {
+                    "1.0.0": "v0.2.65"
+                },
+                "6.8": {
+                    "1.2.0": "v0.2.68"
+                }
+            }
+        },
+        "Intel/sd-1.5-lcm-openvino": {
+            "windows": {
+                "_about" : "There are different blobs needed based on driver revision",
+                "<2016": "v0.0.5", 
+                "default": "v0.1.0"
+            },
+            "linux": {
+                "_about" : "Blobs are specific to the linux kernel revision",
+                "6.5": {
+                    "1.0.0": ""
+                },
+                "6.8": {
+                    "1.2.0": ""
+                }
+            }
+        },
+        "default": "main" 
+    }
+}
