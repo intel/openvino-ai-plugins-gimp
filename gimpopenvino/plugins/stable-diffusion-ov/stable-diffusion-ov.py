@@ -103,45 +103,31 @@ def check_files_exist(dir_path, files):
 def list_models(weight_path, SD):
     model_list = []    
     model_paths = {
-        "SD_1.4": "stable-diffusion-1.4",
-        "controlnet_openpose": "controlnet-openpose",
-        "controlnet_canny": "controlnet-canny",
-        "controlnet_scribble": "controlnet-scribble",
-        "controlnet_referenceonly": "controlnet-referenceonly",
-        "controlnet_openpose_int8": "controlnet-openpose-int8",
-        "controlnet_canny_int8": "controlnet-canny-int8",
-        "controlnet_scribble_int8": "controlnet-scribble-int8",
-        "SD_1.5": "stable-diffusion-1.5",
-        "SD_2.1": "stable-diffusion-2.1"
+        "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
+        "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+        "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
+        "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
+        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
+        "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
+        "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
+        "sd_1.5_inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
+        "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
+        "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
+        "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
+        "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
+        "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
+        "controlnet_scribble": ["stable-diffusion-ov", "controlnet-scribble"],
+        "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
+        "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
+        "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
     }
+    # Default path if model_name is not in the dictionary
+    dir_path = os.path.join(weight_path, *model_paths.get(SD, ""))
+    if Path(dir_path).is_dir():
+        model_list.append(SD)
     
-    controlnet_files = ['text_encoder.xml', 'unet_controlnet.xml', 'vae_decoder.xml']
-    referenceonly_files = ['text_encoder.xml', 'unet_reference_read.xml', 'unet_reference_write.xml', 'vae_decoder.xml']
-    standard_files = ['text_encoder.xml', 'unet.xml', 'vae_decoder.xml']
-    
-    dir_path = os.path.join(weight_path, "stable-diffusion-ov", model_paths.get(SD, ""))
-
-    if SD in ["controlnet_openpose", "controlnet_canny", "controlnet_scribble"]:
-        if check_files_exist(dir_path, controlnet_files):
-            model_list.append(SD)
-    elif SD == "controlnet_referenceonly":
-        if check_files_exist(dir_path, referenceonly_files):
-            model_list.append(SD)
-    elif SD in model_paths:
-        if check_files_exist(dir_path, standard_files):
-            model_list.append(SD)
-    elif SD == "controlnet_openpose_int8" or SD == "controlnet_canny_int8" or SD == "controlnet_scribble_int8":
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-    
-    if os.path.isdir(dir_path):
-        for file in os.scandir(dir_path): #, recursive=True):
-            text = Path(file) / 'text_encoder.xml'
-            vae = Path(file) / 'vae_decoder.xml'
-            if os.path.isfile(text) and os.path.isfile(vae):
-                    model = SD + "_" + os.path.basename(file)
-                    model_list.append(model)
-
     return model_list
 
 
@@ -379,12 +365,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_int8"))
+            model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
         else:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
-                          list_models(config_path_output["weight_path"],"SD_1.5") +
-                          list_models(config_path_output["weight_path"],"SD_2.1") +
+            model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
+                          list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
+                          list_models(config_path_output["weight_path"],"sd_2.1_square") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
