@@ -36,6 +36,9 @@ image_paths = {
     "logo": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
     ),
+    "sai_logo": os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "images", "sai_logo.png"
+    ),
     "error": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
     ),
@@ -573,7 +576,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
-                                                  _("_Advanced Settings"))
+                                                  _("_Advanced Settings                                                       "))
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
         grid.attach(adv_checkbox, 3, 0, 1, 1)
@@ -637,10 +640,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             invisible_label8.show() 
 
         def populate_advanced_settings():
-
             grid.attach(num_images_label, 0, 3, 1, 1)
             grid.attach(num_images_spin, 1, 3, 1, 1)              
-           
             grid.attach(steps_label, 0, 4, 1, 1)
             grid.attach(steps_spin, 1, 4, 1, 1)
             grid.attach(gscale_label, 0, 5, 1, 1)
@@ -803,8 +804,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        # grid.attach(logo, 0, 0, 1, 1)
-        vbox.pack_start(logo, False, False, 1)
+        grid.attach(logo, 3, 2, 2, 3)
+        #vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
@@ -827,6 +828,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             negative_prompt_label.hide()
             negative_prompt_text.hide()
 
+        sai_logo = Gtk.Image.new_from_file(image_paths["sai_logo"])
+        #sai_text = _("Stable Diffusion 3 model provided by:")
+        #sai_label = Gtk.Label(label=sai_text)
+        #vbox.pack_start(sai_label, False, False, 1)
+        #vbox.pack_start(sai_logo, True, True, 1)
+        grid.attach(sai_logo, 3, 5, 1, 1)
+        #grid.attach(sai_label, 3, 4, 1, 1)
+                
+        if "SD_3.0" in model_name:
+                initialImage_checkbox.hide()
+                # Show Logo
+                #sai_label.show()
+                sai_logo.show()
+                
+
         if is_server_running():
             run_button.set_sensitive(True)
             if adv_checkbox.get_active() and power_modes_supported(model_name): 
@@ -842,14 +858,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             # LCM model has no negative prompt
             if model_name_tmp == "SD_1.5_square_lcm":
                 negative_prompt_text.hide()
-                negative_prompt_label.hide()
-    
+                negative_prompt_label.hide()    
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
+            if "SD_3.0" in model_name_tmp:
+                initialImage_checkbox.hide()
+                #sai_label.show()
+                sai_logo.show()
+            else:
+                initialImage_checkbox.show()
+                #sai_label.hide()
+                sai_logo.hide()
+
             if "controlnet" in config.get_property("model_name"):
-                
                 initialImage_checkbox.set_active(True)
             else:
                 initialImage_checkbox.set_active(False)
@@ -857,7 +880,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if adv_checkbox.get_active():
                 if "int8" in model_name:
                     device_power_mode_tmp = config.get_property("power_mode")
-                
+
                 else:
                     device_power_mode_tmp = None
     
