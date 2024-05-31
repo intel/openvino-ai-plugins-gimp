@@ -878,7 +878,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)  
 
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices)[1:-1], device_power_mode,dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue
