@@ -28,6 +28,7 @@ cpu_type = core.get_property('CPU','full_device_name'.upper())
 os_type = platform.system().lower()
 npu_driver_version = None
 npu_arch = None
+npu_devid_selection= None
 linux_kernel_version = None
 
 # Constants
