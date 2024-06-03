@@ -95,10 +95,11 @@ def run(model_name, available_devices, power_mode):
                 device_list = default_config['best performance']
 
         for device in available_devices:
-            if device.lower() == 'dgpu' and power_mode.lower() != 'best power efficiency':
-                device_list = [d.replace('GPU', 'GPU.1') if isinstance(d, str) else d for d in device_list]
-            elif device.lower() == 'gpu.0':
-                device_list = [d.replace('GPU', 'GPU.0') if isinstance(d, str) else d for d in device_list]
+            if device.lower() == 'gpu.1':
+                if power_mode.lower() == 'best power efficiency':
+                    device_list = [d.replace('GPU', 'GPU.0') if isinstance(d, str) else d for d in device_list]
+                else:
+                    device_list = [d.replace('GPU', 'GPU.1') if isinstance(d, str) else d for d in device_list]
        
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
