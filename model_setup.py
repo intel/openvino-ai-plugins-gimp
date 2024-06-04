@@ -28,6 +28,7 @@ cpu_type = core.get_property('CPU','full_device_name'.upper())
 os_type = platform.system().lower()
 npu_driver_version = None
 npu_arch = None
+npu_devid_selection= None
 linux_kernel_version = None
 
 # Constants
@@ -120,9 +121,14 @@ def get_revsion(model_name=None):
                 else:
                     revision = revision_config['default']
             elif os_type == "linux":
-                revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version] + "-" + str(npu_arch)
+                if model_name in revision_config:
+                    revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version]
+                    if revision and "main" not in revision:
+                        revision += "-" + str(npu_arch)     
+                else:
+                    revision = revision_config['default']                 
         except KeyError:
-            raise ValueError(f"Configuration mismatch! {os} & npu driver : {npu_driver_version} versions")
+            raise ValueError(f"Configuration mismatch! {os_type} & npu driver : {npu_driver_version} versions")
     return revision
                 
 def download_quantized_models(repo_id, model_fp16, model_int8):
