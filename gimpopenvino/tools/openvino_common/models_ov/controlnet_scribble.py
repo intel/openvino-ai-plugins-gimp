@@ -605,7 +605,7 @@ class ControlNetScribbleAdvanced(DiffusionPipeline):
         self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
         
         if blobs:
-            blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+            blob_name = "unet_controlnet_int8.blob" 
             if "NPU" in device[1]:      
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
@@ -984,7 +984,7 @@ class ControlNetScribbleAdvanced(DiffusionPipeline):
 
 if __name__ == "__main__":
     #from gimpopenvino.tools.tools_utils import get_weight_path
-    weight_path = "C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights"
+    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
     
     model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-scribble")
     device_name = ["GPU.1", "GPU.1" , "GPU.1"]
@@ -994,24 +994,21 @@ if __name__ == "__main__":
     seed = 42
     num_infer_steps = 20
     guidance_scale = 7.5
-    init_image = "C:\\Users\\lab_admin\\Downloads\\224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg"
+    init_image = os.path.join(os.path.expanduser('~'),"Downloads","224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg")
     
-    
-    
+
     if seed is not None:   
         np.random.seed(int(seed))
     else:
         ran_seed = random.randrange(4294967294) #4294967294 
         np.random.seed(int(ran_seed))
        
-    
+   
     engine = ControlNetScribble(
         model = model_path,
         device = device_name
     )
-    
-
-    
+      
     output = engine(
     prompt = prompt,
     negative_prompt = negative_prompt,
