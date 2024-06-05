@@ -3,14 +3,12 @@ import json
 import sys
 import socket
 import cv2
-#import torch
+import ast
 import traceback
 import logging as log
 from pathlib import Path
 import time 
 import random
-#import datetime
-#import shutil
 from PIL import Image
 import numpy as np
 from gimpopenvino.tools.tools_utils import get_weight_path
@@ -40,8 +38,6 @@ def progress_callback(i, conn):
 
 def run(model_name, available_devices, power_mode):
     weight_path = get_weight_path()
-    blobs = False
-
     scheduler = EulerDiscreteScheduler(
         beta_start=0.00085,
         beta_end=0.012,
@@ -74,6 +70,10 @@ def run(model_name, available_devices, power_mode):
 
     # Default path if model_name is not in the dictionary
     default_path = ["stable-diffusion-ov", "stable-diffusion-1.4"]
+    default_config = {
+        "power modes supported" : "no",
+        "best performance" : ["GPU", "GPU","GPU", "GPU"]
+    }
     model_path = os.path.join(weight_path, *model_paths.get(model_name, default_path))
 
     log.info('Initializing Inference Engine...')
@@ -82,17 +82,25 @@ def run(model_name, available_devices, power_mode):
     model_config_file_name = os.path.join(model_path, "config.json")
     
     try:
-        with open(model_config_file_name, 'r') as file:
-            model_config = json.load(file)
-            if model_config['power modes supported'].lower() == "yes":
-                device_list = model_config[power_mode.lower()]
-            else:
-                device_list = model_config['best performance']
+        if os.path.exists(model_config_file_name):
+            with open(model_config_file_name, 'r') as file:
+                model_config = json.load(file)
+                if model_config['power modes supported'].lower() == "yes":
+                    device_list = model_config[power_mode.lower()]
+                else:
+                    device_list = model_config['best performance']
+        else:
+            with open(model_config_file_name,  'w') as file:
+                json.dump(default_config, file, indent=4)
+                device_list = default_config['best performance']
 
         for device in available_devices:
-            if isinstance(device, str) and device.lower() == 'dgpu' and power_mode.lower() != 'best power efficiency':
-                device_list = [d.replace('GPU', 'GPU.1') if isinstance(d, str) else d for d in device_list]
-
+            if device.lower() == 'gpu.1':
+                if power_mode.lower() == 'best power efficiency':
+                    device_list = [d.replace('GPU', 'GPU.0') if isinstance(d, str) else d for d in device_list]
+                else:
+                    device_list = [d.replace('GPU', 'GPU.1') if isinstance(d, str) else d for d in device_list]
+       
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
 
@@ -358,9 +366,8 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
 def start():
     model_name = sys.argv[1].lower()
-    device_list = sys.argv[2]
+    device_list = ast.literal_eval(sys.argv[2])
     power_mode = sys.argv[3]
-
     run_thread = threading.Thread(target=run, args=(model_name, device_list, power_mode))
     run_thread.start()
 
