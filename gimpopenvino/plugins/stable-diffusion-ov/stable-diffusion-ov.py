@@ -720,7 +720,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # spinner
         spinner = Gtk.Spinner()
-        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.BOTTOM, 1, 1)
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
@@ -731,8 +731,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         # Show License
         license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
-        vbox.pack_start(label, False, False, 1)
+        grid.attach(label, 3, 4, 1, 1)
+        #vbox.pack_start(label, False, False, 1)
         label.show()
 
         progress_bar = Gtk.ProgressBar()
