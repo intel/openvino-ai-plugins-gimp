@@ -76,6 +76,57 @@ if "ultra" in cpu_type.lower(): # bypass this test for RVP
     npu_devid_selection = mode_config['npu_devid_selection']
     npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
 
+core = Core()
+cpu_type = core.get_property('CPU','full_device_name'.upper())
+os_type = platform.system().lower()
+npu_driver_version = None
+npu_arch = None
+npu_devid_selection= None
+linux_kernel_version = None
+
+# Constants
+MIN_UBUNTU_VERSION = [22, 4]
+LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
+LINUX_KERNEL_COMMAND = "uname -r"
+WINDOWS_NPU_COMMAND_TEMPLATE = "get-WmiObject Win32_PnPSignedDriver | Where-Object {{$_.DeviceID -like '{npu_devid}*'}} | Select-Object -ExpandProperty DriverVersion"
+
+def get_windows_npu_info(npu_arch, npu_devid_selection):
+    npu_devid = npu_devid_selection['windows'][npu_arch]
+    command = WINDOWS_NPU_COMMAND_TEMPLATE.format(npu_devid=npu_devid)
+    return subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
+
+def get_linux_npu_info():
+    linux_distro = distro.id().lower()
+    os_version = list(map(int, distro.version().split('.')))
+    
+    if linux_distro != "ubuntu" or os_version < MIN_UBUNTU_VERSION:
+        raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version}; Minimum Ubuntu OS version required: {MIN_UBUNTU_VERSION}")
+
+    npu_driver_version = subprocess.check_output(LINUX_NPU_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
+    kernel_version = subprocess.check_output(LINUX_KERNEL_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
+
+    npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
+    linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
+
+    return npu_driver_version, linux_kernel_version
+
+def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
+    try:
+        if os_type == "windows":
+            return get_windows_npu_info(npu_arch, npu_devid_selection), None
+        elif os_type == "linux":
+            return get_linux_npu_info()
+        else:
+            raise ValueError(f"Unsupported OS type {os_type}")
+    except Exception as e:
+        print(f"Error getting NPU info: {e}")
+        return None, None
+
+if "ultra" in cpu_type.lower(): # bypass this test for RVP
+    npu_arch = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+    npu_devid_selection = mode_config['npu_devid_selection']
+    npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
+
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
     model_path = os.path.join(other_models, model)

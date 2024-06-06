@@ -1,6 +1,3 @@
-# Copyright(C) 2022-2023 Intel Corporation
-# SPDX - License - Identifier: Apache - 2.0
-
 import os
 import json
 import sys
@@ -25,12 +22,11 @@ from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, Sta
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 from models_ov.stable_diffusion_3 import StableDiffusionThreeEngine
-
-from  models_ov.controlnet_openpose import ControlNetOpenPose
-from  models_ov.controlnet_canny_edge import ControlNetCannyEdge
-from  models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
-from  models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
-from  models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
+from models_ov.controlnet_openpose import ControlNetOpenPose
+from models_ov.controlnet_canny_edge import ControlNetCannyEdge
+from models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
+from models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
+from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
