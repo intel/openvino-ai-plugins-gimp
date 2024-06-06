@@ -36,10 +36,10 @@
             "linux": {
                 "_about" : "Blobs are specific to the linux kernel revision",
                 "6.5": {
-                    "1.0.0": "main"
+                    "1.0.0": "v0.1.0"
                 },
                 "6.8": {
-                    "1.2.0": "main"
+                    "1.2.0": "v0.1.0"
                 }
             }
         },
