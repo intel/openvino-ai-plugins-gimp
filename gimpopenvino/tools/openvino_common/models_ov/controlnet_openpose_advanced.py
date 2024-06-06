@@ -247,7 +247,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
         self.unet_time_proj = core.compile_model(unet_time_proj_model, "CPU")        
         
         if blobs:
-            blob_name = "unet_controlnet_int8_NPU.blob" #"unet_controlnet_int8_sq_0.15_sym_tp_input-fp32.blob" #"unet" + "_" + device_npu + ".blob"
+            blob_name = "unet_controlnet_int8.blob" 
             if "NPU" in device[1]:      
                 print("Loading unet blob on npu:",blob_name)
                 start = time.time()
@@ -325,7 +325,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
         # 3. Preprocess image
         image = image.convert("RGB")
         pose = self.pose_estimator(image)
-        #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test_before.png"))
+        #pose.save(os.path.join(os.path.expanduser('~'),"openvino-ai-plugins-gimp","pose_test_before.png"))
         
         #Adding Padding - Assumption: Input image is square and result image is landscape
         #pose_npy = np.asarray(pose)
@@ -334,7 +334,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
         #pose_pad = Image.fromarray(np.uint8(pose_npy))
         #pose = pose_pad 
          
-        #pose.save(os.path.join("C:\\Users\\Local_Admin\\openvino-ai-plugins-gimp","pose_test.png"))
+        #pose.save(os.path.join(os.path.expanduser('~'),"openvino-ai-plugins-gimp","pose_test.png"))
         #print("POSE SAVED")
         
         orig_width, orig_height = pose.size
@@ -637,7 +637,7 @@ class ControlNetOpenPoseAdvanced(DiffusionPipeline):
 
 if __name__ == "__main__":
     #from gimpopenvino.tools.tools_utils import get_weight_path
-    weight_path = "C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights"
+    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
     
     model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
     device_name = ["GPU.1", "GPU.1" , "GPU.1"]
@@ -647,8 +647,8 @@ if __name__ == "__main__":
     seed = 42
     num_infer_steps = 20
     guidance_scale = 7.5
-    init_image = "C:\\Users\\lab_admin\\Downloads\\224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg"
-    
+    init_image = os.path.join(os.path.expanduser('~'), "Downloads","224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg")
+
     
     
     if seed is not None:   

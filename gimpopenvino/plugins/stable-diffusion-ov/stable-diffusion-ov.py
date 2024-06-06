@@ -100,127 +100,40 @@ class SDDialogResponse(IntEnum):
     RunInferenceComplete = 778
     ProgressUpdate = 779
 
-       
+def check_files_exist(dir_path, files):
+    return all(os.path.isfile(Path(dir_path) / file) for file in files)
+
 def list_models(weight_path, SD):
-    model_list = []
-    flag = False
-    flag_controlnet = False
-    flag_referenceonly = False
-    if SD == "SD_1.4":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-        flag = True
-
-    if SD == "SD_1.5_Inpainting":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting")
-        flag = True
-    if SD == "controlnet_openpose":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose")
-        flag_controlnet = True
-
-    if SD == "controlnet_canny":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny")
-        flag_controlnet = True
-
-    if SD == "controlnet_scribble":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble")
-        flag_controlnet = True
-
-    if SD == "controlnet_referenceonly":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-referenceonly")
-        flag_referenceonly = True
-
-    if flag_controlnet:
-        text = Path(dir_path) / 'text_encoder.xml'
-        unet = Path(dir_path) / 'unet_controlnet.xml'
-        vae = Path(dir_path) / 'vae_decoder.xml'
-       
-        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
-                model_list.append(SD)
-        flag_controlnet = False
-        
-        return model_list
-               
-    if flag_referenceonly:
-        text = Path(dir_path) / 'text_encoder.xml'
-        unet_r = Path(dir_path) / 'unet_reference_read.xml'
-        unet_w = Path(dir_path) / 'unet_reference_write.xml'
-        vae = Path(dir_path) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(unet_r) and os.path.isfile(unet_w) and os.path.isfile(vae):
-                model_list.append(SD)
-        return model_list
-
-    if flag:
-        text = Path(dir_path) / 'text_encoder.xml'
-        unet = Path(dir_path) / 'unet.xml'
-        vae = Path(dir_path) / 'vae_decoder.xml'
-        if os.path.isfile(text) and os.path.isfile(unet) and os.path.isfile(vae):
-                model_list.append(SD)
-        return model_list
-
-    if SD == "SD_1.5_square_lcm":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list  
-
-    if SD ==  "SD_1.5_Inpainting_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5-inpainting-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list         
-
-    if SD ==  "controlnet_openpose_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-openpose-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list
-
-    if SD ==  "controlnet_canny_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list        
-        
-        
-    if SD ==  "controlnet_scribble_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-scribble-int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list     
-
-    if SD == "SD_1.5_square_int8":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5", "square_int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD)
-        return model_list
+    model_list = []    
+    model_paths = {
+        "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
+        "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+        "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
+        "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
+        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
+        "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
+        "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
+        "sd_1.5_inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
+        "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
+        "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
+        "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
+        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+        "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
+        "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
+        "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
+        "controlnet_scribble": ["stable-diffusion-ov", "controlnet-scribble"],
+        "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
+        "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
+        "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
+    }
+    # Default path if model_name is not in the dictionary
+    dir_path = os.path.join(weight_path, *model_paths.get(SD, ""))
+    if Path(dir_path).is_dir():
+        model_list.append(SD)
     
-            
-    if SD == "SD_1.5":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
-
-    if SD == "SD_2.1":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-2.1") 
-
-    if SD == "SD_3.0":
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0","square_int8")
-        if os.path.isdir(dir_path):
-            model_list.append(SD + "_square_int8")
-        dir_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-3.0","square_int4") 
-        if os.path.isdir(dir_path):
-            model_list.append(SD + "_square_int4")
-        return model_list
-    
-    if os.path.isdir(dir_path):
-        for file in os.scandir(dir_path): #, recursive=True):
-            text = Path(file) / 'text_encoder.xml'
-            unet = Path(file) / 'unet.xml'
-            vae = Path(file) / 'vae_decoder.xml'
-            if os.path.isfile(text) and os.path.isfile(vae):
-                    model = SD + "_" + os.path.basename(file)
-                    model_list.append(model)
-
-    return model_list   
-        
+    return model_list
 
 
 
@@ -457,13 +370,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if n_layers == 2:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.5_Inpainting") +
-                          list_models(config_path_output["weight_path"],"SD_1.5_Inpainting_int8"))
+            model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
         else:
-            model_list = (list_models(config_path_output["weight_path"],"SD_1.4") +
-                          list_models(config_path_output["weight_path"],"SD_1.5") +
-                          list_models(config_path_output["weight_path"],"SD_2.1") +
-                          list_models(config_path_output["weight_path"],"SD_3.0") +
+            model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
+                          list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
+                          list_models(config_path_output["weight_path"],"sd_2.1_square") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
@@ -640,8 +561,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             invisible_label8.show() 
 
         def populate_advanced_settings():
+
             grid.attach(num_images_label, 0, 3, 1, 1)
             grid.attach(num_images_spin, 1, 3, 1, 1)              
+           
             grid.attach(steps_label, 0, 4, 1, 1)
             grid.attach(steps_spin, 1, 4, 1, 1)
             grid.attach(gscale_label, 0, 5, 1, 1)
@@ -873,6 +796,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 sai_logo.hide()
 
             if "controlnet" in config.get_property("model_name"):
+                
                 initialImage_checkbox.set_active(True)
             else:
                 initialImage_checkbox.set_active(False)
@@ -880,7 +804,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if adv_checkbox.get_active():
                 if "int8" in model_name:
                     device_power_mode_tmp = config.get_property("power_mode")
-
+                
                 else:
                     device_power_mode_tmp = None
     
@@ -985,7 +909,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)  
 
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices)[1:-1], device_power_mode,dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue

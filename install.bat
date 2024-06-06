@@ -25,6 +25,8 @@
     ) else ( set "continue=n"
     )
 		
+
+	
     if %continue%==y (
 	echo **** OpenVINO MODEL SETUP STARTED ****
 	gimpenv3\Scripts\python.exe %~dp0\model_setup.py
@@ -33,4 +35,5 @@
 		
     exit /b
 BATCH
+
 

@@ -10,7 +10,7 @@ timm==0.4.5
 diffusers
 openvino
 transformers
-tqdm==4.64.0
+tqdm==4.66.3
 huggingface_hub
 streamlit==1.30.0
 watchdog==2.1.9

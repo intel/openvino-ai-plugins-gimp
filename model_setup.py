@@ -11,7 +11,6 @@ from pathlib import Path
 from glob import glob
 from openvino.runtime import Core
 
-# Load the configuration file
 
 mode_config_filename =  os.path.join(os.path.dirname(__file__), "model_setup_config.json") 
 mode_config = None
@@ -29,42 +28,53 @@ cpu_type = core.get_property('CPU','full_device_name'.upper())
 os_type = platform.system().lower()
 npu_driver_version = None
 npu_arch = None
+npu_devid_selection= None
 linux_kernel_version = None
 
-if "ultra" in cpu_type.lower() or "genuine" in cpu_type.lower(): #bypass this test for RVP
-    npu_arch = core.get_property('NPU','DEVICE_ARCHITECTURE')
+# Constants
+MIN_UBUNTU_VERSION = [22, 4]
+LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
+LINUX_KERNEL_COMMAND = "uname -r"
+WINDOWS_NPU_COMMAND_TEMPLATE = "get-WmiObject Win32_PnPSignedDriver | Where-Object {{$_.DeviceID -like '{npu_devid}*'}} | Select-Object -ExpandProperty DriverVersion"
+
+def get_windows_npu_info(npu_arch, npu_devid_selection):
+    npu_devid = npu_devid_selection['windows'][npu_arch]
+    command = WINDOWS_NPU_COMMAND_TEMPLATE.format(npu_devid=npu_devid)
+    return subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
+
+def get_linux_npu_info():
+    linux_distro = distro.id().lower()
+    os_version = list(map(int, distro.version().split('.')))
+    
+    if linux_distro != "ubuntu" or os_version < MIN_UBUNTU_VERSION:
+        raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version}; Minimum Ubuntu OS version required: {MIN_UBUNTU_VERSION}")
+
+    npu_driver_version = subprocess.check_output(LINUX_NPU_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
+    kernel_version = subprocess.check_output(LINUX_KERNEL_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
+
+    npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
+    linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
+
+    return npu_driver_version, linux_kernel_version
+
+def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
+    try:
+        if os_type == "windows":
+            return get_windows_npu_info(npu_arch, npu_devid_selection), None
+        elif os_type == "linux":
+            return get_linux_npu_info()
+        else:
+            raise ValueError(f"Unsupported OS type {os_type}")
+    except Exception as e:
+        print(f"Error getting NPU info: {e}")
+        return None, None
+
+if "ultra" in cpu_type.lower(): # bypass this test for RVP
+    npu_arch = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
     if npu_arch.upper() == "AUTO_DETECT":
         npu_arch = "4000"
-    try:	
-        if os_type == "windows":
-            npu_devid_selection = mode_config['npu_devid_selection'] 
-            #TODO: for future platforms, find "npu_arch" version and add its value in model_setup_config.json 
-            npu_devid = npu_devid_selection['windows'][npu_arch]
-            command = "get-WmiObject Win32_PnPSignedDriver | Where-Object {$_.DeviceID -like '"+npu_devid+"*'} | Select-Object -ExpandProperty DriverVersion"
-            npu_driver_version = subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
-        elif os_type == "linux": 
-            linux_distro = distro.id()  # Get Linux distribution name
-            os_version = distro.version() # Get Linux OS version      
-            os_version = [int(part) for part in os_version.split('.')]
-            os_version_min = [22, 4] # Minimum Ubuntu OS version. 
-            if linux_distro.lower() == "ubuntu" and os_version >= os_version_min:
-                #Get NPU driver version
-                command = "dpkg -l | grep NPU  | awk '{print $3}'"
-                npu_driver_version = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
-                command  = "uname -r"
-                #Get Linux kernel version.
-                kernel_version = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
-                pattern = r"\d\.\d\.\d"
-                npu_driver_version = re.findall(pattern, npu_driver_version[0])[0]  
-                pattern = r"\d\.\d"
-                linux_kernel_version =re.findall(pattern, kernel_version)[0]
-            
-            else:
-                raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version} ; Minimum Ubuntu OS version required: {os_version_min}")
-        else:
-            raise ValueError(f"Unsupported OS type {os_type}")          
-    except Exception as e:
-        print(f"Error: {e}")
+    npu_devid_selection = mode_config['npu_devid_selection']
+    npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
@@ -103,20 +113,27 @@ def get_revsion(model_name=None):
     if model_name is not None:
         # Get the revision selection configuration
         revision_config = mode_config['revision_selection'] 
-        if os_type == "windows":
-            if int(npu_driver_version[3]) < 2016:
-                revision = revision_config['windows']['<2016'] + "-" + str(npu_arch)
-            else: 
-                #TODO: change "default" setting with a value of npu_driver_version[3] && "<2016" to default??
-                revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
-        elif os_type == "linux":
-            try:
-                revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version] + "-" + str(npu_arch)
-            except KeyError:
-                        raise ValueError(f"Configuration mismatch of linux kernel : {linux_kernel_version} & npu driver : {npu_driver_version} versions")
+        try: 
+            if os_type == "windows":
+                if model_name in revision_config:
+                    if int(npu_driver_version[3]) < 2016:
+                        revision = revision_config[model_name]['windows']['<2016'] + "-" + str(npu_arch)
+                    else: 
+                        revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
+                else:
+                    revision = revision_config['default']
+            elif os_type == "linux":
+                if model_name in revision_config:
+                    revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version]
+                    if revision and "main" not in revision:
+                        revision += "-" + str(npu_arch)     
+                else:
+                    revision = revision_config['default']                 
+        except KeyError:
+            raise ValueError(f"Configuration mismatch! {os_type} & npu driver : {npu_driver_version} versions")
     return revision
                 
-def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
+def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
     SD_path_FP16 = os.path.join(install_location, model_fp16)
     if os.path.isdir(SD_path_FP16):
@@ -131,8 +148,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
     if  download_flag:               
         revision = None
         if npu_driver_version is not None:
-           revision = get_revsion(model_name)
-           
+           revision = get_revsion(repo_id)
         while True:
             try:  
                 download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
@@ -147,7 +163,6 @@ def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
         shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
         shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
 
-   
         if model_int8:
             SD_path_INT8 = os.path.join(install_location, model_int8)           
             
@@ -162,7 +177,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8, model_name=None):
             delete_folder=os.path.join(download_folder, "..", "..", "..")
             shutil.rmtree(delete_folder, ignore_errors=True)
     
-def download_model(repo_id, model_1, model_2, model_name=None):
+def download_model(repo_id, model_1, model_2):
     download_flag = True
     
     if "sd-2.1" in repo_id:
@@ -182,7 +197,7 @@ def download_model(repo_id, model_1, model_2, model_name=None):
     if download_flag:
         revision = None
         if npu_driver_version is not None: 
-            revision = get_revsion(model_name)
+            revision = get_revsion(repo_id)
         while True:
             try:  
                download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
@@ -214,7 +229,7 @@ def dl_sd_15_square():
     repo_id = "gblong1/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
-    download_quantized_models(repo_id, model_fp16, model_int8,model_name="sd_15_square") # model_name should match in model_setup_config.json
+    download_quantized_models(repo_id, model_fp16, model_int8) 
 
 def dl_sd_21_square():
     print("Downloading Intel/sd-2.1-square-quantized Models")
@@ -228,7 +243,7 @@ def dl_sd_15_portrait():
     repo_id = "Intel/sd-1.5-portrait-quantized"
     model_1 = "portrait"
     model_2 = "portrait_512x768"
-    download_model(repo_id, model_1, model_2,"")
+    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_landscape():
     print("Downloading Intel/sd-1.5-landscape-quantized Models")
@@ -240,9 +255,8 @@ def dl_sd_15_landscape():
 def dl_sd_15_inpainting():
     print("Downloading Intel/sd-1.5-inpainting-quantized Models")
     repo_id = "Intel/sd-1.5-inpainting-quantized"
-    model_fp16 = "stable-diffusion-1.5-inpainting"
-    model_int8 = "stable-diffusion-1.5-inpainting-int8"
-    
+    model_fp16 = os.path.join("stable-diffusion-1.5", "inpainting")
+    model_int8 = os.path.join("stable-diffusion-1.5", "inpainting_int8")
     download_quantized_models(repo_id, model_fp16, model_int8)
 
 def dl_sd_15_openpose():
@@ -270,7 +284,7 @@ def dl_sd_15_LCM():
     repo_id = "gblong1/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
-    download_model(repo_id, model_1, model_2,"sd_15_LCM")
+    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
@@ -291,8 +305,11 @@ def dl_all():
     dl_sd_15_Referenceonly()
     #dl_sd_21_square()
 
-while True:
-    print("=========Chose SD models to download =========")
+def show_menu():
+    """
+    Display the menu options for downloading models.
+    """
+    print("=========Choose SD models to download=========")
     print("1 - SD-1.5 Square (512x512)")
     print("2 - SD-1.5 Portrait")
     print("3 - SD-1.5 Landscape")
@@ -300,31 +317,42 @@ while True:
     print("5 - SD-1.5 Controlnet-Openpose")
     print("6 - SD-1.5 Controlnet-CannyEdge")
     print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - SD-1.5 LCM ")
+    print("8 - SD-1.5 LCM")
     print("9 - SD-1.5 Controlnet-ReferenceOnly")
-#    print("10 - SD-2.1 Square (768x768)")
+    # print("10 - SD-2.1 Square (768x768)")
     print("12 - All the above models")
     print("0 - Exit SD Model setup")
 
-    choice = input("Enter the Number for the model you want to download: ")
+def main():
+    while True:
+        show_menu()
+        choice = input("Enter the number for the model you want to download: ")
 
-    if choice=="1":  dl_sd_15_square()
-    if choice=="2":  dl_sd_15_portrait()
-    if choice=="3":  dl_sd_15_landscape()
-    if choice=="4":  dl_sd_15_inpainting()
-    if choice=="5":  dl_sd_15_openpose()
-    if choice=="6":  dl_sd_15_canny()
-    if choice=="7":  dl_sd_15_scribble()
-    if choice=="8":  dl_sd_15_LCM()
-    if choice=="9":  dl_sd_15_Referenceonly()
-    #if choice=="10":  dl_sd_21_square()
+        if choice == "0":
+            print("Exiting SD Model setup...")
+            break
+        elif choice == "12":
+            dl_all()
+            print("Completed downloading all models. Exiting SD Model setup...")
+            break
+        else:
+            download_functions = {
+                "1": dl_sd_15_square,
+                "2": dl_sd_15_portrait,
+                "3": dl_sd_15_landscape,
+                "4": dl_sd_15_inpainting,
+                "5": dl_sd_15_openpose,
+                "6": dl_sd_15_canny,
+                "7": dl_sd_15_scribble,
+                "8": dl_sd_15_LCM,
+                "9": dl_sd_15_Referenceonly,
+                # "10": dl_sd_21_square,
+            }
+            func = download_functions.get(choice)
+            if func:
+                func()
+            else:
+                print("Invalid choice")
 
-    if choice=="12":
-        dl_all()
-        print("Complete downloaing all models. Exiting SD-1.5 Model setup.........")
-        break
-    
-    if choice=="0":
-        print("Exiting SD Model setup.........")
-        break
-    
+if __name__ == "__main__":
+    main()
