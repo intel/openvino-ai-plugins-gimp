@@ -36,9 +36,6 @@ image_paths = {
     "logo": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
     ),
-    "sai_logo": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "images", "sai_logo.png"
-    ),
     "error": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
     ),
@@ -742,29 +739,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
-
-
         model_name = config.get_property("model_name")
         device_power_mode = "best performance"
 
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
-
-        sai_logo = Gtk.Image.new_from_file(image_paths["sai_logo"])
-        #sai_text = _("Stable Diffusion 3 model provided by:")
-        #sai_label = Gtk.Label(label=sai_text)
-        #vbox.pack_start(sai_label, False, False, 1)
-        #vbox.pack_start(sai_logo, True, True, 1)
-        grid.attach(sai_logo, 3, 5, 1, 1)
-        #grid.attach(sai_label, 3, 4, 1, 1)
-                
+        
         if "SD_3.0" in model_name:
-                initialImage_checkbox.hide()
-                # Show Logo
-                #sai_label.show()
-                sai_logo.show()
-                
+                initialImage_checkbox.hide()               
 
         if is_server_running():
             run_button.set_sensitive(True)
@@ -788,13 +771,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
             if "SD_3.0" in model_name_tmp:
                 initialImage_checkbox.hide()
-                #sai_label.show()
-                sai_logo.show()
             else:
                 initialImage_checkbox.show()
-                #sai_label.hide()
-                sai_logo.hide()
-
+                
             if "controlnet" in config.get_property("model_name"):
                 
                 initialImage_checkbox.set_active(True)
