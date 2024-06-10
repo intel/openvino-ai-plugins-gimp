@@ -7,7 +7,7 @@ Script will create gimp_openvino_config.txt, and print path to be added to GIMP 
 import os
 import sys
 import json
-
+import uuid
 import gimpopenvino
 import platform
 import subprocess
@@ -33,11 +33,13 @@ def setup_python_weights(install_location=None):
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
     ie = Core()
     supported_devices = ie.available_devices
+    ZERO_UUID = uuid.UUID('00000000-0000-0000-0000-000000000000')
 
     for i in supported_devices:
         if "Intel" not in ie.get_property(i, "FULL_DEVICE_NAME"):
             supported_devices.remove(i)
-    
+        elif "DEVICE_UUID" in ie.get_property(i,"SUPPORTED_PROPERTIES") and uuid.UUID(ie.get_property(i,"DEVICE_UUID")) == ZERO_UUID:
+            supported_devices.remove(i)
     
     py_dict = {
         "python_path" : python_path,
@@ -52,9 +54,6 @@ def setup_python_weights(install_location=None):
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution-ov/superresolution-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable-diffusion-ov/stable-diffusion-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg-ov/semseg-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/inpainting-ov/inpainting-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/fast-style-transfer-ov/fast-style-transfer-ov.py'])
-
 
     print(
         "NOTE ! >> Please add this path to Preferences --> Plug-ins in GIMP : ",
