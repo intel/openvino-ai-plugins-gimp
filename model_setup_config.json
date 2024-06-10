@@ -12,7 +12,7 @@
     },
     "revision_selection": {
         "_about" : "General revision selection based on model, OS, and driver version",
-        "Intel/sd-1.5-square-quantized": {
+        "gblong1/sd-1.5-square-quantized": {
             "windows": {
                 "_about" : "There are different blobs needed based on driver revision",
                 "<2016": "v0.0.5", 
@@ -28,7 +28,7 @@
                 }
             }
         },
-        "Intel/sd-1.5-lcm-openvino": {
+        "gblong1/sd-1.5-lcm-openvino": {
             "windows": {
                 "_about" : "There are different blobs needed based on driver revision",
                 "<2016": "v0.0.5", 

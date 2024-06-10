@@ -21,7 +21,7 @@ other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp",
 src_dir = os.path.join(os.path.dirname(__file__), "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-access_token = None
+access_token = "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" # Testing Key
 
 core = Core()
 cpu_type = core.get_property('CPU','full_device_name'.upper())
