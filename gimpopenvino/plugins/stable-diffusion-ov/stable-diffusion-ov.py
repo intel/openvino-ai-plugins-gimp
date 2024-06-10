@@ -115,6 +115,8 @@ def list_models(weight_path, SD):
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
+        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -378,6 +380,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
@@ -490,7 +494,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
-                                                  _("_Advanced Settings"))
+                                                  _("_Advanced Settings                                                       "))
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
         grid.attach(adv_checkbox, 3, 0, 1, 1)
@@ -514,8 +518,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "int8" in model_name or "lcm" in model_name:
-                return True
+            if "SD_3.0" not in model_name:
+                if "int8" in model_name or "lcm" in model_name:
+                    return True
             return False
         
         def remove_all_advanced_widgets():
@@ -715,26 +720,24 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # spinner
         spinner = Gtk.Spinner()
-        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.BOTTOM, 1, 1)
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        # grid.attach(logo, 0, 0, 1, 1)
-        vbox.pack_start(logo, False, False, 1)
+        grid.attach(logo, 3, 2, 2, 3)
+        #vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
         license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
-        vbox.pack_start(label, False, False, 1)
+        grid.attach(label, 3, 4, 1, 1)
+        #vbox.pack_start(label, False, False, 1)
         label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
         progress_bar.show()
-
-
 
         model_name = config.get_property("model_name")
         device_power_mode = "best performance"
@@ -742,6 +745,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "SD_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
+        
+        if "SD_3.0" in model_name:
+                initialImage_checkbox.hide()               
 
         if is_server_running():
             run_button.set_sensitive(True)
@@ -758,12 +764,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             # LCM model has no negative prompt
             if model_name_tmp == "SD_1.5_square_lcm":
                 negative_prompt_text.hide()
-                negative_prompt_label.hide()
-    
+                negative_prompt_label.hide()    
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
+            if "SD_3.0" in model_name_tmp:
+                initialImage_checkbox.hide()
+            else:
+                initialImage_checkbox.show()
+                
             if "controlnet" in config.get_property("model_name"):
                 
                 initialImage_checkbox.set_active(True)
@@ -878,7 +888,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 server = "stable-diffusion-ov-server.py"
                 server_path = os.path.join(config_path, server)  
 
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices)[1:-1], device_power_mode,dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()
 
                 continue

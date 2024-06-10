@@ -21,7 +21,7 @@ other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp",
 src_dir = os.path.join(os.path.dirname(__file__), "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-access_token  = None
+access_token = None
 
 core = Core()
 cpu_type = core.get_property('CPU','full_device_name'.upper())
@@ -202,7 +202,8 @@ def download_model(repo_id, model_1, model_2):
                break
             except Exception as e:
                 print("Error retry:" + str(e))
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
+        
+        if repo_id == "gblong1/sd-1.5-lcm-openvino":
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
@@ -222,8 +223,8 @@ def download_model(repo_id, model_1, model_2):
         shutil.rmtree(delete_folder, ignore_errors=True)
     
 def dl_sd_15_square():
-    print("Downloading Intel/sd-1.5-square-quantized Models")
-    repo_id = "Intel/sd-1.5-square-quantized"
+    print("Downloading gblong1/sd-1.5-square-quantized Models")
+    repo_id = "gblong1/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
     download_quantized_models(repo_id, model_fp16, model_int8) 
@@ -277,8 +278,8 @@ def dl_sd_15_scribble():
     model_int8 = "controlnet-scribble-int8"
     download_quantized_models(repo_id, model_fp16, model_int8)
 def dl_sd_15_LCM():
-    print("Downloading Intel/sd-1.5-lcm-openvino")
-    repo_id = "Intel/sd-1.5-lcm-openvino"
+    print("Downloading gblong1/sd-1.5-lcm-openvino")
+    repo_id = "gblong1/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
     download_model(repo_id, model_1, model_2)

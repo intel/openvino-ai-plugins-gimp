@@ -369,10 +369,7 @@ class ControlNetOpenPose(DiffusionPipeline):
         else:
             image = [cv2.resize(img, (orig_width, orig_width))
                      for img in image]
-         
-        #image[0].save("C:\\Users\\lab_admin\\Desktop\\openpose-result.png")  
-
-             
+            
 
         if create_gif:
             gif_folder=os.path.join(model,"../../../gif")
@@ -507,9 +504,9 @@ class ControlNetOpenPose(DiffusionPipeline):
 
 if __name__ == "__main__":
     #from gimpopenvino.tools.tools_utils import get_weight_path
-    weight_path = "C:\\Users\\lab_admin\\openvino-ai-plugins-gimp\\weights"
+    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
     
-    model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
+    model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  
     device_name = ["GPU.1", "GPU.1" , "GPU.1"]
     
     prompt = "Dancing Darth Vader, best quality, extremely detailed"
@@ -517,9 +514,7 @@ if __name__ == "__main__":
     seed = 42
     num_infer_steps = 20
     guidance_scale = 7.5
-    init_image = "C:\\Users\\lab_admin\\Downloads\\224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg"
-    
-    
+    init_image = os.path.join(os.path.expanduser('~'), "Downloads","224540208-c172c92a-9714-4a7b-857a-b1e54b4d4791.jpg")
     
     if seed is not None:   
         np.random.seed(int(seed))
@@ -532,8 +527,6 @@ if __name__ == "__main__":
         model = model_path,
         device = device_name
     )
-    
-
     
     output = engine(
     prompt = prompt,

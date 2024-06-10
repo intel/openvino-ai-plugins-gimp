@@ -21,6 +21,7 @@ from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMSchedul
 from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
+from models_ov.stable_diffusion_3 import StableDiffusionThreeEngine
 from models_ov.controlnet_openpose import ControlNetOpenPose
 from models_ov.controlnet_canny_edge import ControlNetCannyEdge
 from models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
@@ -59,6 +60,8 @@ def run(model_name, available_devices, power_mode):
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
+        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -135,6 +138,12 @@ def run(model_name, available_devices, power_mode):
                     handle_client_data(data, conn, engine, model_name, model_path, scheduler)
 
 def initialize_engine(model_name, model_path, device_list):
+    if model_name == "sd_1.5_square_int8":
+        log.info('Device list: %s', device_list)
+        return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+    if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
+        log.info('Device list: %s', device_list)
+        return StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
         return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
@@ -274,6 +283,16 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback_userdata=conn,
                 seed=seed
             )
+        elif "sd_3.0" in model_name:
+            output = engine(
+                    prompt = prompt,
+                    negative_prompt = negative_prompt,
+                    num_inference_steps = num_infer_steps,
+                    guidance_scale = guidance_scale,
+                    callback = progress_callback,
+                    callback_userdata = conn,
+                    seed = seed
+            )        
         elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
             output = engine(
                 prompt=prompt,
@@ -334,7 +353,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
         image = "sd_cache.png"
 
-        if "controlnet" in model_name or model_name == "sd_1.5_square_lcm":
+        if "sd_3.0" in model_name or "controlnet" in model_name or model_name == "sd_1.5_square_lcm":
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size
         else:

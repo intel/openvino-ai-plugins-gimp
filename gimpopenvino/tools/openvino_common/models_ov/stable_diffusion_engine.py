@@ -426,7 +426,6 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 
         return timesteps, num_inference_steps - t_start
 
-
 class StableDiffusionEngine(DiffusionPipeline):
     def __init__(
             self,
@@ -1369,3 +1368,8 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
             image = np.concatenate([image] * 2)
 
         return image
+
+
+
+
+
