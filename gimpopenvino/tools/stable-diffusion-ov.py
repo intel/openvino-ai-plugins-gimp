@@ -15,16 +15,16 @@ from gimpopenvino.tools.tools_utils import get_weight_path
 import traceback
 import numpy as np
 
-def get_sb(device="CPU", prompt="northern lights", negative_prompt=None,  num_infer_steps=32, guidance_scale=7.5, init_image=None, strength=0.8, seed=None, create_gif=False, scheduler="LMSDiscreteScheduler",model_name="SD_1.4"):
+def get_sb(device="CPU", prompt="northern lights", negative_prompt=None,  num_infer_steps=32, guidance_scale=7.5, init_image=None, strength=0.8, seed=None, create_gif=False, scheduler="LMSDiscreteScheduler",model_name="sd_1.4"):
     #if weight_path is None:
     #    weight_path = get_weight_path()
     #model_path = os.path.join(weight_path, "stable-diffusion-ov")
     weight_path = get_weight_path()
 
     print("model_name in run ",model_name)
-    if model_name == "SD_1.4":
+    if model_name == "sd_1.4":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")
-    elif model_name == "SD_1.5":
+    elif model_name == "sd_1.5":
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.5")
     else:
         model_path = os.path.join(weight_path, "stable-diffusion-ov", "stable-diffusion-1.4")

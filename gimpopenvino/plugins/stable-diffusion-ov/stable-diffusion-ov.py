@@ -518,7 +518,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "SD_3.0" not in model_name:
+            if "sd_3.0" not in model_name:
                 if "int8" in model_name or "lcm" in model_name:
                     return True
             return False
@@ -724,14 +724,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        grid.attach(logo, 3, 2, 2, 3)
+        grid.attach(logo, 3, 3, 2, 3)
         #vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
         license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
-        grid.attach(label, 3, 4, 1, 1)
+        grid.attach(label, 3, 5, 1, 1)
         #vbox.pack_start(label, False, False, 1)
         label.show()
 
@@ -742,11 +742,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         model_name = config.get_property("model_name")
         device_power_mode = "best performance"
 
-        if model_name == "SD_1.5_square_lcm":
+        if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
         
-        if "SD_3.0" in model_name:
+        if "sd_3.0" in model_name:
                 initialImage_checkbox.hide()               
 
         if is_server_running():
@@ -762,14 +762,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             device_power_mode_tmp = None
 
             # LCM model has no negative prompt
-            if model_name_tmp == "SD_1.5_square_lcm":
+            if model_name_tmp == "sd_1.5_square_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()    
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
-            if "SD_3.0" in model_name_tmp:
+            if "sd_3.0" in model_name_tmp:
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
@@ -837,7 +837,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 else:
                     num_images = 1
                     num_infer_steps = 20
-                    if config.get_property("model_name") == "SD_1.5_square_lcm":
+                    if config.get_property("model_name") == "sd_1.5_square_lcm":
                         num_infer_steps = 4
 
                     guidance_scale = 7.5
@@ -960,8 +960,8 @@ class StableDiffusion(Gimp.PlugIn):
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'SD_1.4', 'SD_1.5'",
-            "SD_1.4",
+            "Model Name: 'sd_1.4', 'sd_1.5'",
+            "sd_1.4",
             GObject.ParamFlags.READWRITE,
         ),    
 
