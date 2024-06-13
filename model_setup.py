@@ -88,9 +88,9 @@ choice = input("Do you want to download openvino stable-diffusion-1.4 model? Ent
 install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
 
 if choice == "Y" or choice == "y":
-    SD_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
-    if os.path.isdir(SD_path):
-         shutil.rmtree(SD_path)
+    sd_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
+    if os.path.isdir(sd_path):
+         shutil.rmtree(sd_path)
 
     repo_id="bes-dev/stable-diffusion-v1-4-openvino"
     while True:
@@ -100,7 +100,7 @@ if choice == "Y" or choice == "y":
         except Exception as e:
              print("Error retry:" + str(e))
     
-    shutil.copytree(download_folder, SD_path)
+    shutil.copytree(download_folder, sd_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
 
@@ -133,12 +133,12 @@ def get_revsion(model_name=None):
                 
 def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
-    SD_path_FP16 = os.path.join(install_location, model_fp16)
-    if os.path.isdir(SD_path_FP16):
+    sd_path_FP16 = os.path.join(install_location, model_fp16)
+    if os.path.isdir(sd_path_FP16):
             choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
             if choice == "Y" or choice == "y":
                 download_flag = True
-                shutil.rmtree(SD_path_FP16)
+                shutil.rmtree(sd_path_FP16)
             else:
                 download_flag = False
                 print("%s download skipped",repo_id)
@@ -158,18 +158,18 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
         # on some systems, the FP16 subfolder is not created resulting in a installation crash 
         if not os.path.isdir(FP16_model):
             os.mkdir(FP16_model)
-        shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-        shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
+        shutil.copytree(download_folder, sd_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
+        shutil.copytree(FP16_model, sd_path_FP16, dirs_exist_ok=True)        
 
         if model_int8:
-            SD_path_INT8 = os.path.join(install_location, model_int8)           
+            sd_path_INT8 = os.path.join(install_location, model_int8)           
             
-            if os.path.isdir(SD_path_INT8):
-                    shutil.rmtree(SD_path_INT8)
+            if os.path.isdir(sd_path_INT8):
+                    shutil.rmtree(sd_path_INT8)
 
             INT8_model = os.path.join(download_folder, "INT8")
-            shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-            shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
+            shutil.copytree(download_folder, sd_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
+            shutil.copytree(INT8_model, sd_path_INT8, dirs_exist_ok=True)
 
 
             delete_folder=os.path.join(download_folder, "..", "..", "..")

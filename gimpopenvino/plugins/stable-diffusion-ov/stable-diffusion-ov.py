@@ -416,7 +416,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion...."))
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
@@ -490,7 +490,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
-                                                  _("_Advanced Settings"))
+                                                  _("_Advanced Settings                                                       "))
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
         grid.attach(adv_checkbox, 3, 0, 1, 1)
@@ -715,31 +715,29 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # spinner
         spinner = Gtk.Spinner()
-        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.BOTTOM, 1, 1)
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        # grid.attach(logo, 0, 0, 1, 1)
-        vbox.pack_start(logo, False, False, 1)
+        grid.attach(logo, 3, 3, 3, 3)
+        #vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
-        vbox.pack_start(label, False, False, 1)
-        label.show()
+        # license_text = _("PLUGIN LICENSE : Apache-2.0")
+        # label = Gtk.Label(label=license_text)
+        # grid.attach(label, 3, 6, 1, 1)
+        # #vbox.pack_start(label, False, False, 1)
+        # label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
         progress_bar.show()
 
-
-
         model_name = config.get_property("model_name")
         device_power_mode = "best performance"
 
-        if model_name == "SD_1.5_square_lcm":
+        if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
 
@@ -756,10 +754,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             device_power_mode_tmp = None
 
             # LCM model has no negative prompt
-            if model_name_tmp == "SD_1.5_square_lcm":
+            if model_name_tmp == "sd_1.5_square_lcm":
                 negative_prompt_text.hide()
-                negative_prompt_label.hide()
-    
+                negative_prompt_label.hide()    
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
@@ -827,7 +824,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 else:
                     num_images = 1
                     num_infer_steps = 20
-                    if config.get_property("model_name") == "SD_1.5_square_lcm":
+                    if config.get_property("model_name") == "sd_1.5_square_lcm":
                         num_infer_steps = 4
 
                     guidance_scale = 7.5
@@ -950,8 +947,8 @@ class StableDiffusion(Gimp.PlugIn):
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'SD_1.4', 'SD_1.5'",
-            "SD_1.4",
+            "Model Name: 'sd_1.4', 'sd_1.5'",
+            "sd_1.4",
             GObject.ParamFlags.READWRITE,
         ),    
 

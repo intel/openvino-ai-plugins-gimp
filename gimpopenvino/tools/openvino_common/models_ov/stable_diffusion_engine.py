@@ -626,7 +626,7 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         moments = self.vae_encoder(input_image)[self._vae_e_output]
 
-        if "SD_2.1" in model:
+        if "sd_2.1" in model:
             latents = moments * 0.18215
 
         else:

@@ -50,7 +50,7 @@ def run(image, model_path, device, model_name):
     :param model_path: path to the model file
     :param device: device to run the inference on
     :param model_name: name of the model to determine processing steps
-    :return: superresolved image as np.ndarray
+    :return: super resolution image as np.ndarray
     """
     try:
         if model_name == "edsr":
@@ -123,6 +123,6 @@ if __name__ == "__main__":
         if result_image is not None:
             cv2.imwrite("esrgan_ov.png", result_image)
         else:
-            log.error("Failed to generate the superresolved image.")
+            log.error("Failed to generate the super resolution image.")
     else:
         log.error("Failed to read the input image.")

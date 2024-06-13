@@ -33,14 +33,24 @@ image_paths = {
 }
 
 class StringEnum:
+    """
+    Helper class for when you want to use strings as keys of an enum. The values would be
+    user facing strings that might undergo translation.
+
+    The constructor accepts an even amount of arguments. Each pair of arguments
+    is a key/value pair.
+    """
+
     def __init__(self, *args):
         self.keys = []
         self.values = []
+
         for i in range(len(args) // 2):
             self.keys.append(args[i * 2])
             self.values.append(args[i * 2 + 1])
 
     def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
         for i in range(len(self.keys)):
             tree_model.append([self.keys[i], self.values[i]])
@@ -52,6 +62,7 @@ class DeviceEnum:
         self.values = supported_devices
 
     def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
         for i in range(len(self.keys)):
             tree_model.append([self.keys[i], self.values[i]])
@@ -82,7 +93,8 @@ def remove_temporary_files(directory):
         if f_name.startswith("cache"):
             os.remove(os.path.join(directory, f_name))
 
-def superresolution(procedure, image, drawable, scale, device_name, model_name, progress_bar, config_path_output):
+def superresolution(procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
+    # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
     plugin_path = config_path_output["plugin_path"]
@@ -193,6 +205,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
 
+       # Scale parameter
         label = Gtk.Label.new_with_mnemonic(_("_Scale"))
         grid.attach(label, 0, 2, 1, 1)
         label.show()
@@ -202,6 +215,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(spin, 1, 2, 1, 1)
         spin.show()
 
+        # Model Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
         grid.attach(label, 0, 0, 1, 1)
         label.show()
@@ -211,6 +225,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(combo, 1, 0, 1, 1)
         combo.show()
 
+        # Device Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
         grid.attach(label, 2, 0, 1, 1)
         label.show()
@@ -220,10 +235,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(combo, 3, 0, 1, 1)
         combo.show()
 
+        # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
         vbox.pack_start(logo, False, False, 1)
         logo.show()
 
+        # Show License
         license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
         vbox.pack_start(label, False, False, 1)
@@ -233,6 +250,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
+        # Wait for user to click
         dialog.show()
         while True:
             response = dialog.run()
@@ -244,6 +262,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 result = superresolution(
                     procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output
                 )
+                # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
+                # If the execution was successful, save parameters so they will be restored next time we show dialog.
                 if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
                     config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
@@ -258,6 +278,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 )
 
 class Superresolution(Gimp.PlugIn):
+    ## Parameters ##
+    
     __gproperties__ = {
         "scale": (float, _("_Scale"), "Scale", 1, 4, 2, GObject.ParamFlags.READWRITE),
         "model_name": (
@@ -275,6 +297,8 @@ class Superresolution(Gimp.PlugIn):
             GObject.ParamFlags.READWRITE,
         ),
     }
+
+    ## GimpPlugIn virtual methods ##
 
     def do_query_procedures(self):
         try:
