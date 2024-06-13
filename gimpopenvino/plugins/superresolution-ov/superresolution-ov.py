@@ -93,42 +93,23 @@ def superresolution(procedure, image, drawable, scale, device_name, model_name, 
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
     save_inference_parameters(weight_path, device_name, scale, model_name)
 
-    subprocess.call([python_path, plugin_path])
+    try:
+        subprocess.call([python_path, plugin_path])
+        data_output = load_inference_results(weight_path)
+    except Exception as e:
+        Gimp.message(f"Error during inference: {e}")
+        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
-    data_output = load_inference_results(weight_path)
     image.undo_group_end()
     Gimp.context_pop()
 
     if data_output["inference_status"] == "success":
-        if scale == 1:
-            result = Gimp.file_load(
-                Gimp.RunMode.NONINTERACTIVE,
-                Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
-            )
-            result_layer = result.get_active_layer()
-            copy = Gimp.Layer.new_from_drawable(result_layer, image)
-            copy.set_name("SuperResolution")
-            copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
-            image.insert_layer(copy, None, -1)
-        else:
-            image_new = Gimp.Image.new(
-                drawable[0].get_width() * scale, drawable[0].get_height() * scale, 0
-            )
-            display = Gimp.Display.new(image_new)
-            result = Gimp.file_load(
-                Gimp.RunMode.NONINTERACTIVE,
-                Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
-            )
-            try:
-                result_layer = result.get_active_layer()
-            except:
-                result_layers = result.list_layers()
-                result_layer = result_layers[0]
-            copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-            copy.set_name("SuperResolution")
-            copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
-            image_new.insert_layer(copy, None, -1)
-
+        try:
+            result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+        except Exception as e:
+            Gimp.message(f"Error processing inference results: {e}")
+            return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        
         Gimp.displays_flush()
         remove_temporary_files(os.path.join(weight_path, ".."))
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
@@ -140,6 +121,37 @@ def superresolution(procedure, image, drawable, scale, device_name, model_name, 
             image_paths
         )
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+
+def handle_successful_inference(weight_path, image, drawable, scale):
+    if scale == 1:
+        result = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE,
+            Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
+        )
+        result_layer = result.get_active_layer()
+        copy = Gimp.Layer.new_from_drawable(result_layer, image)
+        copy.set_name("SuperResolution")
+        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
+        image.insert_layer(copy, None, -1)
+    else:
+        image_new = Gimp.Image.new(
+            drawable[0].get_width() * scale, drawable[0].get_height() * scale, 0
+        )
+        display = Gimp.Display.new(image_new)
+        result = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE,
+            Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
+        )
+        try:
+            result_layer = result.get_active_layer()
+        except:
+            result_layers = result.list_layers()
+            result_layer = result_layers[0]
+        copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
+        copy.set_name("SuperResolution")
+        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
+        image_new.insert_layer(copy, None, -1)
+    return result_layer
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
     scale = args.index(0)
