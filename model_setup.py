@@ -9,8 +9,7 @@ import sys
 import shutil
 from pathlib import Path
 from glob import glob
-from openvino.runtime import Core
-
+import win32com.client
 
 mode_config_filename =  os.path.join(os.path.dirname(__file__), "model_setup_config.json") 
 mode_config = None
@@ -23,8 +22,6 @@ test_path = os.path.join(other_models, "superresolution-ov")
 
 access_token = "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" # Testing Key
 
-core = Core()
-cpu_type = core.get_property('CPU','full_device_name'.upper())
 os_type = platform.system().lower()
 npu_driver_version = None
 npu_arch = None
@@ -35,14 +32,46 @@ linux_kernel_version = None
 MIN_UBUNTU_VERSION = [22, 4]
 LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
 LINUX_KERNEL_COMMAND = "uname -r"
-WINDOWS_NPU_COMMAND_TEMPLATE = "get-WmiObject Win32_PnPSignedDriver | Where-Object {{$_.DeviceID -like '{npu_devid}*'}} | Select-Object -ExpandProperty DriverVersion"
 
-def get_windows_npu_info(npu_arch, npu_devid_selection):
-    npu_devid = npu_devid_selection['windows'][npu_arch]
-    command = WINDOWS_NPU_COMMAND_TEMPLATE.format(npu_devid=npu_devid)
-    return subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
+def get_windows_pcie_device_driver_versions():
+    try:
+        # Initialize the WMI client
+        wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
+        service = wmi.ConnectServer(".", "root\\cimv2")
+        
+        # Query Win32_PnPSignedDriver to get driver information for PCI devices
+        drivers = service.ExecQuery("SELECT DeviceID, DriverVersion FROM Win32_PnPSignedDriver")
+        
+        driver_info_list = []
+        for driver in drivers:
+            driver_info = {
+                "DeviceID": driver.DeviceID,
+                "DriverVersion": driver.DriverVersion
+            }
+            driver_info_list.append(driver_info)
+        
+        return driver_info_list
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+def check_windows_device_driver_version(device_id, driver_info):
+    for info in driver_info:
+        if device_id in info["DeviceID"]:
+            return info["DriverVersion"]
+    return None
+    
+def get_windows_npu_info():
+    driver_info = get_windows_pcie_device_driver_versions()
+    for npu_type in mode_config["npu_devid_selection"]["windows"]:
+        for npu_devid in mode_config["npu_devid_selection"]["windows"][npu_type]:
+            if check_windows_device_driver_version(npu_devid, driver_info):
+                driver = check_windows_device_driver_version(npu_devid, driver_info).split(".")
+                return driver, npu_type, None
+    return None            
 
 def get_linux_npu_info():
+    npu_type = "default"
     linux_distro = distro.id().lower()
     os_version = list(map(int, distro.version().split('.')))
     
@@ -55,12 +84,12 @@ def get_linux_npu_info():
     npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
     linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
 
-    return npu_driver_version, linux_kernel_version
+    return npu_driver_version, npu_type, linux_kernel_version
 
-def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
+def get_npu_info(os_type):
     try:
         if os_type == "windows":
-            return get_windows_npu_info(npu_arch, npu_devid_selection), None
+            return get_windows_npu_info()
         elif os_type == "linux":
             return get_linux_npu_info()
         else:
@@ -69,10 +98,9 @@ def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
         print(f"Error getting NPU info: {e}")
         return None, None
 
-if "ultra" in cpu_type.lower(): # bypass this test for RVP
-    npu_arch = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-    npu_devid_selection = mode_config['npu_devid_selection']
-    npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
+# we'll check to see if there is any npu
+npu_driver_version, npu_arch, linux_kernel_version = get_npu_info(os_type)
+
 
 for folder in os.scandir(src_dir):
     model = os.path.basename(folder)
@@ -322,6 +350,9 @@ def show_menu():
     print("0 - Exit SD Model setup")
 
 def main():
+
+    
+
     while True:
         show_menu()
         choice = input("Enter the number for the model you want to download: ")

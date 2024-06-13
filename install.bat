@@ -6,6 +6,7 @@
     python -m virtualenv gimpenv3
     echo -----activating python venv------------------------------------------------------------------
     call "gimpenv3\Scripts\activate"
+	pip install pywin32
     pip install -r %~dp0\plugin-requirements.txt | find /V "already satisfied"
     pip install %~dp0\.
 

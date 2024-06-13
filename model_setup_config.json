@@ -3,8 +3,8 @@
     "npu_devid_selection": {
         "_about" : "General NPU device selection",
         "windows": {
-            "3720": "PCI\\VEN_8086&DEV_7D1D",
-            "4000": "PCI\\VEN_8086&DEV_643E"
+            "3720": ["PCI\\VEN_8086&DEV_7D1D","PCI\\VEN_8086&DEV_AD1D"],
+            "4000": ["PCI\\VEN_8086&DEV_643E"]
         },
         "linux" : {
             "default":"NPU"
