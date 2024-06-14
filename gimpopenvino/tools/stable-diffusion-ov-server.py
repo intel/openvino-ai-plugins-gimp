@@ -144,9 +144,6 @@ def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
         log.info('Device list: %s', device_list)
         return StableDiffusionThreeEngine(model=model_path, device=device_list)
-    if model_name == "sd_1.5_square_int8":
-        log.info('Device list: %s', device_list)
-        return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
         return StableDiffusionEngineInpainting(model=model_path, device=device_list)
     if model_name == "sd_1.5_square_lcm":
@@ -237,8 +234,21 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback=progress_callback,
                 callback_userdata=conn
             )
-
-        elif model_name == "controlnet_openpose" or model_name == "controlnet_openpose_int8":
+        elif model_name == "controlnet_referenceonly":
+            output = engine(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                init_image=Image.open(init_image),
+                scheduler=scheduler,
+                num_inference_steps=num_infer_steps,
+                guidance_scale=guidance_scale,
+                eta=0.0,
+                create_gif=bool(create_gif),
+                model=model_path,
+                callback=progress_callback,
+                callback_userdata=conn
+            )
+        elif "controlnet" in model_name: 
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -252,20 +262,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback=progress_callback,
                 callback_userdata=conn
             )
-        elif model_name == "controlnet_canny" or model_name == "controlnet_canny_int8":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
+        
         elif model_name == "sd_1.5_square_lcm":
             scheduler = LCMScheduler(
                 beta_start=0.00085,
@@ -293,34 +290,8 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                     callback_userdata = conn,
                     seed = seed
             )        
-        elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
-        elif model_name == "controlnet_referenceonly":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                init_image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
+        
+        
         else:
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(
