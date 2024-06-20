@@ -1042,7 +1042,7 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
     def __call__(
             self,
             prompt,
-            init_image = None,
+            image = None,
             negative_prompt=None,
             scheduler=None,
             strength = 1.0,
@@ -1098,7 +1098,7 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
         latent_timestep = timesteps[:1]
 
         ref_image = self.prepare_image(
-            image=init_image,
+            image=image,
             width=512,
             height=512,
         )
