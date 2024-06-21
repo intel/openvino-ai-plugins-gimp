@@ -86,7 +86,6 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 def result(var):
     return next(iter(var.values()))
 
-
 class StableDiffusionEngineAdvanced(DiffusionPipeline):
     def __init__(
             self,
@@ -132,13 +131,12 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
         self.time_proj_constants = np.load(os.path.join(model, "time_proj_constants.npy"))
 
-
     def load_model(self, model, model_name, device):
         if "NPU" in device:
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
                 return self.core.import_model(f.read(), device)
         return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
-
+    
     def set_dimensions(self):
         latent_shape = self.unet.input("latent_model_input").shape
         if latent_shape[1] == 4:
@@ -451,6 +449,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         self.batch_size = 2 if device[1] == device [2] and device[1] == "GPU" else 1
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
+        
         print("Setting caching")
 
         print("Text Device:", device[0])
@@ -493,7 +492,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
                 return self.core.import_model(f.read(), device)
         return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
-    
+        
     def set_dimensions(self):
         latent_shape = self.unet.input("latent_model_input").shape
         if latent_shape[1] == 4:
@@ -1010,14 +1009,14 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         #print("After Step 6: ")
 
-        #vae_start = time.time()
+        vae_start = time.time()
 
         if not output_type == "latent":
             image = torch.from_numpy(self.vae_decoder(denoised / 0.18215, share_inputs=True, share_outputs=True)[0])
         else:
             image = denoised
 
-        #print("vae decoder done", time.time() - vae_start)
+        print("Decoder Ended: ", time.time() - vae_start)
         #post_start = time.time()
 
         #if has_nsfw_concept is None:
