@@ -192,6 +192,7 @@ def main():
             ran_seed = args.seed
         else:
             ran_seed = random.randrange(seed) #4294967294
+        
         np.random.seed(int(ran_seed)) 
     
         log.info('Random Seed: %s',ran_seed)
@@ -290,7 +291,7 @@ def main():
                         + '_'.join(map(str,execution_devices)) 
                         + "_" + str(ran_seed) 
                         + "_" + str(num_infer_steps) 
-                        + "_steps" +".jpg",gen_time])
+                        + "_steps",gen_time])
         
         generation_time.append(gen_time)
 
@@ -298,11 +299,14 @@ def main():
         print(f"Average Image Generation Time: {round(mean(generation_time),2)} seconds")
 
     if args.save_image:
+        index = 1
         for result in results:
-            if "sd_3.0" not in model_name:
-                cv2.imwrite(result[1], result[0]) 
+            if "sd_3.0" not in model_name and "lcm" not in model_name:
+                cv2.imwrite(result[1] + "_" + str(index) + ".jpg", result[0])                         
             else:
-                result[0].save(result[1])
+                result[0].save(result[1] + "_" + str(index) + ".jpg")
+            index += 1 
+            
 
 if __name__ == "__main__":
     sys.exit(main())
