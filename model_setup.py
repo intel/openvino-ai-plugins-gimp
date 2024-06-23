@@ -20,8 +20,8 @@ other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp",
 src_dir = os.path.join(os.path.dirname(__file__), "weights")
 test_path = os.path.join(other_models, "superresolution-ov")
 
-#access_token = None
-access_token = "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" # Testing Key
+access_token = None
+
 core = Core()
 os_type = platform.system().lower()
 npu_driver_version = None
