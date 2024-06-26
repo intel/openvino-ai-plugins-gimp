@@ -518,9 +518,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "sd_3.0" not in model_name:
-                if "int8" in model_name or "lcm" in model_name:
-                    return True
+            if "sd_1.5_square" in model_name or "int8" in model_name:
+                return True
             return False
         
         def remove_all_advanced_widgets():

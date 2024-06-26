@@ -86,7 +86,6 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 def result(var):
     return next(iter(var.values()))
 
-
 class StableDiffusionEngineAdvanced(DiffusionPipeline):
     def __init__(
             self,
@@ -132,13 +131,12 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
         self.time_proj_constants = np.load(os.path.join(model, "time_proj_constants.npy"))
 
-
     def load_model(self, model, model_name, device):
         if "NPU" in device:
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
                 return self.core.import_model(f.read(), device)
         return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
-
+    
     def set_dimensions(self):
         latent_shape = self.unet.input("latent_model_input").shape
         if latent_shape[1] == 4:
@@ -230,7 +228,6 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
             latent_model_input = latents
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
 
-            latent_model_input_gpu = latent_model_input
             latent_model_input_neg = latent_model_input
             if self.unet.input("latent_model_input").shape[1] != 4:
                 #print("In transpose")
@@ -429,10 +426,10 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 class StableDiffusionEngine(DiffusionPipeline):
     def __init__(
             self,
-        
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU", "CPU", "CPU"]
+            device=["CPU","CPU","CPU","CPU"],
+
     ):
        
         try:
@@ -447,38 +444,63 @@ class StableDiffusionEngine(DiffusionPipeline):
                     print("Retry Token Download...")
 
         # self.scheduler = scheduler
-        # models
-
+        # Need to figure out if we are running B=2 or B=1
+        # 
+        self.batch_size = 2 if device[1] == device [2] and device[1] == "GPU" else 1
         self.core = Core()
-        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
-        # text features
+        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
+        
+        print("Setting caching")
 
         print("Text Device:", device[0])
-        self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
-
+        self.text_encoder = self.load_model(model, "text_encoder", device[0])
         self._text_encoder_output = self.text_encoder.output(0)
 
-        # diffusion
-        print("unet Device:", device[1])
-        self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1])  # "unet_ov22_2.xml"
+        print("Unet Device:", device[1])
+        if self.batch_size == 1:
+            self.unet = self.load_model(model, "unet_bs1", device[1])
+            self.unet_neg = self.load_model(model, "unet_bs1", device[2])
+        else:
+            self.unet = self.load_model(model, "unet", device[1])
+        
+        print("Unet Neg Device:", device[2])
+                
         self._unet_output = self.unet.output(0)
-        self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
-        # decoder
-        print("Vae Device:", device[2])
 
-        self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
+        if self.batch_size == 1:
+            self.infer_request = self.unet.create_infer_request() 
+            self.infer_request_neg = self.unet_neg.create_infer_request() 
+            self._unet_neg_output  = self.unet_neg.output(0) 
+        else:
+            self.infer_request = None 
+            self.infer_request_neg = None
+            self._unet_neg_output  = None
+        
+        #self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
 
-        # encoder
+        self.set_dimensions()
 
-        self.vae_encoder = self.core.compile_model(os.path.join(model, "vae_encoder.xml"), device[2])
-
-        self.init_image_shape = tuple(self.vae_encoder.inputs[0].shape)[2:]
-
+        print(f"VAE Device: {device[3]}")
+        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
+        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
         self._vae_d_output = self.vae_decoder.output(0)
         self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
 
-        self.height = self.unet.input(0).shape[2] * 8
-        self.width = self.unet.input(0).shape[3] * 8
+
+    def load_model(self, model, model_name, device):
+        if "NPU" in device:
+            with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
+                return self.core.import_model(f.read(), device)
+        return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+        
+    def set_dimensions(self):
+        latent_shape = self.unet.input("latent_model_input").shape
+        if latent_shape[1] == 4:
+            self.height = latent_shape[2] * 8
+            self.width = latent_shape[3] * 8
+        else:
+            self.height = latent_shape[1] * 8
+            self.width = latent_shape[2] * 8
 
     def __call__(
             self,
@@ -509,7 +531,6 @@ class StableDiffusionEngine(DiffusionPipeline):
         # do classifier free guidance
         do_classifier_free_guidance = guidance_scale > 1.0
         if do_classifier_free_guidance:
-
             if negative_prompt is None:
                 uncond_tokens = [""]
             elif isinstance(negative_prompt, str):
@@ -556,21 +577,53 @@ class StableDiffusionEngine(DiffusionPipeline):
             if callback:
                 callback(i, callback_userdata)
 
-            # expand the latents if we are doing classifier free guidance
-            latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
-            latent_model_input = scheduler.scale_model_input(latent_model_input, t)
-            # print("latent_model_input:", latent_model_input)
-            # predict the noise residual
-            noise_pred = self.unet([latent_model_input, np.array(t, dtype=np.float32), text_embeddings])[self._unet_output]
-            # print("noise_pred:",noise_pred)
-            # perform guidance
+            if self.batch_size == 1:
+                # expand the latents if we are doing classifier free guidance
+                noise_pred = []
+                latent_model_input = latents 
+                   
+                #Scales the denoising model input by `(sigma**2 + 1) ** 0.5` to match the Euler algorithm.
+                latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+                latent_model_input_pos = latent_model_input 
+                latent_model_input_neg = latent_model_input
+
+                if self.unet.input("latent_model_input").shape[1] != 4:
+                    try:
+                        latent_model_input_pos = latent_model_input_pos.permute(0,2,3,1)
+                    except:
+                        latent_model_input_pos = latent_model_input_pos.transpose(0,2,3,1)
+                
+                if self.unet_neg.input("latent_model_input").shape[1] != 4:
+                    try:
+                        latent_model_input_neg = latent_model_input_neg.permute(0,2,3,1)
+                    except:
+                        latent_model_input_neg = latent_model_input_neg.transpose(0,2,3,1)
+                                        
+                input_tens_neg_dict = {"latent_model_input":latent_model_input_neg, "encoder_hidden_states": np.expand_dims(text_embeddings[0], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
+                input_tens_pos_dict = {"latent_model_input":latent_model_input_pos, "encoder_hidden_states": np.expand_dims(text_embeddings[1], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
+                                 
+                self.infer_request_neg.start_async(input_tens_neg_dict)
+                self.infer_request.start_async(input_tens_pos_dict)    
+         
+                self.infer_request_neg.wait()
+                self.infer_request.wait()
+
+                noise_pred_neg = self.infer_request_neg.get_output_tensor(0)
+                noise_pred_pos = self.infer_request.get_output_tensor(0)
+                               
+                noise_pred.append(noise_pred_neg.data.astype(np.float32))
+                noise_pred.append(noise_pred_pos.data.astype(np.float32))
+            else:
+                latent_model_input = np.concatenate([latents] * 2) if do_classifier_free_guidance else latents
+                latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+                noise_pred = self.unet([latent_model_input, np.array(t, dtype=np.float32), text_embeddings])[self._unet_output]
+                
             if do_classifier_free_guidance:
                 noise_pred_uncond, noise_pred_text = noise_pred[0], noise_pred[1]
                 noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
-            latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents), **extra_step_kwargs)[
-                "prev_sample"].numpy()
+            latents = scheduler.step(torch.from_numpy(noise_pred), t, torch.from_numpy(latents), **extra_step_kwargs)["prev_sample"].numpy()
 
             if create_gif:
                 frames.append(latents)
@@ -579,15 +632,10 @@ class StableDiffusionEngine(DiffusionPipeline):
             callback(num_inference_steps, callback_userdata)
 
         # scale and decode the image latents with vae
-        
         #if self.height == 512 and self.width == 512:
         latents = 1 / 0.18215 * latents
-
         image = self.vae_decoder(latents)[self._vae_d_output]
-
         image = self.postprocess_image(image, meta)
-
-        
 
         return image
 
@@ -961,14 +1009,14 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         #print("After Step 6: ")
 
-        #vae_start = time.time()
+        vae_start = time.time()
 
         if not output_type == "latent":
             image = torch.from_numpy(self.vae_decoder(denoised / 0.18215, share_inputs=True, share_outputs=True)[0])
         else:
             image = denoised
 
-        #print("vae decoder done", time.time() - vae_start)
+        print("Decoder Ended: ", time.time() - vae_start)
         #post_start = time.time()
 
         #if has_nsfw_concept is None:
