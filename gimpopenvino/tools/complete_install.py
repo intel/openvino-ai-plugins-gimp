@@ -52,8 +52,6 @@ def setup_python_weights(install_location=None):
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution-ov/superresolution-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable-diffusion-ov/stable-diffusion-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg-ov/semseg-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/inpainting-ov/inpainting-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/fast-style-transfer-ov/fast-style-transfer-ov.py'])
 
 
     print(
