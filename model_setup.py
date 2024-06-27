@@ -267,7 +267,7 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
     """
     Compile the model and export it to the specified path.
     """
-    model = core.compile_model(model_path, device, config)
+    model = core.compile_model(model_path, device, config=config)
     with io.BytesIO() as model_blob:
         model.export_model(model_blob)
         with open(output_path, 'wb') as f:
@@ -280,7 +280,7 @@ def dl_sd_15_square():
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
     compile_models = download_quantized_models(repo_id, model_fp16, model_int8)
     models_to_compile = [ "text_encoder", "unet_bs1" , "unet_int8", "vae_encoder" , "vae_decoder" ]
-
+    
     if npu_driver_version is not None:
         if not compile_models:
             user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
@@ -296,7 +296,8 @@ def dl_sd_15_square():
                     model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                     output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
                     print(f"Creating NPU model for {model_name} - INT8")
-                    compile_and_export_model(core, model_path_int8, output_path_int8)
+                    config = {"NPU_DPU_GROUPS":"2"}
+                    compile_and_export_model(core, model_path_int8, output_path_int8, config=config)
                 else:
                     print(f"Creating NPU model for {model_name}")
                     compile_and_export_model(core, model_path_fp16, output_path_fp16)
