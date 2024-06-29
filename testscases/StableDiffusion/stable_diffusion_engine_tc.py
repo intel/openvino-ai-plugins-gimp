@@ -9,7 +9,6 @@ import json
 import numpy as np
 from statistics import mean
 from gimpopenvino.tools.tools_utils import get_weight_path
-
 from PIL import Image
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
 plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..","gimpopenvino","tools","openvino_common")
@@ -31,12 +30,17 @@ log = logging.getLogger()
 
 def parse_args() -> argparse.Namespace:
     """Parse and return command line arguments."""
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     args = parser.add_argument_group('Options')
     args.add_argument('-h', '--help', action = 'help',
                       help='Show this help message and exit.')
+    # base path to models
+    args.add_argument('-bp','--model_base_path',type = str, default = None, required = False,
+                      help='Optional. Specify the absolute base path to model weights. \nUsage example:  -bp \\stable-diffusion\\model-weights\\')
+    # model name
     args.add_argument('-m', '--model_name',type = str, default = "sd_1.5_square_int8", required = False,
-                      help='Optional. Modle path of directory. Default is sd_1.5_square_int8.')
+                      help='Optional. Model path of directory. Default is sd_1.5_square_int8. \nUsage example:  -m sd_1.5_square_lcm')
+    # Target Devices (CPU/GPU/NPU)
     args.add_argument('-td','--text_device',type = str, default = None, required = False,
                       help='Optional. Specify the target device to infer on; CPU, GPU, NPU '
                       'is acceptable for Text encoder. Default value is None.')
@@ -49,20 +53,26 @@ def parse_args() -> argparse.Namespace:
     args.add_argument('-vd','--vae_device',type = str, default = None, required = False,
                       help='Optional. Specify the target device to infer on; CPU, GPU, NPU '
                       'is acceptable for VAE decoder and encoder. Default value is None.')
+    # seed, number of iterations
     args.add_argument('-seed','--seed',type = int, default = None, required = False,
                       help='Optional. Specify the seed for initialize latent space.')
     args.add_argument('-niter','--iterations',type = int, default = 20, required = False,
                       help='Optional. Iterations for Stable diffusion.')
+    # save output image
     args.add_argument('-si','--save_image',action='store_true', help='Optional. Save output image.')
+    
+    # generate multiple images
     args.add_argument('-n','--num_images',type = int, default = 1, required = False,
                       help='Optional. Number of images to generate.')
+    # power mode
     args.add_argument('-pm','--power_mode',type = str, default = "best performance", required = False,
                       help='Optional. Specify the power mode. Default is best performance')
+    # prompt, negative prompt
     args.add_argument('-pp','--prompt',type = str, default = "a bowl of cherries", required = False,
-                      help='Optional. Specify the power mode. Default is best performance')
+                      help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
     args.add_argument('-np','--neg_prompt',type = str, default = "low quality, bad, low resolution, monochrome", required = False,
-                      help='Optional. Specify the power mode. Default is best performance')
-        
+                      help='Optional. Specify the negative prompt.  Default: "low  quality, bad, low resolution, monochrome"')
+         
     return parser.parse_args()
 
 
@@ -104,9 +114,18 @@ def main():
     args = parse_args()
     results = []
     generation_time = []
-    weight_path = get_weight_path()
-    execution_devices = ["GPU"]*4
 
+    if args.model_base_path:
+        weight_path = args.model_base_path
+    else:
+        weight_path = get_weight_path()
+    
+    # Check if the directory path exists
+    if not os.path.exists(weight_path):
+        raise FileNotFoundError(f"The directory path {weight_path} does not exist.")
+    
+    execution_devices = ["GPU"]*4
+    
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
@@ -133,7 +152,7 @@ def main():
     model_name = args.model_name
     model_path = os.path.join(weight_path, *model_paths.get(model_name))    
     model_config_file_name = os.path.join(model_path, "config.json")
-    
+
     try:
         if args.power_mode is not None and os.path.exists(model_config_file_name):
             with open(model_config_file_name, 'r') as file:
@@ -156,11 +175,10 @@ def main():
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
 
-
     log.info('Initializing Inference Engine...') 
     log.info('Model Path: %s',model_path ) 
     log.info('Run models on: %s',execution_devices) 
-    
+
     prompt = args.prompt #"a beautiful artwork illustration, concept art sketch of an astronaut in white futuristic cybernetic armor in a dark cave, volumetric fog, godrays, high contrast, vibrant colors, vivid colors, high saturation, by Greg Rutkowski and Jesper Ejsing and Raymond Swanland and alena aenami, featured on artstation, wide angle, vertical orientation" 
     negative_prompt = args.neg_prompt # "lowres, bad quality, monochrome, cropped head, deformed face, bad anatomy" 
     
@@ -247,7 +265,7 @@ def main():
                 model=model_path,
                 callback=progress_callback,
                 callback_userdata=conn,
-                seed=seed
+                seed=ran_seed
             )
         elif "sd_3.0" in model_name:
             output = engine(
@@ -257,7 +275,7 @@ def main():
                     guidance_scale = guidance_scale,
                     callback = progress_callback,
                     callback_userdata = conn,
-                    seed = seed
+                    seed = ran_seed
             )        
         else: # Covers SD 1.5 Square, Square INT8, SD 2.0
             if model_name == "sd_2.1_square":
