@@ -1,19 +1,26 @@
-numpy
-future
-scipy
-typing
-gdown
-requests
-opencv-python<=4.3
-scikit-image
-timm==0.4.5
+# Core dependencies
 diffusers
+ftfy>=6.1.1,<6.2.0
+gdown
+numpy>=1.19.0
+opencv-python<=4.3
 openvino
-transformers
-tqdm==4.66.3
-huggingface_hub
-streamlit==1.30.0
-watchdog==2.1.9
-ftfy==6.1.1
-virtualenv
 psutil
+requests
+scipy
+scikit-image
+streamlit>=1.30.0,<1.31.0
+timm==0.4.5
+transformers>=4.37.0
+tqdm>=4.66.3,<4.67.0
+typing
+virtualenv
+
+# Optional dependencies
+future; python_version <= "2.7"
+enum; python_version <= "2.7"
+
+# Development dependencies
+# pytest
+# flake8
+# black
