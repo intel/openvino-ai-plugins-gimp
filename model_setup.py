@@ -1,5 +1,4 @@
 import platform
-import distro
 import json
 import subprocess
 import re
@@ -10,29 +9,26 @@ from pathlib import Path
 import win32com.client
 from openvino.runtime import Core
 import io
+import logging
 
-mode_config_filename =  os.path.join(os.path.dirname(__file__), "model_setup_config.json") 
-mode_config = None
-with open(mode_config_filename) as f:
-    mode_config = json.load(f)
+logging.basicConfig(level=logging.INFO)
+
     
-other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+base_model_dir = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+install_location = os.path.join(base_model_dir, "stable-diffusion-ov")
 src_dir = os.path.join(os.path.dirname(__file__), "weights")
-test_path = os.path.join(other_models, "superresolution-ov")
+test_path = os.path.join(install_location, "superresolution-ov")
 
 access_token = None
 
+# Initialize OpenVINO Core
 core = Core()
 os_type = platform.system().lower()
-npu_driver_version = None
+available_devices = core.get_available_devices()
 npu_arch = None
-npu_devid_selection= None
-linux_kernel_version = None
+if 'NPU' in available_devices:
+    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
-# Constants
-MIN_UBUNTU_VERSION = [22, 4]
-LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
-LINUX_KERNEL_COMMAND = "uname -r"
 
 def load_model(self, model, model_name, device):
     print(f"Loading {model_name} to {device}")
@@ -40,132 +36,15 @@ def load_model(self, model, model_name, device):
     cmmodel =  core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
     print(f"Model Load completed in {time.time() - start_t} seconds")
 
-def get_windows_pcie_device_driver_versions():
-    try:
-        # Initialize the WMI client
-        wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
-        service = wmi.ConnectServer(".", "root\\cimv2")
-        
-        # Query Win32_PnPSignedDriver to get driver information for PCI devices
-        drivers = service.ExecQuery("SELECT DeviceID, DriverVersion FROM Win32_PnPSignedDriver")
-        
-        driver_info_list = []
-        for driver in drivers:
-            driver_info = {
-                "DeviceID": driver.DeviceID,
-                "DriverVersion": driver.DriverVersion
-            }
-            driver_info_list.append(driver_info)
-        
-        return driver_info_list
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return []
-
-def check_windows_device_driver_version(device_id, driver_info):
-    for info in driver_info:
-        if device_id in info["DeviceID"]:
-            return info["DriverVersion"]
-    return None
-    
-def get_windows_npu_info():
-    driver_info = get_windows_pcie_device_driver_versions()
-    for npu_type in mode_config["npu_devid_selection"]["windows"]:
-        for npu_devid in mode_config["npu_devid_selection"]["windows"][npu_type]:
-            if check_windows_device_driver_version(npu_devid, driver_info):
-                driver = check_windows_device_driver_version(npu_devid, driver_info).split(".")
-                return driver, npu_type, None
-    return None            
-
-def get_linux_npu_info():
-    npu_type = "default"
-    linux_distro = distro.id().lower()
-    os_version = list(map(int, distro.version().split('.')))
-    
-    if linux_distro != "ubuntu" or os_version < MIN_UBUNTU_VERSION:
-        raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version}; Minimum Ubuntu OS version required: {MIN_UBUNTU_VERSION}")
-
-    npu_driver_version = subprocess.check_output(LINUX_NPU_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
-    kernel_version = subprocess.check_output(LINUX_KERNEL_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
-
-    npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
-    linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
-
-    return npu_driver_version, npu_type, linux_kernel_version
-
-def get_npu_info(os_type):
-    try:
-        if os_type == "windows":
-            return get_windows_npu_info()
-        elif os_type == "linux":
-            return get_linux_npu_info()
-        else:
-            raise ValueError(f"Unsupported OS type {os_type}")
-    except Exception as e:
-        print(f"Error getting NPU info: {e}")
-        return None, None
-
-# we'll check to see if there is any npu
-npu_driver_version, npu_arch, linux_kernel_version = get_npu_info(os_type)
-
-
-for folder in os.scandir(src_dir):
-    model = os.path.basename(folder)
-    model_path = os.path.join(other_models, model)
-    if not os.path.isdir(model_path):
-        print("Copying {} to {}".format(model, other_models))
-        shutil.copytree(Path(folder), model_path)
-
-print("Setup done for superresolution, semantic-segmentation, style-transfer, in-painting") 
-print("**** OPENVINO STABLE DIFFUSION 1.4 MODEL SETUP ****")
-choice = input("Do you want to download openvino stable-diffusion-1.4 model? Enter Y/N: ")
-
-install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
-
-if choice == "Y" or choice == "y":
-    SD_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
-    if os.path.isdir(SD_path):
-         shutil.rmtree(SD_path)
-
-    repo_id="bes-dev/stable-diffusion-v1-4-openvino"
-    while True:
-        try:
-            download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
-            break
-        except Exception as e:
-             print("Error retry:" + str(e))
-    
-    shutil.copytree(download_folder, SD_path)
-    delete_folder = os.path.join(download_folder, "..", "..", "..")
-    shutil.rmtree(delete_folder, ignore_errors=True)
-
-install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights", "stable-diffusion-ov")
-
-def get_revsion(model_name=None):
-    revision = None
-    if model_name is not None:
-        # Get the revision selection configuration
-        revision_config = mode_config['revision_selection'] 
-        try: 
-            if os_type == "windows":
-                if model_name in revision_config:
-                    if int(npu_driver_version[3]) < 2016:
-                        revision = revision_config[model_name]['windows']['<2016'] + "-" + str(npu_arch)
-                    else: 
-                        revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
-                else:
-                    revision = revision_config['default']
-            elif os_type == "linux":
-                if model_name in revision_config:
-                    revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version]
-                    if revision and "main" not in revision:
-                        revision += "-" + str(npu_arch)     
-                else:
-                    revision = revision_config['default']                 
-        except KeyError:
-            raise ValueError(f"Configuration mismatch! {os_type} & npu driver : {npu_driver_version} versions")
-    return revision
-
+def install_base_models():
+    for folder in os.scandir(src_dir):
+        model = os.path.basename(folder)
+        model_path = os.path.join(base_model_dir, model)
+        if not os.path.isdir(model_path):
+            print("Copying {} to {}".format(model, base_model_dir))
+            shutil.copytree(Path(folder), model_path)
+            
+    print("Setup done for superresolution, semantic-segmentation, style-transfer, in-painting") 
                 
 def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
@@ -182,12 +61,9 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
                 return download_flag
                 
     if  download_flag:               
-        revision = None
-        if npu_driver_version is not None:
-           revision = get_revsion(repo_id)
         while True:
             try:  
-                download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
+                download_folder = snapshot_download(repo_id=repo_id, token=access_token)
                 break
             except Exception as e:
                 print("Error retry:" + str(e))
@@ -230,17 +106,14 @@ def download_model(repo_id, model_1, model_2):
             return download_flag
                            
     if download_flag:
-        revision = None
-        if npu_driver_version is not None: 
-            revision = get_revsion(repo_id)
         while True:
             try:  
-               download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
+               download_folder = snapshot_download(repo_id=repo_id, token=access_token)
                break
             except Exception as e:
                 print("Error retry:" + str(e))
         
-        if repo_id == "gblong1/sd-1.5-lcm-openvino":
+        if repo_id == "Intel/sd-1.5-lcm-openvino":
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
@@ -275,19 +148,25 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
 
 def dl_sd_15_square():
     print("Downloading gblong1/sd-1.5-square-quantized Models")
-    repo_id = "gblong1/sd-1.5-square-quantized"
+    repo_id = "Intel/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
     compile_models = download_quantized_models(repo_id, model_fp16, model_int8)
-    models_to_compile = [ "text_encoder", "unet_bs1" , "unet_int8", "vae_encoder" , "vae_decoder" ]
     
-    if npu_driver_version is not None:
+    if npu_arch is not None:
         if not compile_models:
             user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
             if user_input == "y":
                 compile_models = True
     
         if compile_models:
+            if npu_arch == "3720":
+                models_to_compile = [ "text_encoder", "unet_int8"]
+                shared_models = ["text_encoder.blob"]
+            else:
+                models_to_compile = [ "text_encoder", "unet_bs1" , "unet_int8", "vae_encoder" , "vae_decoder" ]
+                shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
+    
             for model_name in models_to_compile:
                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                 output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
@@ -303,13 +182,28 @@ def dl_sd_15_square():
                     compile_and_export_model(core, model_path_fp16, output_path_fp16)
 
             # Copy shared models to INT8 directory
-            shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
             for blob_name in shared_models:
                 shutil.copy(
                     os.path.join(install_location, model_fp16, blob_name),
                     os.path.join(install_location, model_int8, blob_name)
                 )
 
+def dl_sd_14_square():
+    SD_path = os.path.join(install_location, "stable-diffusion-1.4")
+    if os.path.isdir(SD_path):
+         shutil.rmtree(SD_path)
+
+    repo_id="bes-dev/stable-diffusion-v1-4-openvino"
+    while True:
+        try:
+            download_folder = snapshot_download(repo_id=repo_id, allow_patterns=["*.xml" ,"*.bin"])
+            break
+        except Exception as e:
+             print("Error retry:" + str(e))
+    
+    shutil.copytree(download_folder, SD_path)
+    delete_folder = os.path.join(download_folder, "..", "..", "..")
+    shutil.rmtree(delete_folder, ignore_errors=True)
 
 def dl_sd_21_square():
     print("Downloading Intel/sd-2.1-square-quantized Models")
@@ -359,21 +253,26 @@ def dl_sd_15_scribble():
     model_fp16 = "controlnet-scribble"
     model_int8 = "controlnet-scribble-int8"
     download_quantized_models(repo_id, model_fp16, model_int8)
+
 def dl_sd_15_LCM():
     print("Downloading gblong1/sd-1.5-lcm-openvino")
-    repo_id = "gblong1/sd-1.5-lcm-openvino"
+    repo_id = "Intel/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
     compile_models = download_model(repo_id, model_1, model_2)
-    models_to_compile = [ "text_encoder", "unet" , "vae_decoder" ]
     
-    if npu_driver_version is not None:
+    if npu_arch is not None:
         if not compile_models:
             user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
             if user_input == "y":
                 compile_models = True
     
         if compile_models:
+            if npu_arch == "3720":
+                models_to_compile = [ "text_encoder", "unet" ]
+            else:
+                models_to_compile = [ "text_encoder", "unet" , "vae_decoder" ]
+        
             for model_name in models_to_compile:
                 model_path = os.path.join(install_location, "stable-diffusion-1.5", model_1, model_name + ".xml")
                 output_path = os.path.join(install_location,"stable-diffusion-1.5", model_1, model_name + ".blob")
@@ -398,30 +297,31 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    #dl_sd_21_square()
+    dl_sd_21_square()
+    
 
 def show_menu():
     """
     Display the menu options for downloading models.
     """
     print("=========Choose SD models to download=========")
-    print("1 - SD-1.5 Square (512x512)")
-    print("2 - SD-1.5 Portrait")
-    print("3 - SD-1.5 Landscape")
-    print("4 - SD-1.5 Inpainting (512x512 output image)")
-    print("5 - SD-1.5 Controlnet-Openpose")
-    print("6 - SD-1.5 Controlnet-CannyEdge")
-    print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - SD-1.5 LCM")
-    print("9 - SD-1.5 Controlnet-ReferenceOnly")
-    # print("10 - SD-2.1 Square (768x768)")
+    print("1  - SD-1.5 Square (512x512)")
+    print("2  - SD-1.5 Portrait")
+    print("3  - SD-1.5 Landscape")
+    print("4  - SD-1.5 Inpainting (512x512 output image)")
+    print("5  - SD-1.5 Controlnet-Openpose")
+    print("6  - SD-1.5 Controlnet-CannyEdge")
+    print("7  - SD-1.5 Controlnet-Scribble")
+    print("8  - SD-1.5 LCM")
+    print("9  - SD-1.5 Controlnet-ReferenceOnly")
+    print("10 - SD-2.1 Square (768x768)")
+    print("11 - SD 1.4 Square")
     print("12 - All the above models")
-    print("0 - Exit SD Model setup")
+    print("0  - Exit SD Model setup")
 
 def main():
-
+    install_base_models()
     
-
     while True:
         show_menu()
         choice = input("Enter the number for the model you want to download: ")
@@ -444,7 +344,8 @@ def main():
                 "7": dl_sd_15_scribble,
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
-                # "10": dl_sd_21_square,
+                "10": dl_sd_21_square,
+                "11" : dl_sd_14_square,                
             }
             func = download_functions.get(choice)
             if func:
