@@ -6,7 +6,6 @@ from huggingface_hub import snapshot_download
 import os
 import shutil
 from pathlib import Path
-import win32com.client
 from openvino.runtime import Core
 import io
 import logging
