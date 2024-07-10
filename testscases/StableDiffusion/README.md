@@ -1,4 +1,4 @@
-# Running the model without Installing GIMP
+# Running Stable Diffusion without Installing GIMP
  
 For these instructions, we assume that you have cloned this repo inside `%userprofile%\GIMP` directory and that the virtual environment for GIMP is in `%userprofile%\GIMP\gimpenv3`.
 ## Activate Virtual Environment
