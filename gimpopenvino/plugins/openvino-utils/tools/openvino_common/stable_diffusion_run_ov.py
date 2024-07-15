@@ -28,7 +28,8 @@ from diffusers.schedulers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscr
 # utils
 import cv2
 import numpy as np
-from gimpopenvino.tools.tools_utils import get_weight_path
+from sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils","tools")])
+from tools_utils import get_weight_path import get_weight_path
 
 
 #sys.path.append(str(Path(__file__).resolve().parents[2] / 'common/python'))
@@ -117,6 +118,6 @@ def run(device,prompt,negative_prompt,num_infer_steps,guidance_scale,init_image,
 
 
 if __name__ == "__main__":
-    mask = run("GPU", "photo of a lady in green party dress","ugly, low quality, bad anatomy, monochrome, deformed face", 20, 7.5 ,None,7,None,False,"EulerDiscreteScheduler","SD_1.5") 
+    mask = run("GPU", "photo of a lady in green party dress","ugly, low quality, bad anatomy, monochrome, deformed face", 20, 7.5 ,None,7,None,False,"EulerDiscreteScheduler","sd_1.5") 
     cv2.imwrite("stablediffusion.png", mask)
 

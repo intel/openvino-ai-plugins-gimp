@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright(C) 2022-2023 Intel Corporation
+# SPDX - License - Identifier: Apache - 2.0
+
 import os
 import json
 import sys
@@ -11,11 +15,13 @@ import time
 import random
 from PIL import Image
 import numpy as np
-from gimpopenvino.tools.tools_utils import get_weight_path
 import psutil
 import threading
-plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
-sys.path.extend([plugin_loc])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils","tools")])
+from tools_utils import get_weight_path
+
+
 
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
 from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
@@ -228,8 +234,21 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback=progress_callback,
                 callback_userdata=conn
             )
-
-        elif model_name == "controlnet_openpose" or model_name == "controlnet_openpose_int8":
+        elif model_name == "controlnet_referenceonly":
+            output = engine(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                init_image=Image.open(init_image),
+                scheduler=scheduler,
+                num_inference_steps=num_infer_steps,
+                guidance_scale=guidance_scale,
+                eta=0.0,
+                create_gif=bool(create_gif),
+                model=model_path,
+                callback=progress_callback,
+                callback_userdata=conn
+            )
+        elif "controlnet" in model_name: 
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -243,20 +262,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback=progress_callback,
                 callback_userdata=conn
             )
-        elif model_name == "controlnet_canny" or model_name == "controlnet_canny_int8":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
+        
         elif model_name == "sd_1.5_square_lcm":
             scheduler = LCMScheduler(
                 beta_start=0.00085,
@@ -274,34 +280,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback_userdata=conn,
                 seed=seed
             )
-        elif model_name == "controlnet_scribble" or model_name == "controlnet_scribble_int8":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
-        elif model_name == "controlnet_referenceonly":
-            output = engine(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                init_image=Image.open(init_image),
-                scheduler=scheduler,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn
-            )
+                
         else:
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(

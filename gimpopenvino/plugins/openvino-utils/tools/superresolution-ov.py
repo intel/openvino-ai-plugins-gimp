@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright(C) 2022-2023 Intel Corporation
 # SPDX - License - Identifier: Apache - 2.0
 
@@ -5,13 +6,14 @@ import json
 import os
 import sys
 
-plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
-sys.path.extend([plugin_loc])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils","tools")])
+
 
 import cv2
 from superes_run_ov import run
 import torch
-from gimpopenvino.tools.tools_utils import get_weight_path
+from tools_utils import get_weight_path
 import traceback
 import numpy as np
 

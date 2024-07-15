@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright(C) 2022-2023 Intel Corporation
 # SPDX - License - Identifier: Apache - 2.0
 
@@ -5,8 +6,10 @@ import json
 import os
 import sys
 
-plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")
-sys.path.extend([plugin_loc])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils","tools")])
+from tools_utils import get_weight_path
+
 
 #from semseg_run import run
 from semseg_run_ov import run
@@ -14,7 +17,6 @@ from semseg_run_ov import run
 import cv2
 import os
 import traceback
-from gimpopenvino.tools.tools_utils import get_weight_path
 
 
 def get_seg(input_image, model_name="deeplabv3", device="CPU", weight_path=None):

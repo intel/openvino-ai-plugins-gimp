@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
 # Copyright(C) 2022-2023 Intel Corporation
 # SPDX - License - Identifier: Apache - 2.0
 
+
 """
-Script will create gimp_openvino_config.txt, and print path to be added to GIMP Preferences.
+Script will create gimp_openvino_config.txt
 """
 import os
 import sys
@@ -52,15 +54,6 @@ def setup_python_weights(install_location=None):
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution-ov/superresolution-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable-diffusion-ov/stable-diffusion-ov.py'])
         subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg-ov/semseg-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/inpainting-ov/inpainting-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/fast-style-transfer-ov/fast-style-transfer-ov.py'])
-
-
-    print(
-        "NOTE ! >> Please add this path to Preferences --> Plug-ins in GIMP : ",
-        os.path.join(plugin_loc, "plugins"),
-    )
-    print("\n##########\n")
 
 
 if __name__ == "__main__":
