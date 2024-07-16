@@ -179,6 +179,6 @@ Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For o
 
 | Power mode | Execution detail |
 |----------:|:----------------|
-| Best Performance | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
-| Best Power Efficiency | Text Device:   CPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
-| Balanced | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
+| Best Performance | Text Device:   GPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
+| Best Power Efficiency | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
+| Balanced | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU |
