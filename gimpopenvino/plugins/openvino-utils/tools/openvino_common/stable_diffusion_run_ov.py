@@ -28,7 +28,8 @@ from diffusers.schedulers import LMSDiscreteScheduler, PNDMScheduler, EulerDiscr
 # utils
 import cv2
 import numpy as np
-from gimpopenvino.tools.tools_utils import get_weight_path
+from sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils","tools")])
+from tools_utils import get_weight_path import get_weight_path
 
 
 #sys.path.append(str(Path(__file__).resolve().parents[2] / 'common/python'))

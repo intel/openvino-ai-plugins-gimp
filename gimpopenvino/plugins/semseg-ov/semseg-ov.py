@@ -17,7 +17,7 @@ import subprocess
 import json
 import os
 import sys
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils")])
 from plugin_utils import *
 
 _ = gettext.gettext
@@ -150,14 +150,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "..", "tools"
+            os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "tools"
         )
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
-        #config_path_output={}
-        #with open(os.path.join(config_path, "gimp_openvino_config.txt"), "r") as file:
-        #    for line in file.readlines():
-                #config_path_output[line.split("=")[0]] = line.split("=")[1].replace("\n", "")
+        
         python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
         

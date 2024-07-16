@@ -28,13 +28,13 @@ from pathlib import Path
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils")])
 from plugin_utils import *
 
 _ = gettext.gettext
 image_paths = {
     "logo": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
+        os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "images", "plugin_logo.png"
     ),
     "error": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
@@ -332,7 +332,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "..", "tools"
+            os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "tools"
         )
 
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
@@ -514,7 +514,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "int8" in model_name or "lcm" in model_name:
+            if "sd_1.5_square" in model_name or "int8" in model_name:
                 return True
             return False
         
@@ -719,16 +719,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        grid.attach(logo, 3, 3, 3, 3)
+        grid.attach(logo, 3, 3, 2, 3)
         #vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
-        # license_text = _("PLUGIN LICENSE : Apache-2.0")
-        # label = Gtk.Label(label=license_text)
-        # grid.attach(label, 3, 6, 1, 1)
-        # #vbox.pack_start(label, False, False, 1)
-        # label.show()
+        license_text = _("PLUGIN LICENSE : Apache-2.0")
+        label = Gtk.Label(label=license_text)
+        grid.attach(label, 3, 5, 1, 1)
+        #vbox.pack_start(label, False, False, 1)
+        label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
