@@ -63,7 +63,9 @@ def run(image, model_path, device, model_name):
         h,w,_ = image.shape
 
     core = ov.Core()
-    core.set_property({'CACHE_DIR': os.path.join(model_path, '..','cache')})
+    if "GPU" not in device:
+        core.set_property({'CACHE_DIR': os.path.join(model_path, '..','cache')})
+        
     model = core.read_model(model=model_path)
 
     if "esrgan" in model_name or "edsr" in model_name:
