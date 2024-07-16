@@ -114,7 +114,6 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
     This step will take time for downloading necessary packages.
 
-    >**Notes:** This must be run from outside the `openvino-ai-plugins-gimp` directory. Do not run `.\install.bat` from inside of `openvino-ai-plugins-gimp` or other directories, otherwise it could expect to see an error during installation.
 
 - After creating python environment, gimpenv3, and downloaded necessary packages, you will see below log. Please enter "__Y__" to continue setting up the models for all the plugins.
 
