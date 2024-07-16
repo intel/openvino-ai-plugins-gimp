@@ -416,7 +416,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion...."))
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
@@ -514,7 +514,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "sd_1.5_square" in model_name or "int8" in model_name:
+            if "sd_1.5_square_lcm" in model_name or "int8" in model_name:
                 return True
             return False
         
@@ -724,11 +724,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         logo.show()
 
         # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        grid.attach(label, 3, 5, 1, 1)
+        #license_text = _("PLUGIN LICENSE : Apache-2.0")
+        #label = Gtk.Label(label=license_text)
+        #grid.attach(label, 3, 5, 1, 1)
         #vbox.pack_start(label, False, False, 1)
-        label.show()
+        #label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
