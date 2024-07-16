@@ -9,7 +9,7 @@ Script will create gimp_openvino_config.txt
 import os
 import sys
 import json
-
+import uuid
 import gimpopenvino
 import platform
 import subprocess
@@ -35,11 +35,13 @@ def setup_python_weights(install_location=None):
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
     ie = Core()
     supported_devices = ie.available_devices
+    ZERO_UUID = uuid.UUID('00000000-0000-0000-0000-000000000000')
 
     for i in supported_devices:
         if "Intel" not in ie.get_property(i, "FULL_DEVICE_NAME"):
             supported_devices.remove(i)
-    
+        elif "DEVICE_UUID" in ie.get_property(i,"SUPPORTED_PROPERTIES") and uuid.UUID(ie.get_property(i,"DEVICE_UUID")) == ZERO_UUID:
+            supported_devices.remove(i)
     
     py_dict = {
         "python_path" : python_path,
