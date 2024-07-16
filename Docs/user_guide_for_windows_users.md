@@ -119,10 +119,6 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
     ![](figs/model_downloading.png)
 
- - Enter "__Y__" to download openvino stable-diffustion-1.4 model
-
-    ![](figs/model_download_SD1.4.png)
-
  - Press __\<number\>__ for downloading models you want to run.
 
     ![](figs/model_downloding%20_SD1.5.png)
@@ -133,27 +129,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
     >**Notes:**
     > - The downloaded models include FP16 and INT8 precision, and INT8 precision can be executed on MTL NPU.
-    > - Weights is saved at `C:\Users\\<user_name>\openvino-ai-plugins-gimp\weights`.
-
-## Set up GIMP AI plugins 
-
-Please follow below steps to setup plugin at first time and then you can use GIMP to execute GIMP AI plugins with OpenVINO™ Backend to run Stable-Diffusion or other features.
-
-- Open GIMP application from start menu. (Mandatory step for first launch)
-
-    ![](figs/gimp_launch.png)
-
-- Go to "__Edit__" \> "__Preferences__"
-
-    ![](figs/gimp_preferences.png)
-
-- Scroll down and click "__Folder__" \> "__Plug-ins__" and click ![](figs/add.png) to add the "openvino plugin" path. Then, click "__OK__", then close GIMP application.
-
-    ![](figs/gimp_plugin.png)
-
-    >**Notes:** The Plug-ins path can be found below during run the command "openvino-ai-plugins-gimp\install.bat" in cmd prompt.
-
-    ![](figs/gimp_plugin_path.png)
+    > - Weights is saved at `C:\Users\<user_name>\openvino-ai-plugins-gimp\weights`.
 
 # Execute Stable-Diffusion in GIMP
 
