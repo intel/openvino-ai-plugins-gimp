@@ -54,9 +54,9 @@ def setup_python_weights(install_location=None):
 
     # For Linux, the python plugin scripts need to have executable permissions added.
     if platform.system() == "Linux":
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution-ov/superresolution_ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable-diffusion-ov/stable_diffusion_ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg-ov/semseg_ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution_ov/superresolution_ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable_diffusion_ov/stable_diffusion_ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg_ov/semseg_ov.py'])
 
 
 if __name__ == "__main__":

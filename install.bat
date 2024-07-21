@@ -31,7 +31,7 @@ pip install pywin32
 pip install -r "%~dp0\plugin-requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "import gimpopenvino; gimpopenvino.setup_python_weights()"
+python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
 rem cls
