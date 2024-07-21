@@ -156,14 +156,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             config_path_output = json.load(file)
         
         python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
+        config_path_output["plugin_path"] = os.path.join(config_path, "semseg_ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
-        GimpUi.init("semseg-ov.py")
+        GimpUi.init("semseg_ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )

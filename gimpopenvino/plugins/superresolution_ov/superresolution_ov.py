@@ -177,14 +177,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             config_path_output = json.load(file)
         
         python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution-ov.py")
+        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution_ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
-        GimpUi.init("superresolution-ov.py")
+        GimpUi.init("superresolution_ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("SuperResolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
