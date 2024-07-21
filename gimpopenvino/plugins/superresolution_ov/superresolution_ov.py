@@ -4,27 +4,26 @@
 
 # coding: utf-8
 """
-Performs semantic segmentation of the current layer.
+Perform superresolution on the current layer.
 """
 import gi
-gi.require_version("Gimp", "3.0")
-gi.require_version("GimpUi", "3.0")
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gimp, GimpUi, GObject, GLib, Gio, Gtk
 import gettext
 import subprocess
-#import pickle
 import json
 import os
 import sys
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 
-_ = gettext.gettext
-image_paths = {
+gi.require_version("Gimp", "3.0")
+gi.require_version("GimpUi", "3.0")
+gi.require_version("Gtk", "3.0")
 
+_ = gettext.gettext
+
+image_paths = {
     "logo": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
+        os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "plugin_logo.png"
     ),
     "error": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
@@ -55,17 +54,10 @@ class StringEnum:
             tree_model.append([self.keys[i], self.values[i]])
         return tree_model
 
-
 class DeviceEnum:
-
-
     def __init__(self, supported_devices):
-        self.keys = []
-        self.values = [] 
-        for i in supported_devices:
-            
-            self.keys.append(i)
-            self.values.append(i)
+        self.keys = supported_devices
+        self.values = supported_devices
 
     def get_tree_model(self):
         """Get a tree model that can be used in GTK widgets."""
@@ -75,16 +67,31 @@ class DeviceEnum:
         return tree_model
 
 model_name_enum = StringEnum(
-    "deeplabv3",
-    _("deeplabv3"),
-    "sseg-adas-0001",
-    _("sseg-adas-0001"),
+    "esrgan", _("esrgan"),
+    "sr_1033", _("sr_1033"),
+    "sr_1032", _("sr_1032"),
 )
 
+def save_inference_parameters(weight_path, device_name, scale, model_name):
+    parameters = {
+        "device_name": device_name,
+        "scale": float(scale),
+        "model_name": model_name,
+        "inference_status": "started"
+    }
+    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+        json.dump(parameters, file)
 
+def load_inference_results(weight_path):
+    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
+        return json.load(file)
 
+def remove_temporary_files(directory):
+    for f_name in os.listdir(directory):
+        if f_name.startswith("cache"):
+            os.remove(os.path.join(directory, f_name))
 
-def semseg(procedure, image, drawable, device_name, model_name, progress_bar, config_path_output):
+def superresolution(procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
@@ -94,44 +101,27 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
     image.undo_group_start()
 
     save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+    save_inference_parameters(weight_path, device_name, scale, model_name)
 
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
-        json.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
+    try:
+        subprocess.call([python_path, plugin_path])
+        data_output = load_inference_results(weight_path)
+    except Exception as e:
+        Gimp.message(f"Error during inference: {e}")
+        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
-    # Run inference and load as layer
-    print("python_path",python_path)
-    print("plugin_path",plugin_path)
-    print("weight_path in main",weight_path)
-    subprocess.call([python_path, plugin_path])
-    #data_output = subprocess.call([python_path, plugin_path, device_name, model_name])
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
-        data_output = json.load(file)
     image.undo_group_end()
     Gimp.context_pop()
+
     if data_output["inference_status"] == "success":
-        result = Gimp.file_load(
-            Gimp.RunMode.NONINTERACTIVE,
-            Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
-        )
         try:
-            # 2.99.10
-            result_layer = result.get_active_layer()
-        except:
-            # > 2.99.10
-            result_layers = result.list_layers()
-            result_layer = result_layers[0]
-        copy = Gimp.Layer.new_from_drawable(result_layer, image)
-        copy.set_name("Semantic Segmentation")
-        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
-        copy.set_opacity(50)
-        image.insert_layer(copy, None, -1)
-
-        # Remove temporary layers that were saved
-        my_dir = os.path.join(weight_path, "..")
-        for f_name in os.listdir(my_dir):
-            if f_name.startswith("cache"):
-                os.remove(os.path.join(my_dir, f_name))
-
+            result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+        except Exception as e:
+            Gimp.message(f"Error processing inference results: {e}")
+            return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        
+        Gimp.displays_flush()
+        remove_temporary_files(os.path.join(weight_path, ".."))
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
     else:
         show_dialog(
@@ -142,45 +132,69 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
         )
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
+def handle_successful_inference(weight_path, image, drawable, scale):
+    if scale == 1:
+        result = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE,
+            Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
+        )
+        result_layer = result.get_active_layer()
+        copy = Gimp.Layer.new_from_drawable(result_layer, image)
+        copy.set_name("SuperResolution")
+        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
+        image.insert_layer(copy, None, -1)
+    else:
+        image_new = Gimp.Image.new(
+            drawable[0].get_width() * scale, drawable[0].get_height() * scale, 0
+        )
+        display = Gimp.Display.new(image_new)
+        result = Gimp.file_load(
+            Gimp.RunMode.NONINTERACTIVE,
+            Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
+        )
+        try:
+            result_layer = result.get_active_layer()
+        except:
+            result_layers = result.list_layers()
+            result_layer = result_layers[0]
+        copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
+        copy.set_name("SuperResolution")
+        copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
+        image_new.insert_layer(copy, None, -1)
+    return result_layer
 
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    device_name = args.index(0)
-    model_name = args.index(1)
+    scale = args.index(0)
+    device_name = args.index(1)
+    model_name = args.index(2)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
-        # Get all paths
         config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "tools"
+            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
         )
+
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
         python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "semseg-ov.py")
+        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution-ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
-        GimpUi.init("semseg-ov.py")
-        use_header_bar = Gtk.Settings.get_default().get_property(
-            "gtk-dialogs-use-header"
-        )
-        dialog = GimpUi.Dialog(
-            use_header_bar=use_header_bar, title=_("Semantic Segmentation...")
-        )
+        GimpUi.init("superresolution-ov.py")
+        use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("SuperResolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
         dialog.add_button("_Generate", Gtk.ResponseType.OK)
 
-        vbox = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
-        )
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10)
         dialog.get_content_area().add(vbox)
         vbox.show()
 
-        # Create grid to set all the properties inside.
         grid = Gtk.Grid()
         grid.set_column_homogeneous(False)
         grid.set_border_width(10)
@@ -189,36 +203,44 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
 
+       # Scale parameter
+        label = Gtk.Label.new_with_mnemonic(_("_Scale"))
+        grid.attach(label, 0, 2, 1, 1)
+        label.show()
+        spin = GimpUi.prop_spin_button_new(
+            config, "scale", step_increment=0.01, page_increment=0.1, digits=2
+        )
+        grid.attach(spin, 1, 2, 1, 1)
+        spin.show()
+
         # Model Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
-        grid.attach(label, 0, 1, 1, 1)
+        grid.attach(label, 0, 0, 1, 1)
         label.show()
         combo = GimpUi.prop_string_combo_box_new(
             config, "model_name", model_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(combo, 1, 1, 1, 1)
+        grid.attach(combo, 1, 0, 1, 1)
         combo.show()
 
         # Device Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Device Name"))
-        grid.attach(label, 2, 1, 1, 1)
+        grid.attach(label, 2, 0, 1, 1)
         label.show()
         combo = GimpUi.prop_string_combo_box_new(
             config, "device_name", device_name_enum.get_tree_model(), 0, 1
         )
-        grid.attach(combo, 3, 1, 1, 1)
+        grid.attach(combo, 3, 0, 1, 1)
         combo.show()
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
-        # grid.attach(logo, 0, 0, 1, 1)
         vbox.pack_start(logo, False, False, 1)
         logo.show()
 
         # Show License
         license_text = _("PLUGIN LICENSE : Apache-2.0")
         label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
         vbox.pack_start(label, False, False, 1)
         label.show()
 
@@ -231,12 +253,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         while True:
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
+                scale = config.get_property("scale")
                 device_name = config.get_property("device_name")
                 model_name = config.get_property("model_name")
 
-                result = semseg(
-                    procedure, image, layer, device_name, model_name, progress_bar, config_path_output
+                result = superresolution(
+                    procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output
                 )
+                # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
                 if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
                     config.end_run(Gimp.PDBStatusType.SUCCESS)
@@ -251,15 +275,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     Gimp.PDBStatusType.CANCEL, GLib.Error()
                 )
 
-
-class SemSeg(Gimp.PlugIn):
+class Superresolution(Gimp.PlugIn):
     ## Parameters ##
+    
     __gproperties__ = {
+        "scale": (float, _("_Scale"), "Scale", 1, 4, 2, GObject.ParamFlags.READWRITE),
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'deeplabv3', 'sseg-adas-0001'",
-            "deeplabv3",
+            "Model Name: 'esrgan', 'sr_1033'",
+            "sr_1033",
             GObject.ParamFlags.READWRITE,
         ),
         "device_name": (
@@ -272,6 +297,7 @@ class SemSeg(Gimp.PlugIn):
     }
 
     ## GimpPlugIn virtual methods ##
+
     def do_query_procedures(self):
         try:
             self.set_translation_domain(
@@ -279,33 +305,29 @@ class SemSeg(Gimp.PlugIn):
             )
         except:
             print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
-
-        return ["semseg-ov"]
+        return ["superresolution-ov"]
 
     def do_set_i18n(self, procname):
         return True, 'gimp30-python', None
 
     def do_create_procedure(self, name):
         procedure = None
-        if name == "semseg-ov":
+        if name == "superresolution-ov":
             procedure = Gimp.ImageProcedure.new(
                 self, name, Gimp.PDBProcType.PLUGIN, run, None
             )
             procedure.set_image_types("*")
             procedure.set_documentation(
-                N_("Performs semantic segmentation of the current layer."),
-                globals()[
-                    "__doc__"
-                ],  # This includes the docstring, on the top of the file
+                N_("superresolution on the current layer."),
+                globals()["__doc__"],
                 name,
             )
-            procedure.set_menu_label(N_("Semantic Segmentation..."))
+            procedure.set_menu_label(N_("SuperResolution..."))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
+            procedure.add_argument_from_property(self, "scale")
             procedure.add_argument_from_property(self, "device_name")
             procedure.add_argument_from_property(self, "model_name")
-
         return procedure
 
-
-Gimp.main(SemSeg.__gtype__, sys.argv)
+Gimp.main(Superresolution.__gtype__, sys.argv)

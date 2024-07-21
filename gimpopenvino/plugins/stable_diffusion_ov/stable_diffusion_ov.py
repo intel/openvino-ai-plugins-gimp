@@ -28,13 +28,13 @@ from pathlib import Path
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino-utils")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 
 _ = gettext.gettext
 image_paths = {
     "logo": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "images", "plugin_logo.png"
+        os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "plugin_logo.png"
     ),
     "error": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
@@ -332,7 +332,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino-utils", "tools"
+            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
         )
 
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
@@ -412,7 +412,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         except:
             print(f"{sd_option_cache} not found, loading defaults")
 
-        GimpUi.init("stable-diffusion-ov.py")
+        GimpUi.init("stable_diffusion_ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
@@ -872,7 +872,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     else:
                         device_power_mode = "Best performance" 
 
-                server = "stable-diffusion-ov-server.py"
+                server = "stable_diffusion_ov_server.py"
                 server_path = os.path.join(config_path, server)  
 
                 run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
