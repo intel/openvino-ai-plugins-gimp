@@ -27,6 +27,7 @@ from diffusers.utils import PIL_INTERPOLATION
 import cv2
 import os
 import sys
+import concurrent.futures
 
 #For GIF
 import PIL
@@ -105,21 +106,53 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
         print("Setting caching")
-        
-        print("Text Device:", device[0])
-        self.text_encoder = self.load_model(model, "text_encoder", device[0])
-        self._text_encoder_output = self.text_encoder.output(0)
 
+
+
+
+        
+        # multithreaded loading / compiling attempt
+        # this will reduce the time about 15 ~ 20% on both loading or compiling
+        unet_time_proj_future = None
+        text_future = None
+        unet_future = None
+        unet_neg_future = None
+        vae_de_future = None
+        vae_en_future = None
+
+        print("Text Device:", device[0])
         print("unet Device:", device[1])
         print("unet-neg Device:", device[2])
-        self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
-
-        self.unet = self.load_model(model, "unet_int8", device[1])
-        self.unet_neg = self.unet if device[1] == device[2] else self.load_model(model, "unet_int8", device[2])
-
         print("VAE Device:", device[3])
-        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
-        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
+
+        try :
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                print("in stableDiffusionEngineAdvanced >> ")
+                unet_time_proj_future = executor.submit(self.core.compile_model, os.path.join(model, "unet_time_proj.xml"), 'CPU')
+                text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
+
+                unet_future = executor.submit(self.load_model, model, "unet_int8", device[1])
+                unet_neg_future = executor.submit(self.load_model, model, "unet_int8", device[2]) if device[1] != device[2] else None
+
+                vae_de_future = executor.submit(self.load_model, model, "vae_decoder", device[3])
+                vae_en_future = executor.submit(self.load_model, model, "vae_encoder", device[3])
+        except :
+            print("[Multithread] Multithreaded loading/compiling attempt failed")
+
+
+        # expected big file pause first for less checking & pausing
+        self.unet = unet_future.result()
+        self.unet_neg = unet_neg_future.result() if unet_neg_future is not None else self.unet
+        
+        self.unet_time_proj = unet_time_proj_future.result()
+        self.text_encoder = text_future.result()
+        self.vae_decoder = vae_de_future.result()
+        self.vae_encoder = vae_en_future.result()
+
+
+
+
+        self._text_encoder_output = self.text_encoder.output(0)
 
         self._vae_d_output = self.vae_decoder.output(0)
         self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
@@ -453,19 +486,40 @@ class StableDiffusionEngine(DiffusionPipeline):
         print("Setting caching")
 
         print("Text Device:", device[0])
-        self.text_encoder = self.load_model(model, "text_encoder", device[0])
-        self._text_encoder_output = self.text_encoder.output(0)
-
         print("Unet Device:", device[1])
-        if self.batch_size == 1:
-            self.unet = self.load_model(model, "unet_bs1", device[1])
-            self.unet_neg = self.load_model(model, "unet_bs1", device[2])
-        else:
-            self.unet = self.load_model(model, "unet", device[1])
-        
         print("Unet Neg Device:", device[2])
+        print(f"VAE Device: {device[3]}")
+
+        #unet_time_proj_future = None
+        text_future = None
+        unet_future = None
+        unet_neg_future = None
+        vae_de_future = None
+        vae_en_future = None
+
+        try :
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                print("in stableDiffusionEngine >> ")
+                text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
+
+                if self.batch_size == 1:
+                    unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
+                    unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2])
+                else:
+                    unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 
-        self._unet_output = self.unet.output(0)
+                vae_de_future = executor.submit(self.load_model, model, "vae_decoder", device[3])
+                vae_en_future = executor.submit(self.load_model, model, "vae_encoder", device[3])    
+
+        except :
+            print("[Multithread] Multithreaded loading/compiling attempt failed")
+
+
+        self.unet = unet_future.result()
+        self.unet_neg = unet_neg_future.result() if self.batch_size == 1 else None
+        self.text_encoder = text_future.result()
+        self.vae_decoder = vae_de_future.result()
+        self.vae_encoder = vae_en_future.result()
 
         if self.batch_size == 1:
             self.infer_request = self.unet.create_infer_request() 
@@ -480,12 +534,13 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         self.set_dimensions()
 
-        print(f"VAE Device: {device[3]}")
-        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
-        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
+
+        self._text_encoder_output = self.text_encoder.output(0)
+        self._unet_output = self.unet.output(0)
+
         self._vae_d_output = self.vae_decoder.output(0)
         self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
-
+        
 
     def load_model(self, model, model_name, device):
         if "NPU" in device:

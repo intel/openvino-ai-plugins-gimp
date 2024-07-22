@@ -8,7 +8,9 @@ import shutil
 from pathlib import Path
 from openvino.runtime import Core
 import io
+import concurrent.futures
 import logging
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,6 +30,11 @@ npu_arch = None
 if 'NPU' in available_devices:
     npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
+def gen_multithread_dic(models):
+    future_dic = {}
+    for modelst in models:
+        future_dic[modelst] = None
+    return future_dic
 
 def load_model(self, model, model_name, device):
     print(f"Loading {model_name} to {device}")
@@ -160,25 +167,40 @@ def dl_sd_15_square():
     
         if compile_models:
             if npu_arch == "3720":
-                models_to_compile = [ "text_encoder", "unet_int8"]
+                # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
+                models_to_compile = [ "unet_int8", "text_encoder"]
                 shared_models = ["text_encoder.blob"]
             else:
-                models_to_compile = [ "text_encoder", "unet_bs1" , "unet_int8", "vae_encoder" , "vae_decoder" ]
+                # also modified the model order for less checking in the future object when it gets result
+                models_to_compile = [ "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
                 shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
     
-            for model_name in models_to_compile:
-                model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
-                output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-        
-                if "unet_int8" in model_name:
-                    model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
-                    output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
-                    print(f"Creating NPU model for {model_name} - INT8")
-                    config = {"NPU_DPU_GROUPS":"2"}
-                    compile_and_export_model(core, model_path_int8, output_path_int8, config=config)
-                else:
-                    print(f"Creating NPU model for {model_name}")
-                    compile_and_export_model(core, model_path_fp16, output_path_fp16)
+            sd_15_futures = gen_multithread_dic(models_to_compile)
+
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    for model_name in models_to_compile:
+                        model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
+                        output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
+                
+                        if "unet_int8" in model_name:
+                            model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
+                            output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
+                            print(f"Creating NPU model for {model_name} - INT8")
+                            config = {"NPU_DPU_GROUPS":"2"}
+                            sd_15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8, config=config)
+                        else:
+                            print(f"Creating NPU model for {model_name}")
+                            sd_15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
+
+                # python future object gets paused with .result() call
+                # this makes sure all the models are loaded
+                # Todo: check if single model compiling can be also multithreaded. is it even possible?
+                for model_name in models_to_compile:
+                    sd_15_futures[model_name].result()
+                
+            except:
+                logging.error("[Multithread] Multithreaded loading/compiling attempt failed")
 
             # Copy shared models to INT8 directory
             for blob_name in shared_models:
