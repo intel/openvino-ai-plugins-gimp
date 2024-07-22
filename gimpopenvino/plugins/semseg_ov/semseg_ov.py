@@ -22,14 +22,14 @@ from plugin_utils import *
 
 _ = gettext.gettext
 image_paths = {
-
     "logo": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "images", "plugin_logo.png"
+        os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "plugin_logo.png"
     ),
     "error": os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "images", "error_icon.png"
+        os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "error_icon.png"
     ),
 }
+
 
 class StringEnum:
     """
