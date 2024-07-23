@@ -31,33 +31,21 @@ pip install pywin32
 pip install -r "%~dp0\plugin-requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "import gimpopenvino; gimpopenvino.setup_python_weights()"
+python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
-cls
+rem cls
 echo.   
 REM copy to gimp plugin dir
 echo Installing plugin in %appdata%\GIMP\2.99\plug-ins
-xcopy %~dp0\gimpopenvino\plugins\* %appdata%\GIMP\2.99\plug-ins /s /e /q /y
+for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d %appdata%\GIMP\2.99\plug-ins\%%d /mir /NFL /NDL /NJH /NJS /nc /ns /np )
+
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    
 REM Prompt the user to continue setting up models
-set /p model_setup="Do you want to continue setting up the models for all the plugins now? Enter Y/N:  "
-echo your choice: %model_setup%
 
-if /i "%model_setup%"=="Y" (
-    set "continue=y"
-) else if /i "%model_setup%"=="y" (
-    set "continue=y"
-) else (
-    set "continue=n"
-)
-
-if "%continue%"=="y" (
-    echo **** OpenVINO MODEL SETUP STARTED ****
-    gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
-) else (
-    echo Model setup skipped. Please make sure you have all the required models set up.
-)
+echo **** OpenVINO MODEL SETUP STARTED ****
+gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
 
 exit /b
+

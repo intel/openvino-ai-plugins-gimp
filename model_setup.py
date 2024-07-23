@@ -320,20 +320,7 @@ def show_menu():
 
 def main():
     install_base_models()
-    
-    while True:
-        show_menu()
-        choice = input("Enter the number for the model you want to download: ")
-
-        if choice == "0":
-            print("Exiting SD Model setup...")
-            break
-        elif choice == "12":
-            dl_all()
-            print("Completed downloading all models. Exiting SD Model setup...")
-            break
-        else:
-            download_functions = {
+    download_functions = {
                 "1": dl_sd_15_square,
                 "2": dl_sd_15_portrait,
                 "3": dl_sd_15_landscape,
@@ -344,13 +331,24 @@ def main():
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
                 "10": dl_sd_21_square,
-                "11" : dl_sd_14_square,                
+                "11" : dl_sd_14_square,
+                "12" : dl_all,
+                "0": exit,
             }
-            func = download_functions.get(choice)
+    
+    while True:
+        show_menu()
+        choice = input("Enter the number for the model you want to download.\nSpecify multiple options using spaces: ")
+
+        choices = choice.split(" ")
+        for ch in choices:
+            func = download_functions.get(ch.strip())
+            if ch == "0":
+                print("Exiting Model setup...")
             if func:
                 func()
             else:
-                print("Invalid choice")
+                print(f"Invalid choice: {ch.strip()}")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,3 @@
-include gimpopenvino/plugins/images/plugin_logo.png
-include gimpopenvino/plugins/images/error_icon.png
-include gimpopenvino/tools/model_info.csv
+include gimpopenvino/plugins/openvino_utils/images/plugin_logo.png
+include gimpopenvino/plugins/openvino_utils/images/error_icon.png
 

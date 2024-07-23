@@ -48,14 +48,15 @@ def setup_python_weights(install_location=None):
         "weight_path" : weight_path,
         "supported_devices": supported_devices
         }
-    with open(os.path.join(plugin_loc, "tools", "gimp_openvino_config.json"), "w") as file:
+    govconfig = os.path.join(plugin_loc, "plugins","openvino_utils", "tools", "gimp_openvino_config.json")    
+    with open(govconfig, "w+") as file:
         json.dump(py_dict,file)
 
     # For Linux, the python plugin scripts need to have executable permissions added.
     if platform.system() == "Linux":
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution-ov/superresolution-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable-diffusion-ov/stable-diffusion-ov.py'])
-        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg-ov/semseg-ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/superresolution_ov/superresolution_ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/stable_diffusion_ov/stable_diffusion_ov.py'])
+        subprocess.call(['chmod', '+x', plugin_loc + '/plugins/semseg_ov/semseg_ov.py'])
 
 
 if __name__ == "__main__":
