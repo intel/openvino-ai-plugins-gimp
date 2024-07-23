@@ -5,6 +5,18 @@ diffusers
 controlnet-aux
 tqdm
 huggingface_hub
-streamlit==1.30.0
-watchdog==2.1.9
-ftfy==6.1.1
+streamlit
+watchdog
+ftfy
+--extra-index-url https://download.pytorch.org/whl/cpu
+transformers
+torch
+torchvision
+numpy
+fire
+pillow
+numpy
+einops
+sentencepiece
+protobuf
+openvino-nightly

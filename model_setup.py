@@ -1,7 +1,5 @@
 import platform
 import json
-import subprocess
-import re
 from huggingface_hub import snapshot_download
 import os
 import shutil
@@ -158,7 +156,13 @@ def dl_sd_15_square():
             if user_input == "y":
                 compile_models = True
     
-        if compile_models:          
+        if compile_models:
+            text_future = None
+            unet_int8_future = None
+            unet_future = None
+            vae_de_future = None        
+            vae_en_future = None        
+            
             if npu_arch == "3720":
                 # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
                 models_to_compile = [ "unet_int8", "text_encoder"]
@@ -187,7 +191,7 @@ def dl_sd_15_square():
                         if "unet_int8" in model_name:
                             model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                             output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
-                            print(f"Creating NPU model for {model_name} - INT8")
+                            print(f"Creating NPU model for {model_name}")
                             sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8)
                         else:
                             print(f"Creating NPU model for {model_name}")
