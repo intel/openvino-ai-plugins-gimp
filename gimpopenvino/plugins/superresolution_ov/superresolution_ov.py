@@ -141,7 +141,7 @@ def handle_successful_inference(weight_path, image, drawable, scale):
         )
         result_layer = result.get_active_layer()
         copy = Gimp.Layer.new_from_drawable(result_layer, image)
-        copy.set_name("SuperResolution")
+        copy.set_name("Super Resolution")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
         image.insert_layer(copy, None, -1)
     else:
@@ -159,7 +159,7 @@ def handle_successful_inference(weight_path, image, drawable, scale):
             result_layers = result.list_layers()
             result_layer = result_layers[0]
         copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-        copy.set_name("SuperResolution")
+        copy.set_name("Super Resolution")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
         image_new.insert_layer(copy, None, -1)
     return result_layer
@@ -187,7 +187,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         GimpUi.init("superresolution_ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("SuperResolution..."))
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Super Resolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
         dialog.add_button("_Generate", Gtk.ResponseType.OK)
@@ -323,7 +323,7 @@ class Superresolution(Gimp.PlugIn):
                 globals()["__doc__"],
                 name,
             )
-            procedure.set_menu_label(N_("SuperResolution..."))
+            procedure.set_menu_label(N_("Super Resolution..."))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
             procedure.add_argument_from_property(self, "scale")
