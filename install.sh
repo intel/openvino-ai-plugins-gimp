@@ -41,3 +41,7 @@ echo "*** openvino-ai-plugins-gimp Installed ***"
 # Prompt the user to continue setting up models
 echo "**** OpenVINO MODEL SETUP STARTED ****"
 gimpenv3/bin/python3 "$script_dir/model_setup.py"
+
+
+
+exit 0
