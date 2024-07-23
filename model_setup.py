@@ -158,22 +158,18 @@ def dl_sd_15_square():
             if user_input == "y":
                 compile_models = True
     
-        if compile_models:
-            text_future = None
-            unet_future = None
-            unet_int8_future = None
-            vae_en_future = None
-            vae_de_future = None
-            
+        if compile_models:          
             if npu_arch == "3720":
-                models_to_compile = [ "text_encoder", "unet_int8"]
+                # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
+                models_to_compile = [ "unet_int8", "text_encoder"]
                 shared_models = ["text_encoder.blob"]
                 sd15_futures = {
                     "text_encoder" : text_future,
                     "unet_int8" : unet_int8_future,
                 }
             else:
-                models_to_compile = [ "text_encoder", "unet_bs1" , "unet_int8", "vae_encoder" , "vae_decoder" ]
+                # also modified the model order for less checking in the future object when it gets result
+                models_to_compile = [ "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
                 shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
                 sd15_futures = {
                     "text_encoder" : text_future,
@@ -188,7 +184,6 @@ def dl_sd_15_square():
                     for model_name in models_to_compile:
                         model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                         output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-        
                         if "unet_int8" in model_name:
                             model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                             output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
@@ -302,13 +297,13 @@ def dl_sd_15_LCM():
             vae_de_future = None
             
             if npu_arch == "3720":
-                models_to_compile = [ "text_encoder", "unet"]
+                models_to_compile = [ "unet", "text_encoder"]
                 sd15_futures = {
                     "text_encoder" : text_future,
                     "unet" : unet_future,
                 }
             else:
-                models_to_compile = [ "text_encoder", "unet" , "vae_encoder" ]
+                models_to_compile = [ "unet" , "vae_decoder", "text_encoder" ]
                 sd15_futures = {
                     "text_encoder" : text_future,
                     "unet" : unet_future,
