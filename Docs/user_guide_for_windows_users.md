@@ -13,13 +13,13 @@
   - 16GB system memory as minimum requirement
   - internet connection is required for installation
 - Driver:
-  - Intel NPU driver: 31.0.100.1688 or later versions
+  - Intel NPU driver: Use the most recent driver you have available. 
 - Software and Package:
   - git
-  - python 3.9 or 3.10
+  - python 3.9-3.12
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
-  - [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
+  - [GIMP 2.99.16](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
@@ -49,7 +49,9 @@ Please download the prebuilt Windows x64 package from [link](https://github.com/
 - Click "Next", then click "Install"
 
     ![](figs/git_installation_setup_1.png) 
+
     ![](figs/git_installation_setup_2.png) 
+
     ![](figs/git_installation_setup_3.png) 
 
 -  Check out "View Release Notes", then click "Close"
@@ -62,13 +64,15 @@ Please download the prebuilt Windows x64 package from [link](https://github.com/
 Please download the latest Visual C++ Redistributable package from MSFT [site](https://aka.ms/vs/17/release/vc_redist.x64.exe). Then, install this package.
 
 ![](figs/VC_runtime_intallation.png) 
+
 ![](figs/VC_runtime_processing.png) 
+
 ![](figs/VC_runtime_close.png) 
 
 
-### Install GIMP 2.99.14
+### Install GIMP 2.99.16
 
-Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) and follow below steps to install GIMP.
+Please download [gimp-2.99.16-setup.exe](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
@@ -115,13 +119,10 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     This step will take time for downloading necessary packages.
 
 
-- After creating python environment, gimpenv3, and downloaded necessary packages, you will see below log. Please enter "__Y__" to continue setting up the models for all the plugins.
+- After creating python environment, gimpenv3, and downloaded necessary packages, you will be prompted to download models 
+- Enter __\<number\>__ for downloading models you want to run. You can specify multiple models separated by spaces:
 
-    ![](figs/model_downloading.png)
-
- - Press __\<number\>__ for downloading models you want to run.
-
-    ![](figs/model_downloding%20_SD1.5.png)
+    ![](figs/model_downloding_SD1.5.png)
 
  - Download "__1__", SD-1.5 Square (512x512) as an instance. Once installation process is completed when you see the messages below.
 
