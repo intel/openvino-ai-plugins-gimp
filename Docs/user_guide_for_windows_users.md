@@ -13,13 +13,13 @@
   - 16GB system memory as minimum requirement
   - internet connection is required for installation
 - Driver:
-  - Intel NPU driver: 31.0.100.1688 or later versions
+  - Intel NPU driver: Use the most recent driver you have available. 
 - Software and Package:
   - git
-  - python 3.9 or 3.10
+  - python 3.9-3.12
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
-  - [GIMP 2.99.14](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe)
+  - [GIMP 2.99.16](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
@@ -49,7 +49,9 @@ Please download the prebuilt Windows x64 package from [link](https://github.com/
 - Click "Next", then click "Install"
 
     ![](figs/git_installation_setup_1.png) 
+
     ![](figs/git_installation_setup_2.png) 
+
     ![](figs/git_installation_setup_3.png) 
 
 -  Check out "View Release Notes", then click "Close"
@@ -62,13 +64,15 @@ Please download the prebuilt Windows x64 package from [link](https://github.com/
 Please download the latest Visual C++ Redistributable package from MSFT [site](https://aka.ms/vs/17/release/vc_redist.x64.exe). Then, install this package.
 
 ![](figs/VC_runtime_intallation.png) 
+
 ![](figs/VC_runtime_processing.png) 
+
 ![](figs/VC_runtime_close.png) 
 
 
-### Install GIMP 2.99.14
+### Install GIMP 2.99.16
 
-Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.14-setup.exe) and follow below steps to install GIMP.
+Please download [gimp-2.99.16-setup.exe](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
@@ -114,19 +118,11 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
     This step will take time for downloading necessary packages.
 
-    >**Notes:** This must be run from outside the `openvino-ai-plugins-gimp` directory. Do not run `.\install.bat` from inside of `openvino-ai-plugins-gimp` or other directories, otherwise it could expect to see an error during installation.
 
-- After creating python environment, gimpenv3, and downloaded necessary packages, you will see below log. Please enter "__Y__" to continue setting up the models for all the plugins.
+- After creating python environment, gimpenv3, and downloaded necessary packages, you will be prompted to download models 
+- Enter __\<number\>__ for downloading models you want to run. You can specify multiple models separated by spaces:
 
-    ![](figs/model_downloading.png)
-
- - Enter "__Y__" to download openvino stable-diffustion-1.4 model
-
-    ![](figs/model_download_SD1.4.png)
-
- - Press __\<number\>__ for downloading models you want to run.
-
-    ![](figs/model_downloding%20_SD1.5.png)
+    ![](figs/model_downloding_SD1.5.png)
 
  - Download "__1__", SD-1.5 Square (512x512) as an instance. Once installation process is completed when you see the messages below.
 
@@ -134,27 +130,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
     >**Notes:**
     > - The downloaded models include FP16 and INT8 precision, and INT8 precision can be executed on MTL NPU.
-    > - Weights is saved at `C:\Users\\<user_name>\openvino-ai-plugins-gimp\weights`.
-
-## Set up GIMP AI plugins 
-
-Please follow below steps to setup plugin at first time and then you can use GIMP to execute GIMP AI plugins with OpenVINO™ Backend to run Stable-Diffusion or other features.
-
-- Open GIMP application from start menu. (Mandatory step for first launch)
-
-    ![](figs/gimp_launch.png)
-
-- Go to "__Edit__" \> "__Preferences__"
-
-    ![](figs/gimp_preferences.png)
-
-- Scroll down and click "__Folder__" \> "__Plug-ins__" and click ![](figs/add.png) to add the "openvino plugin" path. Then, click "__OK__", then close GIMP application.
-
-    ![](figs/gimp_plugin.png)
-
-    >**Notes:** The Plug-ins path can be found below during run the command "openvino-ai-plugins-gimp\install.bat" in cmd prompt.
-
-    ![](figs/gimp_plugin_path.png)
+    > - Weights is saved at `C:\Users\<user_name>\openvino-ai-plugins-gimp\weights`.
 
 # Execute Stable-Diffusion in GIMP
 
@@ -204,6 +180,6 @@ Please follow below steps to execute Stable-Diffusion - SD1.5_square_int8. For o
 
 | Power mode | Execution detail |
 |----------:|:----------------|
-| Best Performance | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
-| Best Power Efficiency | Text Device:   CPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
-| Balanced | Text Device:   CPU<br>Unet Device:   GPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
+| Best Performance | Text Device:   GPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
+| Best Power Efficiency | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
+| Balanced | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU |

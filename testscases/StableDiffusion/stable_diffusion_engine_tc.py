@@ -1,29 +1,33 @@
-import logging
-import time
-import sys
-import random
-import cv2
+#!/usr/bin/env python3
+# Copyright(C) 2022-2023 Intel Corporation
+# SPDX - License - Identifier: Apache - 2.0
+
 import argparse
-import os
 import json
-import numpy as np
+import logging
+import os
+import random
+import sys
+import time
 from statistics import mean
-from gimpopenvino.tools.tools_utils import get_weight_path
+
+import cv2
+import numpy as np
 from PIL import Image
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
-plugin_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..","gimpopenvino","tools","openvino_common")
-sys.path.extend([plugin_loc])
 
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
-from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
-from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
-from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
-from models_ov.stable_diffusion_3 import StableDiffusionThreeEngine
-from models_ov.controlnet_openpose import ControlNetOpenPose
-from models_ov.controlnet_canny_edge import ControlNetCannyEdge
-from models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
-from models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
-from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import (
+    stable_diffusion_engine,
+    stable_diffusion_engine_inpainting,
+    stable_diffusion_engine_inpainting_advanced,
+    #stable_diffusion_3,
+    controlnet_openpose,
+    controlnet_canny_edge,
+    controlnet_scribble,
+    controlnet_openpose_advanced,
+    controlnet_cannyedge_advanced
+)
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO, stream=sys.stdout) 
 log = logging.getLogger()
@@ -57,7 +61,7 @@ def parse_args() -> argparse.Namespace:
     args.add_argument('-seed','--seed',type = int, default = None, required = False,
                       help='Optional. Specify the seed for initialize latent space.')
     args.add_argument('-niter','--iterations',type = int, default = 20, required = False,
-                      help='Optional. Iterations for Stable diffusion.')
+                      help='Optional. Iterations for Stable Diffusion.')
     # save output image
     args.add_argument('-si','--save_image',action='store_true', help='Optional. Save output image.')
     
@@ -79,35 +83,35 @@ def parse_args() -> argparse.Namespace:
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
-        return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+        return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
     if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
         log.info('Device list: %s', device_list)
-        return StableDiffusionThreeEngine(model=model_path, device=device_list)
+        return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
-        return StableDiffusionEngineInpainting(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
     if model_name == "sd_1.5_square_lcm":
-        return LatentConsistencyEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
         log.info('Advanced Inpainting Device list: %s', device_list)
-        return StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_openpose_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
+        return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_scribble_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetScribbleAdvanced(model=model_path, device=device_list)
+        return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny":
-        return ControlNetCannyEdge(model=model_path, device=device_list)
+        return controlnet_canny_edge.ControlNetCannyEdge(model=model_path, device=device_list)
     if model_name == "controlnet_scribble":
-        return ControlNetScribble(model=model_path, device=device_list)
+        return controlnet_scribble.ControlNetScribble(model=model_path, device=device_list)
     if model_name == "controlnet_openpose":
-        return ControlNetOpenPose(model=model_path, device=device_list)
+        return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
     if model_name == "controlnet_referenceonly":
-        return StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-    return StableDiffusionEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
+    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
 
 
 def main():
@@ -177,8 +181,7 @@ def main():
 
     log.info('Initializing Inference Engine...') 
     log.info('Model Path: %s',model_path ) 
-    log.info('Run models on: %s',execution_devices) 
-
+    
     prompt = args.prompt #"a beautiful artwork illustration, concept art sketch of an astronaut in white futuristic cybernetic armor in a dark cave, volumetric fog, godrays, high contrast, vibrant colors, vivid colors, high saturation, by Greg Rutkowski and Jesper Ejsing and Raymond Swanland and alena aenami, featured on artstation, wide angle, vertical orientation" 
     negative_prompt = args.neg_prompt # "lowres, bad quality, monochrome, cropped head, deformed face, bad anatomy" 
     

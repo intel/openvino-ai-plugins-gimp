@@ -1,17 +1,13 @@
 import platform
 import json
-import subprocess
-import re
 from huggingface_hub import snapshot_download
 import os
 import shutil
 from pathlib import Path
 from openvino.runtime import Core
 import io
-import concurrent.futures
 import logging
-
-
+import concurrent.futures
 logging.basicConfig(level=logging.INFO)
 
     
@@ -30,11 +26,6 @@ npu_arch = None
 if 'NPU' in available_devices:
     npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
-def gen_multithread_dic(models):
-    future_dic = {}
-    for modelst in models:
-        future_dic[modelst] = None
-    return future_dic
 
 def load_model(self, model, model_name, device):
     print(f"Loading {model_name} to {device}")
@@ -50,7 +41,7 @@ def install_base_models():
             print("Copying {} to {}".format(model, base_model_dir))
             shutil.copytree(Path(folder), model_path)
             
-    print("Setup done for superresolution, semantic-segmentation, style-transfer, in-painting") 
+    print("Setup done for superresolution and semantic-segmentation") 
                 
 def download_quantized_models(repo_id, model_fp16, model_int8):
     download_flag = True
@@ -153,7 +144,7 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
             f.write(model_blob.getvalue())
 
 def dl_sd_15_square():
-    print("Downloading gblong1/sd-1.5-square-quantized Models")
+    print("Downloading Intel/sd-1.5-square-quantized Models")
     repo_id = "Intel/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
@@ -166,48 +157,82 @@ def dl_sd_15_square():
                 compile_models = True
     
         if compile_models:
+            text_future = None
+            unet_int8_future = None
+            unet_future = None
+            vae_de_future = None        
+            vae_en_future = None        
+            
             if npu_arch == "3720":
                 # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
                 models_to_compile = [ "unet_int8", "text_encoder"]
                 shared_models = ["text_encoder.blob"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet_int8" : unet_int8_future,
+                }
             else:
                 # also modified the model order for less checking in the future object when it gets result
                 models_to_compile = [ "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
                 shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet_bs1" : unet_future,
+                    "unet_int8" : unet_int8_future,
+                    "vae_encoder" : vae_en_future,
+                    "vae_decoder" : vae_de_future
+                }
     
-            sd_15_futures = gen_multithread_dic(models_to_compile)
-
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     for model_name in models_to_compile:
                         model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                         output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-                
                         if "unet_int8" in model_name:
                             model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                             output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
-                            print(f"Creating NPU model for {model_name} - INT8")
-                            config = {"NPU_DPU_GROUPS":"2"}
-                            sd_15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8, config=config)
+                            print(f"Creating NPU model for {model_name}")
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8)
                         else:
                             print(f"Creating NPU model for {model_name}")
-                            sd_15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
-
-                # python future object gets paused with .result() call
-                # this makes sure all the models are loaded
-                # Todo: check if single model compiling can be also multithreaded. is it even possible?
-                for model_name in models_to_compile:
-                    sd_15_futures[model_name].result()
-                
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
+                 
+                if npu_arch == "3720":                  
+                    sd15_futures["unet_int8"].result()
+                    sd15_futures["text_encoder"].result()
+                else:
+                    sd15_futures["unet_int8"].result()
+                    sd15_futures["unet_bs1"].result()
+                    sd15_futures["vae_decoder"].result()
+                    sd15_futures["vae_encoder"].result()
+                    sd15_futures["text_encoder"].result()
             except:
-                logging.error("[Multithread] Multithreaded loading/compiling attempt failed")
-
+                print("Compilation failed.")    
+                
             # Copy shared models to INT8 directory
             for blob_name in shared_models:
                 shutil.copy(
                     os.path.join(install_location, model_fp16, blob_name),
                     os.path.join(install_location, model_int8, blob_name)
                 )
+            #:::::::::::::: START REMOVE ME ::::::::::::::
+            # Temporary workaround to force the config for Lunar Lake - 
+            # REMOVE ME before publishing to external open source.    
+            config_data = { 	"power modes supported": "yes", 	
+                                    "best performance" : ["GPU","GPU","GPU","GPU"],
+                                  	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                               "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                            }
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            #:::::::::::::: END REMOVE ME ::::::::::::::
 
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
@@ -276,7 +301,7 @@ def dl_sd_15_scribble():
     download_quantized_models(repo_id, model_fp16, model_int8)
 
 def dl_sd_15_LCM():
-    print("Downloading gblong1/sd-1.5-lcm-openvino")
+    print("Downloading Intel/sd-1.5-lcm-openvino")
     repo_id = "Intel/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
@@ -288,19 +313,43 @@ def dl_sd_15_LCM():
             if user_input == "y":
                 compile_models = True
     
-        if compile_models:
+        if compile_models:  
+            text_future = None
+            unet_future = None
+            vae_de_future = None
+            
             if npu_arch == "3720":
-                models_to_compile = [ "text_encoder", "unet" ]
+                models_to_compile = [ "unet", "text_encoder"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet" : unet_future,
+                }
             else:
-                models_to_compile = [ "text_encoder", "unet" , "vae_decoder" ]
-        
-            for model_name in models_to_compile:
-                model_path = os.path.join(install_location, "stable-diffusion-1.5", model_1, model_name + ".xml")
-                output_path = os.path.join(install_location,"stable-diffusion-1.5", model_1, model_name + ".blob")
-                print(f"Creating NPU model for {model_name}")
-                compile_and_export_model(core, model_path, output_path)
+                models_to_compile = [ "unet" , "vae_decoder", "text_encoder" ]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet" : unet_future,
+                    "vae_decoder" : vae_de_future
+                }
     
-
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    for model_name in models_to_compile:
+                        model_path = os.path.join(install_location, "stable-diffusion-1.5", model_1, model_name + ".xml")
+                        output_path = os.path.join(install_location,"stable-diffusion-1.5", model_1, model_name + ".blob")
+                        print(f"Creating NPU model for {model_name}")
+                        sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path, output_path)
+                 
+                if npu_arch == "3720":                  
+                    sd15_futures["text_encoder"].result()
+                    sd15_futures["unet"].result()
+                else:
+                    sd15_futures["text_encoder"].result()
+                    sd15_futures["unet"].result()
+                    sd15_futures["vae_decoder"].result()
+            except:
+                print("Compilation failed.")    
+    
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
     repo_id = "Intel/sd-reference-only"
@@ -342,20 +391,7 @@ def show_menu():
 
 def main():
     install_base_models()
-    
-    while True:
-        show_menu()
-        choice = input("Enter the number for the model you want to download: ")
-
-        if choice == "0":
-            print("Exiting SD Model setup...")
-            break
-        elif choice == "12":
-            dl_all()
-            print("Completed downloading all models. Exiting SD Model setup...")
-            break
-        else:
-            download_functions = {
+    download_functions = {
                 "1": dl_sd_15_square,
                 "2": dl_sd_15_portrait,
                 "3": dl_sd_15_landscape,
@@ -366,13 +402,24 @@ def main():
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
                 "10": dl_sd_21_square,
-                "11" : dl_sd_14_square,                
+                "11" : dl_sd_14_square,
+                "12" : dl_all,
+                "0": exit,
             }
-            func = download_functions.get(choice)
+    
+    while True:
+        show_menu()
+        choice = input("Enter the number for the model you want to download.\nSpecify multiple options using spaces: ")
+
+        choices = choice.split(" ")
+        for ch in choices:
+            func = download_functions.get(ch.strip())
+            if ch == "0":
+                print("Exiting Model setup...")
             if func:
                 func()
             else:
-                print("Invalid choice")
+                print(f"Invalid choice: {ch.strip()}")
 
 if __name__ == "__main__":
     main()
