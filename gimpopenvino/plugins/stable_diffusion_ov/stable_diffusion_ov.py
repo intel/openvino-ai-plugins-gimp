@@ -1011,7 +1011,7 @@ class StableDiffusion(Gimp.PlugIn):
                 ],  # This includes the docstring, on the top of the file
                 name,
             )
-            procedure.set_menu_label(N_("Stable diffusion..."))
+            procedure.set_menu_label(N_("Stable Diffusion..."))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2023")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 
