@@ -27,8 +27,7 @@ call "gimpenv3\Scripts\activate"
 
 REM Upgrade pip and install required packages
 python -m pip install --upgrade pip 
-pip install pywin32
-pip install -r "%~dp0\plugin-requirements.txt" | find /V "already satisfied"
+pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
 python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"

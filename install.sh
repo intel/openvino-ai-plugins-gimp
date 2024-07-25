@@ -23,7 +23,7 @@ source gimpenv3/bin/activate
 
 # Upgrade pip and install required packages
 python3 -m pip install --upgrade pip
-pip install -r "$script_dir/plugin-requirements.txt" | grep -v "already satisfied"
+pip install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip install "$script_dir/"
 
 python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
@@ -41,3 +41,7 @@ echo "*** openvino-ai-plugins-gimp Installed ***"
 # Prompt the user to continue setting up models
 echo "**** OpenVINO MODEL SETUP STARTED ****"
 gimpenv3/bin/python3 "$script_dir/model_setup.py"
+
+
+
+exit 0

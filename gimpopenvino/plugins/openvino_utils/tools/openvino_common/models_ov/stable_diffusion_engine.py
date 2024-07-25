@@ -28,6 +28,9 @@ import cv2
 import os
 import sys
 
+# for multithreading 
+import concurrent.futures
+
 #For GIF
 import PIL
 from PIL import Image
@@ -87,50 +90,50 @@ def result(var):
     return next(iter(var.values()))
 
 class StableDiffusionEngineAdvanced(DiffusionPipeline):
-    def __init__(
-            self,
-             #scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
-            model="runwayml/stable-diffusion-v1-5",
-            tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU","CPU"],
-            ):
-
+    def __init__(self, model="runwayml/stable-diffusion-v1-5", 
+                  tokenizer="openai/clip-vit-large-patch14", 
+                  device=["CPU", "CPU", "CPU", "CPU"]):
         try:
-            self.tokenizer = CLIPTokenizer.from_pretrained(model,local_files_only=True)
+            self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except:
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 
-        # models
         self.core = Core()
-        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
-        print("Setting caching")
-        
-        print("Text Device:", device[0])
-        self.text_encoder = self.load_model(model, "text_encoder", device[0])
-        self._text_encoder_output = self.text_encoder.output(0)
+        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
+        print("Loading models... ")
 
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = {
+                "unet_time_proj": executor.submit(self.core.compile_model, os.path.join(model, "unet_time_proj.xml"), device[0]),
+                "text": executor.submit(self.load_model, model, "text_encoder", device[0]),
+                "unet": executor.submit(self.load_model, model, "unet_int8", device[1]),
+                "unet_neg": executor.submit(self.load_model, model, "unet_int8", device[2]) if device[1] != device[2] else None,
+                "vae_decoder": executor.submit(self.load_model, model, "vae_decoder", device[3]),
+                "vae_encoder": executor.submit(self.load_model, model, "vae_encoder", device[3])
+            }
+
+        self.unet_time_proj = futures["unet_time_proj"].result()
+        self.text_encoder = futures["text"].result()
+        self.unet = futures["unet"].result()
+        self.unet_neg = futures["unet_neg"].result() if futures["unet_neg"] else self.unet
+        self.vae_decoder = futures["vae_decoder"].result()
+        self.vae_encoder = futures["vae_encoder"].result()
+        print("Text Device:", device[0])
         print("unet Device:", device[1])
         print("unet-neg Device:", device[2])
-        self.unet_time_proj = self.core.compile_model(os.path.join(model, "unet_time_proj.xml"), 'CPU')
-
-        self.unet = self.load_model(model, "unet_int8", device[1])
-        self.unet_neg = self.unet if device[1] == device[2] else self.load_model(model, "unet_int8", device[2])
-
         print("VAE Device:", device[3])
-        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
-        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
 
+        self._text_encoder_output = self.text_encoder.output(0)
         self._vae_d_output = self.vae_decoder.output(0)
-        self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
+        self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder else None
 
         self.set_dimensions()
-
         self.infer_request_neg = self.unet_neg.create_infer_request()
         self.infer_request = self.unet.create_infer_request()
         self.infer_request_time_proj = self.unet_time_proj.create_infer_request()
         self.time_proj_constants = np.load(os.path.join(model, "time_proj_constants.npy"))
-
+        
     def load_model(self, model, model_name, device):
         if "NPU" in device:
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
@@ -428,64 +431,57 @@ class StableDiffusionEngine(DiffusionPipeline):
             self,
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU","CPU"],
+            device=["CPU","CPU","CPU","CPU"]):
+        
+        self.core = Core()
+        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
+        self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
 
-    ):
-       
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
-        except:
-            while True:
-                try:
-                    self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
-                    self.tokenizer.save_pretrained(model)
-                    break
-                except:
-                    print("Retry Token Download...")
+        except Exception as e:
+            print("Local tokenizer not found. Attempting to download...")
+            self.tokenizer = self.download_tokenizer(tokenizer, model)
+         
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
+            vae_de_future = executor.submit(self.load_model, model, "vae_decoder", device[3])
+            vae_en_future = executor.submit(self.load_model, model, "vae_encoder", device[3])
 
-        # self.scheduler = scheduler
-        # Need to figure out if we are running B=2 or B=1
-        # 
-        self.batch_size = 2 if device[1] == device [2] and device[1] == "GPU" else 1
-        self.core = Core()
-        self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # Adding caching to reduce init time
-        
-        print("Setting caching")
+            if self.batch_size == 1:
+                unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
+                unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
+            else:
+                unet_future = executor.submit(self.load_model, model, "unet", device[1])
+                unet_neg_future = None
 
-        print("Text Device:", device[0])
-        self.text_encoder = self.load_model(model, "text_encoder", device[0])
-        self._text_encoder_output = self.text_encoder.output(0)
+            self.unet = unet_future.result()
+            self.unet_neg = unet_neg_future.result() if unet_neg_future else self.unet
+            self.text_encoder = text_future.result()
+            self.vae_decoder = vae_de_future.result()
+            self.vae_encoder = vae_en_future.result()
+            print("Text Device:", device[0])
+            print("unet Device:", device[1])
+            print("unet-neg Device:", device[2])
+            print("VAE Device:", device[3])
 
-        print("Unet Device:", device[1])
-        if self.batch_size == 1:
-            self.unet = self.load_model(model, "unet_bs1", device[1])
-            self.unet_neg = self.load_model(model, "unet_bs1", device[2])
-        else:
-            self.unet = self.load_model(model, "unet", device[1])
-        
-        print("Unet Neg Device:", device[2])
-                
-        self._unet_output = self.unet.output(0)
+            self._text_encoder_output = self.text_encoder.output(0)
+            self._unet_output = self.unet.output(0)
+            self._vae_d_output = self.vae_decoder.output(0)
+            self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder else None
 
-        if self.batch_size == 1:
-            self.infer_request = self.unet.create_infer_request() 
-            self.infer_request_neg = self.unet_neg.create_infer_request() 
-            self._unet_neg_output  = self.unet_neg.output(0) 
-        else:
-            self.infer_request = None 
-            self.infer_request_neg = None
-            self._unet_neg_output  = None
-        
-        #self.latent_shape = tuple(self.unet.inputs[0].shape)[1:]
-
+            if self.batch_size == 1:
+                self.infer_request = self.unet.create_infer_request()
+                self.infer_request_neg = self.unet_neg.create_infer_request()
+                self._unet_neg_output = self.unet_neg.output(0)
+            else:
+                self.infer_request = None
+                self.infer_request_neg = None
+                self._unet_neg_output = None
+         
         self.set_dimensions()
 
-        print(f"VAE Device: {device[3]}")
-        self.vae_decoder = self.load_model(model, "vae_decoder", device[3])
-        self.vae_encoder = self.load_model(model, "vae_encoder", device[3])
-        self._vae_d_output = self.vae_decoder.output(0)
-        self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder is not None else None
-
+        
 
     def load_model(self, model, model_name, device):
         if "NPU" in device:
@@ -769,45 +765,33 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
-        # text features
-
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
+            unet_future = executor.submit(self.load_model, model, "unet", device[1])    
+            vae_de_future = executor.submit(self.load_model, model, "vae_decoder", device[2])
+                
         print("Text Device:", device[0])
-        if "NPU" in device[0]:    
-            blob_name = "text_encoder.blob"
-            with open(os.path.join(model, blob_name), "rb") as f:
-                self.text_encoder = self.core.import_model(f.read(), device[0])
-        else:
-            self.text_encoder = self.core.compile_model(os.path.join(model, "text_encoder.xml"), device[0])
-        
+        self.text_encoder = text_future.result()
         self._text_encoder_output = self.text_encoder.output(0)
 
-        # diffusion
-        print("unet Device:", device[1])
-        if "NPU" in device[1]:    
-            blob_name = "unet.blob"
-            with open(os.path.join(model, blob_name), "rb") as f:
-                self.unet = self.core.import_model(f.read(), device[1])
-        else:    
-                self.unet = self.core.compile_model(os.path.join(model, "unet.xml"), device[1])
-        
+        print("Unet Device:", device[1])
+        self.unet = unet_future.result()
         self._unet_output = self.unet.output(0)
         self.infer_request = self.unet.create_infer_request()
 
-        # decoder
-        print("Vae Device:", device[2])
-        if "NPU" in device[2]:    
-            blob_name = "vae_decoder.blob"
-            with open(os.path.join(model, blob_name), "rb") as f:
-                self.vae_decoder = self.core.import_model(f.read(), device[2])
-        else:    
-            self.vae_decoder = self.core.compile_model(os.path.join(model, "vae_decoder.xml"), device[2])
-        
+        print(f"VAE Device: {device[2]}")
+        self.vae_decoder = vae_de_future.result()
         self.infer_request_vae = self.vae_decoder.create_infer_request()
         self.safety_checker = None #pipe.safety_checker
         self.feature_extractor = None #pipe.feature_extractor
         self.vae_scale_factor = 2 ** 3
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
 
+    def load_model(self, model, model_name, device):
+        if "NPU" in device:
+            with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
+                return self.core.import_model(f.read(), device)
+        return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
 
     def _encode_prompt(
         self,
