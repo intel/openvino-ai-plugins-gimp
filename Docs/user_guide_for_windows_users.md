@@ -95,7 +95,7 @@ Please download [gimp-2.99.14-setup.exe](https://download.gimp.org/gimp/v2.99/wi
 
 ### Install GIMP AI plugins 
 
- - Open command prompt and download it from Github by git with below instruction.
+ - Open command prompt and download the latest release from Github by git with below instruction.
 
     ```sh
     cd C:\Users\Public\
