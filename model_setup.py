@@ -111,9 +111,6 @@ def download_model(repo_id, model_1, model_2):
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
-            print(f"GARTH DEBUG d1 {download_model_1}")
-            print(f"GARTH DEBUG df {download_folder}")
-
         shutil.copytree(download_model_1, sd_model_1)  
          
         if model_2:
