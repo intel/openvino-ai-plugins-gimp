@@ -339,7 +339,9 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    
+    print("All models downloaded")
+    exit()
+        
 
 def show_menu():
     """
