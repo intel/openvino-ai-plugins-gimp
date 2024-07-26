@@ -88,10 +88,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
 def download_model(repo_id, model_1, model_2):
     download_flag = True
     
-    if "sd-2.1" in repo_id:
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
-    else:        
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
+    sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
     if os.path.isdir(sd_model_1):
         choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
@@ -110,17 +107,17 @@ def download_model(repo_id, model_1, model_2):
             except Exception as e:
                 print("Error retry:" + str(e))
         
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
+        if repo_id == "Intel/sd-1.5-lcm-openvino" or repo_id == "Intel/sd-reference-only" :
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
+            print(f"GARTH DEBUG d1 {download_model_1}")
+            print(f"GARTH DEBUG df {download_folder}")
+
         shutil.copytree(download_model_1, sd_model_1)  
          
         if model_2:
-            if "sd-2.1" in repo_id:
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
-            else: 
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+            sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
             if os.path.isdir(sd_model_2):
                     shutil.rmtree(sd_model_2)
             download_model_2 = os.path.join(download_folder, model_2)
@@ -233,13 +230,6 @@ def dl_sd_14_square():
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
 
-def dl_sd_21_square():
-    print("Downloading Intel/sd-2.1-square-quantized Models")
-    repo_id = "Intel/sd-2.1-square-quantized"
-    model_1 = "square"
-    model_2 = "square_base"
-    download_model(repo_id, model_1, model_2)
-
 def dl_sd_15_portrait():
     print("Downloading Intel/sd-1.5-portrait-quantized Models")
     repo_id = "Intel/sd-1.5-portrait-quantized"
@@ -337,7 +327,7 @@ def dl_sd_15_Referenceonly():
     repo_id = "Intel/sd-reference-only"
     model_fp16 = "controlnet-referenceonly"
     model_int8 = None
-    download_quantized_models(repo_id, model_fp16, model_int8)
+    download_model(repo_id, model_fp16, model_int8)
 
 def dl_all():
     dl_sd_15_square()
@@ -349,7 +339,6 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    dl_sd_21_square()
     
 
 def show_menu():
@@ -366,8 +355,7 @@ def show_menu():
     print("7  - SD-1.5 Controlnet-Scribble")
     print("8  - SD-1.5 LCM")
     print("9  - SD-1.5 Controlnet-ReferenceOnly")
-    print("10 - SD-2.1 Square (768x768)")
-    print("11 - SD 1.4 Square")
+    print("10 - SD 1.4 Square")
     print("12 - All the above models")
     print("0  - Exit SD Model setup")
 
@@ -383,8 +371,7 @@ def main():
                 "7": dl_sd_15_scribble,
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
-                "10": dl_sd_21_square,
-                "11" : dl_sd_14_square,
+                "10" : dl_sd_14_square,
                 "12" : dl_all,
                 "0": exit,
             }
