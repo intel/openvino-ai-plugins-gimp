@@ -12,7 +12,7 @@ openvino
 transformers
 tqdm==4.66.3
 huggingface_hub
-streamlit==1.30.0
+streamlit==1.37.0
 watchdog==2.1.9
 ftfy==6.1.1
 virtualenv
