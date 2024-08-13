@@ -103,8 +103,12 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
         if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
             
         print("Loading models... ")
         
@@ -445,9 +449,13 @@ class StableDiffusionEngine(DiffusionPipeline):
         self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
         
         if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-        
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
+
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except Exception as e:
@@ -783,10 +791,16 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
+        
         if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-            
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
+               
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
             unet_future = executor.submit(self.load_model, model, "unet", device[1])    
