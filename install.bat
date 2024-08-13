@@ -25,8 +25,8 @@ REM Create a virtual environment
 python -m virtualenv gimpenv3
 call "gimpenv3\Scripts\activate"
 
-REM Upgrade pip and install required packages
-python -m pip install --upgrade pip 
+REM Install required packages
+pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 

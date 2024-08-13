@@ -355,7 +355,7 @@ def dl_sd_15_Referenceonly():
     repo_id = "Intel/sd-reference-only"
     model_fp16 = "controlnet-referenceonly"
     model_int8 = None
-    download_quantized_models(repo_id, model_fp16, model_int8)
+    download_model(repo_id, model_fp16, model_int8)
 
 def dl_all():
     dl_sd_15_square()
@@ -368,6 +368,9 @@ def dl_all():
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
     dl_sd_21_square()
+    print("All models downloaded")
+    exit()
+
     
 
 def show_menu():

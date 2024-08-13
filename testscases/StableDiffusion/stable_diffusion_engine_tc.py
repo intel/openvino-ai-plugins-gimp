@@ -5,23 +5,28 @@
 import argparse
 import json
 import logging
-import os
 import random
 import sys
 import time
+from datetime import datetime
 from statistics import mean
+import platform
+import os
+import wmi
+import win32com.client
+
 
 import cv2
 import numpy as np
 from PIL import Image
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
-
+from openvino.runtime import Core
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import (
     stable_diffusion_engine,
     stable_diffusion_engine_inpainting,
     stable_diffusion_engine_inpainting_advanced,
-    #stable_diffusion_3,
+    stable_diffusion_3,
     controlnet_openpose,
     controlnet_canny_edge,
     controlnet_scribble,
@@ -29,8 +34,91 @@ from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import 
     controlnet_cannyedge_advanced
 )
 
+
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO, stream=sys.stdout) 
 log = logging.getLogger()
+
+
+def get_bios_version():
+    try:
+        c = wmi.WMI()
+        bios = c.Win32_BIOS()[0]
+        return bios.SMBIOSBIOSVersion
+    except Exception as e:
+        return str(e)
+
+def get_windows_pcie_device_driver_versions():
+    try:
+        # Initialize the WMI client
+        wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
+        service = wmi.ConnectServer(".", "root\\cimv2")
+        
+        # Query Win32_PnPSignedDriver to get driver information for PCI devices
+        drivers = service.ExecQuery("SELECT DeviceID, DriverVersion, Description FROM Win32_PnPSignedDriver")
+        
+        driver_info_list = []
+        for driver in drivers:
+            driver_info = {
+                "DeviceID": driver.DeviceID,
+                "DriverVersion": driver.DriverVersion,
+                "Description" : driver.Description
+            }
+            driver_info_list.append(driver_info)
+        
+        return driver_info_list
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+def check_windows_device_driver_version(device_name, driver_info):
+    for info in driver_info:
+        if info["Description"] is not None and device_name in info["Description"]:
+            return info["DriverVersion"]
+    return None
+
+def print_system_info(driver_info):
+    log.info("System Information")
+    log.info("==================")
+    log.info(f"System: {platform.system()}")
+    log.info(f"Node Name: {platform.node()}")
+    log.info(f"Python Version: {platform.python_version()}")
+    log.info(f"Platform: {platform.platform()}")
+    log.info(f'BIOS: {get_bios_version()}')
+    log.info(f'NPU Driver: {check_windows_device_driver_version(device_name="AI Boost",driver_info=driver_info)}')
+    log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
+
+def initialize_engine(model_name, model_path, device_list):
+    if model_name == "sd_1.5_square_int8":
+        log.info('Device list: %s', device_list)
+        return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+    if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
+        log.info('Device list: %s', device_list)
+        return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
+    if model_name == "sd_1.5_inpainting":
+        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
+    if model_name == "sd_1.5_square_lcm":
+        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
+    if model_name == "sd_1.5_inpainting_int8":
+        log.info('Advanced Inpainting Device list: %s', device_list)
+        return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
+    if model_name == "controlnet_openpose_int8":
+        log.info('Device list: %s', device_list)
+        return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
+    if model_name == "controlnet_canny_int8":
+        log.info('Device list: %s', device_list)
+        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+    if model_name == "controlnet_scribble_int8":
+        log.info('Device list: %s', device_list)
+        return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
+    if model_name == "controlnet_canny":
+        return controlnet_canny_edge.ControlNetCannyEdge(model=model_path, device=device_list)
+    if model_name == "controlnet_scribble":
+        return controlnet_scribble.ControlNetScribble(model=model_path, device=device_list)
+    if model_name == "controlnet_openpose":
+        return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
+    if model_name == "controlnet_referenceonly":
+        return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
+    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
 
 def parse_args() -> argparse.Namespace:
     """Parse and return command line arguments."""
@@ -79,41 +167,6 @@ def parse_args() -> argparse.Namespace:
          
     return parser.parse_args()
 
-
-def initialize_engine(model_name, model_path, device_list):
-    if model_name == "sd_1.5_square_int8":
-        log.info('Device list: %s', device_list)
-        return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
-    if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
-        log.info('Device list: %s', device_list)
-        return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
-    if model_name == "sd_1.5_inpainting":
-        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
-    if model_name == "sd_1.5_square_lcm":
-        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
-    if model_name == "sd_1.5_inpainting_int8":
-        log.info('Advanced Inpainting Device list: %s', device_list)
-        return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
-    if model_name == "controlnet_openpose_int8":
-        log.info('Device list: %s', device_list)
-        return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
-    if model_name == "controlnet_canny_int8":
-        log.info('Device list: %s', device_list)
-        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
-    if model_name == "controlnet_scribble_int8":
-        log.info('Device list: %s', device_list)
-        return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
-    if model_name == "controlnet_canny":
-        return controlnet_canny_edge.ControlNetCannyEdge(model=model_path, device=device_list)
-    if model_name == "controlnet_scribble":
-        return controlnet_scribble.ControlNetScribble(model=model_path, device=device_list)
-    if model_name == "controlnet_openpose":
-        return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
-    if model_name == "controlnet_referenceonly":
-        return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
-
-
 def main():
     args = parse_args()
     results = []
@@ -128,7 +181,7 @@ def main():
     if not os.path.exists(weight_path):
         raise FileNotFoundError(f"The directory path {weight_path} does not exist.")
     
-    execution_devices = ["GPU"]*4
+    execution_devices = ["GPU"]*5
     
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
@@ -179,6 +232,17 @@ def main():
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
 
+    # ::TODO:: make this work for Linux, too. 
+    if "windows" in platform.system().lower():
+        driver_info = get_windows_pcie_device_driver_versions()
+        print_system_info(driver_info) 
+    
+    log.info('')
+    log.info('Device : Version')
+    core = Core()
+    for device in core.available_devices:
+        log.info(f'  {device}  : {core.get_versions(device)[device].build_number}')
+    log.info('')
     log.info('Initializing Inference Engine...') 
     log.info('Model Path: %s',model_path ) 
     
@@ -199,6 +263,11 @@ def main():
     
     engine = initialize_engine(model_name=model_name, model_path=model_path, device_list=execution_devices)
 
+    current_time = datetime.now()
+
+    # 24-hour format
+    timestamp_24 = current_time.strftime("%Y%m%d-%H%M%S")
+       
 
     for i in range(0,args.num_images):
         log.info('Starting inference...') 
@@ -219,6 +288,7 @@ def main():
         log.info('Random Seed: %s',ran_seed)
         progress_callback = conn = None
         create_gif = False
+        
         
         start_time = time.time()
         
@@ -308,8 +378,9 @@ def main():
             )
         gen_time = time.time() - start_time
         print (f"Image Generation Time: {round(gen_time,2)} seconds")
-        results.append([output,model_name + "_" 
-                        + '_'.join(map(str,execution_devices)) 
+        results.append([output,model_name 
+                        + "_" + timestamp_24 
+                        + "_" + '_'.join(map(str,execution_devices)) 
                         + "_" + str(ran_seed) 
                         + "_" + str(num_infer_steps) 
                         + "_steps",gen_time])
