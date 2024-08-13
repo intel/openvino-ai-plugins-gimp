@@ -20,4 +20,6 @@ numpy
 einops
 sentencepiece
 protobuf
-openvino==2024.3.0
+openvino-nightly==2024.4.0.dev20240801
+git+https://github.com/initml/diffusers.git@clement/feature/flash_sd3 
+peft>=0.7.0 
