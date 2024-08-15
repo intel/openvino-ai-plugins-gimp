@@ -11,6 +11,7 @@ from openvino.runtime import Core
 # tokenizer
 from transformers import CLIPTokenizer
 import torch
+import random
 
 from diffusers import DiffusionPipeline
 from diffusers.schedulers import (DDIMScheduler,
@@ -101,7 +102,16 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
+        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
+            
         print("Loading models... ")
+        
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = {
@@ -435,14 +445,25 @@ class StableDiffusionEngine(DiffusionPipeline):
         
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
+        
         self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
+        
+        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except Exception as e:
             print("Local tokenizer not found. Attempting to download...")
             self.tokenizer = self.download_tokenizer(tokenizer, model)
-         
+    
+        print("Loading models... ")
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
             vae_de_future = executor.submit(self.load_model, model, "vae_decoder", device[3])
@@ -452,6 +473,7 @@ class StableDiffusionEngine(DiffusionPipeline):
                 unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
                 unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
             else:
+                print("Loading BS2 model")
                 unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 unet_neg_future = None
 
@@ -469,6 +491,8 @@ class StableDiffusionEngine(DiffusionPipeline):
             self._unet_output = self.unet.output(0)
             self._vae_d_output = self.vae_decoder.output(0)
             self._vae_e_output = self.vae_encoder.output(0) if self.vae_encoder else None
+
+            self.unet_input_tensor_name = "sample" if 'sample' in self.unet.input(0).names else "latent_model_input"
 
             if self.batch_size == 1:
                 self.infer_request = self.unet.create_infer_request()
@@ -490,7 +514,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
         
     def set_dimensions(self):
-        latent_shape = self.unet.input("latent_model_input").shape
+        latent_shape = self.unet.input(self.unet_input_tensor_name).shape
         if latent_shape[1] == 4:
             self.height = latent_shape[2] * 8
             self.width = latent_shape[3] * 8
@@ -583,21 +607,25 @@ class StableDiffusionEngine(DiffusionPipeline):
                 latent_model_input_pos = latent_model_input 
                 latent_model_input_neg = latent_model_input
 
-                if self.unet.input("latent_model_input").shape[1] != 4:
+                if self.unet.input(self.unet_input_tensor_name).shape[1] != 4:
                     try:
                         latent_model_input_pos = latent_model_input_pos.permute(0,2,3,1)
                     except:
                         latent_model_input_pos = latent_model_input_pos.transpose(0,2,3,1)
                 
-                if self.unet_neg.input("latent_model_input").shape[1] != 4:
+                if self.unet_neg.input(self.unet_input_tensor_name).shape[1] != 4:
                     try:
                         latent_model_input_neg = latent_model_input_neg.permute(0,2,3,1)
                     except:
                         latent_model_input_neg = latent_model_input_neg.transpose(0,2,3,1)
-                                        
-                input_tens_neg_dict = {"latent_model_input":latent_model_input_neg, "encoder_hidden_states": np.expand_dims(text_embeddings[0], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
-                input_tens_pos_dict = {"latent_model_input":latent_model_input_pos, "encoder_hidden_states": np.expand_dims(text_embeddings[1], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
-                                 
+                
+                if "sample" in self.unet_input_tensor_name:                                        
+                    input_tens_neg_dict = {"sample" : latent_model_input_neg, "encoder_hidden_states": np.expand_dims(text_embeddings[0], axis=0), "timestep": np.expand_dims(np.float32(t), axis=0)}
+                    input_tens_pos_dict = {"sample" : latent_model_input_pos, "encoder_hidden_states": np.expand_dims(text_embeddings[1], axis=0), "timestep": np.expand_dims(np.float32(t), axis=0)}
+                else:
+                    input_tens_neg_dict = {"latent_model_input" : latent_model_input_neg, "encoder_hidden_states": np.expand_dims(text_embeddings[0], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
+                    input_tens_pos_dict = {"latent_model_input" : latent_model_input_pos, "encoder_hidden_states": np.expand_dims(text_embeddings[1], axis=0), "t": np.expand_dims(np.float32(t), axis=0)}
+                                                     
                 self.infer_request_neg.start_async(input_tens_neg_dict)
                 self.infer_request.start_async(input_tens_pos_dict)    
          
@@ -681,8 +709,6 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         latents = scheduler.add_noise(torch.from_numpy(latents), torch.from_numpy(noise), latent_timestep).numpy()
         return latents, meta
- 
-       
         
   
     def postprocess_image(self, image: np.ndarray, meta: Dict):
@@ -765,6 +791,16 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
+        
+        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+            try:
+                self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+                print_npu_turbo_art()    
+            except:
+                # do nothing. Turbo not enabled.
+                print("")
+               
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
             unet_future = executor.submit(self.load_model, model, "unet", device[1])    
@@ -1401,7 +1437,41 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
 
         return image
 
-
+def print_npu_turbo_art():
+    random_number = random.randint(1, 3)
+    
+    if random_number == 1:
+        print("                                                                                                                      ")
+        print("      ___           ___         ___                                ___           ___                         ___      ")
+        print("     /\  \         /\  \       /\  \                              /\  \         /\  \         _____         /\  \     ")
+        print("     \:\  \       /::\  \      \:\  \                ___          \:\  \       /::\  \       /::\  \       /::\  \    ")
+        print("      \:\  \     /:/\:\__\      \:\  \              /\__\          \:\  \     /:/\:\__\     /:/\:\  \     /:/\:\  \   ")
+        print("  _____\:\  \   /:/ /:/  /  ___  \:\  \            /:/  /      ___  \:\  \   /:/ /:/  /    /:/ /::\__\   /:/  \:\  \  ")
+        print(" /::::::::\__\ /:/_/:/  /  /\  \  \:\__\          /:/__/      /\  \  \:\__\ /:/_/:/__/___ /:/_/:/\:|__| /:/__/ \:\__\ ")
+        print(" \:\~~\~~\/__/ \:\/:/  /   \:\  \ /:/  /         /::\  \      \:\  \ /:/  / \:\/:::::/  / \:\/:/ /:/  / \:\  \ /:/  / ")
+        print("  \:\  \        \::/__/     \:\  /:/  /         /:/\:\  \      \:\  /:/  /   \::/~~/~~~~   \::/_/:/  /   \:\  /:/  /  ")
+        print("   \:\  \        \:\  \      \:\/:/  /          \/__\:\  \      \:\/:/  /     \:\~~\        \:\/:/  /     \:\/:/  /   ")
+        print("    \:\__\        \:\__\      \::/  /                \:\__\      \::/  /       \:\__\        \::/  /       \::/  /    ")
+        print("     \/__/         \/__/       \/__/                  \/__/       \/__/         \/__/         \/__/         \/__/     ")
+        print("                                                                                                                      ")
+    elif random_number == 2:
+        print(" _   _   ____    _   _     _____   _   _   ____    ____     ___  ")
+        print("| \ | | |  _ \  | | | |   |_   _| | | | | |  _ \  | __ )   / _ \ ")
+        print("|  \| | | |_) | | | | |     | |   | | | | | |_) | |  _ \  | | | |")
+        print("| |\  | |  __/  | |_| |     | |   | |_| | |  _ <  | |_) | | |_| |")
+        print("|_| \_| |_|      \___/      |_|    \___/  |_| \_\ |____/   \___/ ")
+        print("                                                                 ")
+    else:
+        print("")
+        print("    )   (                                 (                )   ")
+        print(" ( /(   )\ )              *   )           )\ )     (    ( /(   ")
+        print(" )\()) (()/(      (     ` )  /(      (   (()/(   ( )\   )\())  ")
+        print("((_)\   /(_))     )\     ( )(_))     )\   /(_))  )((_) ((_)\   ")
+        print(" _((_) (_))    _ ((_)   (_(_())   _ ((_) (_))   ((_)_    ((_)  ")
+        print("| \| | | _ \  | | | |   |_   _|  | | | | | _ \   | _ )  / _ \  ")
+        print("| .` | |  _/  | |_| |     | |    | |_| | |   /   | _ \ | (_) | ")
+        print("|_|\_| |_|     \___/      |_|     \___/  |_|_\   |___/  \___/  ")
+        print("                                                               ")
 
 
 

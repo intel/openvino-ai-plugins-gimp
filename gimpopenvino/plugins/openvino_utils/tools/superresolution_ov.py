@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
 
 
 import cv2

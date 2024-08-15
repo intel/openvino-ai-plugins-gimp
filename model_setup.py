@@ -24,7 +24,7 @@ os_type = platform.system().lower()
 available_devices = core.get_available_devices()
 npu_arch = None
 if 'NPU' in available_devices:
-    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else None
+    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
 
 def load_model(self, model, model_name, device):
@@ -215,6 +215,24 @@ def dl_sd_15_square():
                     os.path.join(install_location, model_fp16, blob_name),
                     os.path.join(install_location, model_int8, blob_name)
                 )
+            #:::::::::::::: START REMOVE ME ::::::::::::::
+            # Temporary workaround to force the config for Lunar Lake - 
+            # REMOVE ME before publishing to external open source.    
+            config_data = { 	"power modes supported": "yes", 	
+                                    "best performance" : ["GPU","GPU","GPU","GPU"],
+                                  	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                               "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                            }
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            #:::::::::::::: END REMOVE ME ::::::::::::::
 
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
@@ -337,7 +355,7 @@ def dl_sd_15_Referenceonly():
     repo_id = "Intel/sd-reference-only"
     model_fp16 = "controlnet-referenceonly"
     model_int8 = None
-    download_quantized_models(repo_id, model_fp16, model_int8)
+    download_model(repo_id, model_fp16, model_int8)
 
 def dl_all():
     dl_sd_15_square()
@@ -349,7 +367,8 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    dl_sd_21_square()
+    print("All models downloaded")
+    exit()
     
 
 def show_menu():
@@ -366,8 +385,7 @@ def show_menu():
     print("7  - SD-1.5 Controlnet-Scribble")
     print("8  - SD-1.5 LCM")
     print("9  - SD-1.5 Controlnet-ReferenceOnly")
-    print("10 - SD-2.1 Square (768x768)")
-    print("11 - SD 1.4 Square")
+    print("10 - SD 1.4 Square")
     print("12 - All the above models")
     print("0  - Exit SD Model setup")
 
@@ -383,8 +401,7 @@ def main():
                 "7": dl_sd_15_scribble,
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
-                "10": dl_sd_21_square,
-                "11" : dl_sd_14_square,
+                "10" : dl_sd_14_square,
                 "12" : dl_all,
                 "0": exit,
             }

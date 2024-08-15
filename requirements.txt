@@ -10,7 +10,8 @@ watchdog
 ftfy
 --extra-index-url https://download.pytorch.org/whl/cpu
 transformers
-torch
+# some issues reported with torch 2.4.0
+torch>=2.2.0,<2.4.0
 torchvision
 numpy
 fire
@@ -19,4 +20,6 @@ numpy
 einops
 sentencepiece
 protobuf
-openvino-nightly
+openvino-nightly==2024.4.0.dev20240801
+git+https://github.com/initml/diffusers.git@clement/feature/flash_sd3 
+peft>=0.7.0 
