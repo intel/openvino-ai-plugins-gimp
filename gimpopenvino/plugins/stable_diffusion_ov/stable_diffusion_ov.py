@@ -947,9 +947,9 @@ class StableDiffusion(Gimp.PlugIn):
         int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
         GObject.ParamFlags.READWRITE,),        
         "num_infer_steps": (
-        int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32,
+        int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:20)", 1, 50, 20,
         GObject.ParamFlags.READWRITE,),
-        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "_Guidance Scale (Default:7.5)", 1.0, 20.0, 7.5,
+        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "Guidance Scale (Default:7.5)", 1.0001, 20.0, 7.5,
                            GObject.ParamFlags.READWRITE,),
         "strength": (
         float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,

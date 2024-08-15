@@ -20,7 +20,7 @@ import numpy as np
 import psutil
 import threading
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
 from tools_utils import get_weight_path
 
 
