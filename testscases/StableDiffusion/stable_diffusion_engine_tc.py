@@ -91,7 +91,8 @@ def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
         return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
-    if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
+    if model_name == "sd_3.0_square":
+        device_list = ["GPU"]
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
@@ -196,8 +197,7 @@ def main():
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
-        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
-        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -341,15 +341,19 @@ def main():
                 seed=ran_seed
             )
         elif "sd_3.0" in model_name:
+            import torch
             output = engine(
                     prompt = prompt,
                     negative_prompt = negative_prompt,
                     num_inference_steps = num_infer_steps,
-                    guidance_scale = guidance_scale,
-                    callback = progress_callback,
-                    callback_userdata = conn,
-                    seed = ran_seed
-            )        
+                    guidance_scale = 0,
+                    callback=progress_callback,
+                    callback_userdata=conn,
+                    generator=torch.Generator().manual_seed(seed),
+                    # callback_on_step_end = progress_callback,
+                    # callback_on_step_end_tensor_inputs = conn,
+                    
+            ).images[0]    
         else: # Covers SD 1.5 Square, Square INT8, SD 2.0
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(

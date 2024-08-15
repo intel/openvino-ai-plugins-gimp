@@ -116,8 +116,7 @@ def list_models(weight_path, SD):
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
-        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
-        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -381,8 +380,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square") +
-                          list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
-                          list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +

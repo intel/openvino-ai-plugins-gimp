@@ -13,6 +13,8 @@ import logging as log
 from pathlib import Path
 import time 
 import random
+import torch
+        
 from PIL import Image
 import numpy as np
 import psutil
@@ -32,6 +34,19 @@ from models_ov.controlnet_canny_edge import ControlNetCannyEdge
 from models_ov.controlnet_scribble import ControlNetScribble, ControlNetScribbleAdvanced
 from models_ov.controlnet_openpose_advanced import ControlNetOpenPoseAdvanced
 from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
+
+from models_ov import (
+    stable_diffusion_engine,
+    stable_diffusion_engine_inpainting,
+    stable_diffusion_engine_inpainting_advanced,
+    stable_diffusion_3,
+    controlnet_openpose,
+    controlnet_canny_edge,
+    controlnet_scribble,
+    controlnet_openpose_advanced,
+    controlnet_cannyedge_advanced
+)
+
 
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
@@ -65,6 +80,7 @@ def run(model_name, available_devices, power_mode):
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -140,35 +156,73 @@ def run(model_name, available_devices, power_mode):
                         break
                     handle_client_data(data, conn, engine, model_name, model_path, scheduler)
 
+# def initialize_engine(model_name, model_path, device_list):
+#     if model_name == "sd_3.0_square":
+#         device_list = ["GPU"]
+#         log.info('Device list: %s', device_list)
+#         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
+#     if model_name == "sd_1.5_square_int8":
+#         log.info('Device list: %s', device_list)
+#         return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+#     if model_name == "sd_1.5_inpainting":
+#         return StableDiffusionEngineInpainting(model=model_path, device=device_list)
+#     if model_name == "sd_1.5_square_lcm":
+#         return LatentConsistencyEngine(model=model_path, device=device_list)
+#     if model_name == "sd_1.5_inpainting_int8":
+#         log.info('Advanced Inpainting Device list: %s', device_list)
+#         return StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
+#     if model_name == "controlnet_openpose_int8":
+#         log.info('Device list: %s', device_list)
+#         return ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
+#     if model_name == "controlnet_canny_int8":
+#         log.info('Device list: %s', device_list)
+#         return ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+#     if model_name == "controlnet_scribble_int8":
+#         log.info('Device list: %s', device_list)
+#         return ControlNetScribbleAdvanced(model=model_path, device=device_list)
+#     if model_name == "controlnet_canny":
+#         return ControlNetCannyEdge(model=model_path, device=device_list)
+#     if model_name == "controlnet_scribble":
+#         return ControlNetScribble(model=model_path, device=device_list)
+#     if model_name == "controlnet_openpose":
+#         return ControlNetOpenPose(model=model_path, device=device_list)
+#     if model_name == "controlnet_referenceonly":
+#         return StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
+#     return StableDiffusionEngine(model=model_path, device=device_list)
+
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
-        return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+        return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
+    if model_name == "sd_3.0_square":
+        device_list = ["GPU"]
+        log.info('Device list: %s', device_list)
+        return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
-        return StableDiffusionEngineInpainting(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
     if model_name == "sd_1.5_square_lcm":
-        return LatentConsistencyEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
         log.info('Advanced Inpainting Device list: %s', device_list)
-        return StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_openpose_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
+        return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_scribble_int8":
         log.info('Device list: %s', device_list)
-        return ControlNetScribbleAdvanced(model=model_path, device=device_list)
+        return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny":
-        return ControlNetCannyEdge(model=model_path, device=device_list)
+        return controlnet_canny_edge.ControlNetCannyEdge(model=model_path, device=device_list)
     if model_name == "controlnet_scribble":
-        return ControlNetScribble(model=model_path, device=device_list)
+        return controlnet_scribble.ControlNetScribble(model=model_path, device=device_list)
     if model_name == "controlnet_openpose":
-        return ControlNetOpenPose(model=model_path, device=device_list)
+        return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
     if model_name == "controlnet_referenceonly":
-        return StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-    return StableDiffusionEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
+    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
 
 def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
     if data.decode() == "kill":
@@ -280,6 +334,18 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 callback_userdata=conn,
                 seed=seed
             )
+        elif "sd_3.0" in model_name:
+            output = engine(
+                    prompt = prompt,
+                    negative_prompt = negative_prompt,
+                    num_inference_steps = num_infer_steps,
+                    guidance_scale = 0,
+                    generator=torch.Generator().manual_seed(seed),
+                    callback=progress_callback,
+                    callback_userdata=conn
+                    #callback_on_step_end_tensor_inputs = conn,
+                    
+            ).images[0] 
                 
         else:
             if model_name == "sd_2.1_square":
@@ -313,7 +379,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
         image = "sd_cache.png"
 
-        if "controlnet" in model_name or model_name == "sd_1.5_square_lcm":
+        if "controlnet" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3.0" in model_name:
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size
         else:
