@@ -338,6 +338,17 @@ class ModelManagementWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
         self.set_default_size(800, 600)
         
+        self.hide()
+        
+        self._host = "127.0.0.1"
+        self._port = 65434
+        server = "model_management_server.py"
+        server_path = os.path.join(config_path, server)
+        
+        #if it's not running already, start it up!
+        if( self.is_server_running() is False ):
+            _process = subprocess.Popen([python_path, server_path], close_fds=True)
+        
         # Connect the delete-event signal to a custom handler
         self.connect("delete-event", self.on_delete_event)
 
@@ -350,13 +361,8 @@ class ModelManagementWindow(Gtk.Window):
         vbox.set_margin_end(20)
         self.add(vbox)
 
-        # Example list of models
-        # TODO: These should acually be retrieved from the server.
-        models = [
-            {"name": "Stable Diffusion 1.5 (Square)", "description": "A short description of Stable Diffusion 1.5.", "id": "sd_15_square"},
-            {"name": "Stable Diffusion 1.5 LCM", "description": "A short description of Stable Diffusion 1.5 LCM.", "id": "sd_15_LCM"},
-            {"name": "Stable Diffusion 2.1 (Square)", "description": "A short description of Stable Diffusion 2.1", "id": "sd_21_square"}
-        ]
+        models = self.get_model_details()
+
 
         # Add each model to the window
         for model in models:
@@ -377,8 +383,13 @@ class ModelManagementWindow(Gtk.Window):
             model_box.pack_start(description_label, True, True, 0)
 
             # Download button
-            download_button = Gtk.Button(label="Download")
-            download_button.connect("clicked", self.on_download_clicked, model["id"])
+            if model["install_status"] == "not_installed":
+                download_button = Gtk.Button(label="Download & Install")
+                download_button.connect("clicked", self.on_download_clicked, model["id"])
+            elif model["install_status"] == "installed":
+                download_button = Gtk.Button(label="Installed")
+                download_button.set_sensitive(False)
+
             model_box.pack_start(download_button, False, False, 0)
 
             # Add the model box to the main vertical box
@@ -386,15 +397,45 @@ class ModelManagementWindow(Gtk.Window):
 
         self.show_all()
         
-        self._host = "127.0.0.1"
-        self._port = 65434
-        server = "model_management_server.py"
-        server_path = os.path.join(config_path, server)
         
-        #if it's not running already, start it up!
-        if( self.is_server_running() is False ):
-            _process = subprocess.Popen([python_path, server_path], close_fds=True)
             
+    def get_model_details(self):
+        model_details = []
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((self._host, self._port))
+                
+                #send cmd
+                s.sendall(b"get_model_details")
+                
+                # get number of models
+                data = s.recv(1024)
+                
+                print("data.decode() = ", data.decode())
+                num_models = int(data.decode())
+                
+                #send ack
+                s.sendall(data)
+                
+                
+                for i in range(0, num_models):
+                    model_detail = {}
+                    for detail in ["name", "description", "id", "install_status"]:
+                        data = s.recv(1024)
+                        model_detail[detail] = data.decode()
+                        #send ack
+                        s.sendall(data)
+                    
+                    model_details.append(model_detail)
+                    
+                print("model details = ", model_details)
+                
+                return model_details
+                   
+        except Exception as e:
+            print(f"There was a problem getting model details..")
+            print(e)
+        
 
     def on_download_clicked(self, button, model_name):
         # This method will be called when the download button is clicked

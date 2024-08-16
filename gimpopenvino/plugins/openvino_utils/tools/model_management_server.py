@@ -18,6 +18,12 @@ PORT = 65434  # Port to listen on (stable_diffusion_ov_server uses port 65432 & 
 
 log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=sys.stdout)
 
+#TODO: Put this in a standalone py, or json config, or something.
+g_supported_models = [
+    {"name": "Stable Diffusion 1.5 (Square)", "description": "A short description of Stable Diffusion 1.5.", "id": "sd_15_square", "install_subdir": os.path.join("stable-diffusion-1.5", "square")},
+    {"name": "Stable Diffusion 1.5 LCM", "description": "A short description of Stable Diffusion 1.5 LCM.", "id": "sd_15_LCM", "install_subdir": os.path.join("stable-diffusion-1.5", "square_lcm")},
+    {"name": "Stable Diffusion 2.1", "description": "A short description of Stable Diffusion 2.1", "id": "sd_21_square", "install_subdir": os.path.join("stable-diffusion-2.1", "square")},
+]
 
 #TODO: This class should be in a separate utils file, so that it can be called from top-level model_setup.py
 from openvino.runtime import Core 
@@ -49,7 +55,6 @@ def download_file_with_progress(url, local_filename, callback):
     total_size = int(response.headers.get('content-length', 0))
     downloaded_size = 0
     
-    
     percent_complete_last = -1.0;
     with open(local_filename, 'wb') as file:
         for data in response.iter_content(chunk_size=4096):
@@ -64,7 +69,6 @@ def download_file_with_progress(url, local_filename, callback):
                   callback(percent_complete)
                
             
-            
 class OpenVINOModelInstaller:
     def __init__(self):
         self._core = Core()
@@ -78,8 +82,25 @@ class OpenVINOModelInstaller:
             self._npu_arch = "3720" if "3720" in self._core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
             
         self.hf_fs = HfFileSystem()
+            
+    def get_model_details(self): 
+        model_details = []
+        for model_detail in g_supported_models:
+            model_check_path = os.path.join(self._install_location, model_detail["install_subdir"], )
+
+            model_detail_entry = model_detail.copy()
+            if not os.path.isdir(model_check_path):
+                install_status = "not_installed"
+            else:
+                #TODO: Need to differentiate between installed and installing.
+                install_status = "installed"
+            
+            model_detail_entry['install_status'] = install_status
+            
+            model_details.append(model_detail_entry)
         
-        
+        return model_details
+   
     def _generate_file_list_from_hf_repo_path(self, repo_id_path, file_list):
         repo_list = self.hf_fs.ls(repo_id_path, detail=True)
         #print("repo_list  = ", repo_list)
@@ -450,6 +471,27 @@ def run():
                     if data.decode() == "ping":
                         conn.sendall(data)
                         continue
+                        
+                    if data.decode() == "get_model_details":
+                        model_details = ov_model_installer.get_model_details()
+                        
+                        #get number of models
+                        num_models = len(model_details)
+                        
+                        print("num_models = ", num_models)
+                        conn.sendall(bytes(str(num_models), 'utf-8'))
+                        #wait for ack
+                        data = conn.recv(1024)
+                        
+                        for i in range(0, num_models):
+                            for detail in ["name", "description", "id", "install_status"]:
+                                conn.sendall(bytes(model_details[i][detail], 'utf-8'))
+                                #wait for ack
+                                data = conn.recv(1024)
+                            
+                            
+                        continue    
+                        
                     if data.decode() == "install_model":
                        print("Model Management Server: install_model cmd received. Getting model name..")
                        #send ack
