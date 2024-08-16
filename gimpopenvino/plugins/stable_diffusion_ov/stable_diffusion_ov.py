@@ -328,6 +328,120 @@ def async_sd_run_func(runner, dialog,num_images):
 def on_toggled(widget, dialog):
     dialog.response(800)
 
+
+#
+#
+#TODO: This model management window class should be moved into it's own .py.
+from gi.repository import Gtk, Gdk
+class ModelManagementWindow(Gtk.Window):
+    def __init__(self, config_path, python_path):
+        Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
+        self.set_default_size(800, 600)
+        
+        # Connect the delete-event signal to a custom handler
+        self.connect("delete-event", self.on_delete_event)
+
+        # Create a vertical box to hold the models
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        vbox.set_homogeneous(False)
+        vbox.set_margin_top(20)
+        vbox.set_margin_bottom(20)
+        vbox.set_margin_start(20)
+        vbox.set_margin_end(20)
+        self.add(vbox)
+
+        # Example list of models
+        # TODO: These should acually be retrieved from the server.
+        models = [
+            {"name": "Stable Diffusion 1.5 (Square)", "description": "A short description of Stable Diffusion 1.5.", "id": "sd_15_square"},
+            {"name": "Stable Diffusion 1.5 LCM", "description": "A short description of Stable Diffusion 1.5 LCM.", "id": "sd_15_LCM"},
+            {"name": "Stable Diffusion 2.1 (Square)", "description": "A short description of Stable Diffusion 2.1", "id": "sd_21_square"}
+        ]
+
+        # Add each model to the window
+        for model in models:
+            model_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            model_box.set_homogeneous(False)
+
+            # Model name label
+            name_label = Gtk.Label(label=model["name"])
+            name_label.set_xalign(0)  # Align left
+            name_label.set_name("model-name") 
+            model_box.pack_start(name_label, True, True, 0)
+
+            # Model description label
+            description_label = Gtk.Label(label=model["description"])
+            description_label.set_xalign(0)  # Align left
+            description_label.set_name("model-description")  
+            description_label.set_line_wrap(True)
+            model_box.pack_start(description_label, True, True, 0)
+
+            # Download button
+            download_button = Gtk.Button(label="Download")
+            download_button.connect("clicked", self.on_download_clicked, model["id"])
+            model_box.pack_start(download_button, False, False, 0)
+
+            # Add the model box to the main vertical box
+            vbox.pack_start(model_box, False, False, 0)
+
+        self.show_all()
+        
+        self._host = "127.0.0.1"
+        self._port = 65434
+        server = "model_management_server.py"
+        server_path = os.path.join(config_path, server)
+        
+        #if it's not running already, start it up!
+        if( self.is_server_running() is False ):
+            _process = subprocess.Popen([python_path, server_path], close_fds=True)
+            
+
+    def on_download_clicked(self, button, model_name):
+        # This method will be called when the download button is clicked
+        print(f"Downloading {model_name}...")
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((self._host, self._port))
+                
+                #send cmd
+                s.sendall(b"install_model")
+                
+                #wait for ack
+                data = s.recv(1024)
+                
+                #send model name
+                s.sendall(bytes(model_name, 'utf-8'))
+                
+                #wait for ack
+                data = s.recv(1024)
+                
+        except Exception as e:
+            print(f"There was a problem downloading {model_name}...")
+            print(e)
+        
+    def on_delete_event(self, widget, event):
+        print("on_delete_event called..")
+        # Hide the window instead of destroying it
+        self.hide()
+        # Returning True prevents the window from being destroyed
+        return True
+        
+    def is_server_running(self):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((self._host, self._port))
+                s.sendall(b"ping")
+                data = s.recv(1024)
+                if data.decode() == "ping":
+                    return True
+        except Exception as e:
+            print(f"There was a problem pinging the model server ...")
+            print(e)
+            return False
+
+        return False
+        
+
 #
 # This is what brings up the UI
 #
@@ -390,6 +504,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"controlnet_canny") + 
                           list_models(config_path_output["weight_path"],"controlnet_scribble") + 
                           list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
+                          
+        print("model_list = ", model_list)
 
         model_name_enum = DeviceEnum(model_list)  
         
@@ -421,6 +537,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
+        
+ 
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
@@ -712,7 +830,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 invisible_label2.show()
                 #invisible_label3.show()            
 
-        initialImage_checkbox.connect("toggled", initImage_toggled)    
+        initialImage_checkbox.connect("toggled", initImage_toggled)
+        
+        
+        model_management_window = ModelManagementWindow(config_path, python_path)
+        model_management_window.hide()
+        
+        def model_management_launch_button_clicked(widget):
+            print("model_management_launch_button_clicked")
+            model_management_window.show()
+            
+ 
+        model_management_launch_button = Gtk.Button(label="Manage Models")
+        model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
+        grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
+        model_management_launch_button.show()
+        
+        
+
+                
 
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
