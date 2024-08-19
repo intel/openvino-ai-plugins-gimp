@@ -161,8 +161,11 @@ def parse_args() -> argparse.Namespace:
     args.add_argument('-pm','--power_mode',type = str, default = "best performance", required = False,
                       help='Optional. Specify the power mode. Default is best performance')
     # prompt, negative prompt
-    args.add_argument('-pp','--prompt',type = str, default = "a bowl of cherries", required = False,
-                      help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
+    args.add_argument('-pp','--prompt',type = str, 
+                      default = "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd",
+                      required = False,
+                      #help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
+                      help='Optional. Specify the prompt.  Default: "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd"')
     args.add_argument('-np','--neg_prompt',type = str, default = "low quality, bad, low resolution, monochrome", required = False,
                       help='Optional. Specify the negative prompt.  Default: "low  quality, bad, low resolution, monochrome"')
          
