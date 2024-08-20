@@ -24,7 +24,7 @@ os_type = platform.system().lower()
 available_devices = core.get_available_devices()
 npu_arch = None
 if 'NPU' in available_devices:
-    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else None
+    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
 
 def load_model(self, model, model_name, device):
@@ -209,6 +209,24 @@ def dl_sd_15_square():
                     os.path.join(install_location, model_fp16, blob_name),
                     os.path.join(install_location, model_int8, blob_name)
                 )
+            #:::::::::::::: START REMOVE ME ::::::::::::::
+            # Temporary workaround to force the config for Lunar Lake - 
+            # REMOVE ME before publishing to external open source.    
+            config_data = { 	"power modes supported": "yes", 	
+                                    "best performance" : ["GPU","GPU","GPU","GPU"],
+                                  	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                               "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                            }
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                json.dump(config_data, json_file, indent=4)
+            #:::::::::::::: END REMOVE ME ::::::::::::::
 
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
@@ -338,7 +356,7 @@ def dl_all():
     dl_sd_15_Referenceonly()
     print("All models downloaded")
     exit()
-        
+    
 
 def show_menu():
     """

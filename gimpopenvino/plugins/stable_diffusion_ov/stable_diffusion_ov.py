@@ -116,6 +116,7 @@ def list_models(weight_path, SD):
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
+        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -379,6 +380,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
                           list_models(config_path_output["weight_path"],"sd_2.1_square") +
+                          list_models(config_path_output["weight_path"],"sd_3.0_square") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose") + 
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
@@ -515,7 +517,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         invisible_label8.show()           
 
         def power_modes_supported(model_name):
-            if "sd_1.5_square_lcm" in model_name or "int8" in model_name:
+            if "sd_1.5_square" in model_name or "int8" in model_name:
                 return True
             return False
         
@@ -741,6 +743,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
+        
+        if "sd_3.0" in model_name:
+                initialImage_checkbox.hide()               
 
         if is_server_running():
             run_button.set_sensitive(True)
@@ -762,6 +767,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
+            if "sd_3.0" in model_name_tmp:
+                initialImage_checkbox.hide()
+            else:
+                initialImage_checkbox.show()
+                
             if "controlnet" in config.get_property("model_name"):
                 
                 initialImage_checkbox.set_active(True)
@@ -937,9 +947,9 @@ class StableDiffusion(Gimp.PlugIn):
         int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
         GObject.ParamFlags.READWRITE,),        
         "num_infer_steps": (
-        int, _("_Number of Inference steps (Default:32)"), "Number of Inference steps (Default:32)", 1, 50, 32,
+        int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:20)", 1, 50, 20,
         GObject.ParamFlags.READWRITE,),
-        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "_Guidance Scale (Default:7.5)", 1.0, 20.0, 7.5,
+        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "Guidance Scale (Default:7.5)", 1.0001, 20.0, 7.5,
                            GObject.ParamFlags.READWRITE,),
         "strength": (
         float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
