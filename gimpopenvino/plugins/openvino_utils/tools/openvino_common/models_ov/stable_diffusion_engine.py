@@ -113,6 +113,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         print("Loading models... ")
         
 
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = {
                 "unet_time_proj": executor.submit(self.core.compile_model, os.path.join(model, "unet_time_proj.xml"), device[0]),

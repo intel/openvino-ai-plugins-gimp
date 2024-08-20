@@ -88,10 +88,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
 def download_model(repo_id, model_1, model_2):
     download_flag = True
     
-    if "sd-2.1" in repo_id:
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
-    else:        
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
+    sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
     if os.path.isdir(sd_model_1):
         choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
@@ -110,17 +107,14 @@ def download_model(repo_id, model_1, model_2):
             except Exception as e:
                 print("Error retry:" + str(e))
         
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
+        if repo_id == "Intel/sd-1.5-lcm-openvino" or repo_id == "Intel/sd-reference-only" :
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
         shutil.copytree(download_model_1, sd_model_1)  
          
         if model_2:
-            if "sd-2.1" in repo_id:
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
-            else: 
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+            sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
             if os.path.isdir(sd_model_2):
                     shutil.rmtree(sd_model_2)
             download_model_2 = os.path.join(download_folder, model_2)
@@ -250,13 +244,6 @@ def dl_sd_14_square():
     shutil.copytree(download_folder, SD_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
-
-def dl_sd_21_square():
-    print("Downloading Intel/sd-2.1-square-quantized Models")
-    repo_id = "Intel/sd-2.1-square-quantized"
-    model_1 = "square"
-    model_2 = "square_base"
-    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_portrait():
     print("Downloading Intel/sd-1.5-portrait-quantized Models")
