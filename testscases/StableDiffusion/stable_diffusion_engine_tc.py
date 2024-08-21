@@ -157,6 +157,11 @@ def parse_args() -> argparse.Namespace:
     # generate multiple images
     args.add_argument('-n','--num_images',type = int, default = 1, required = False,
                       help='Optional. Number of images to generate.')
+    # guidance scale
+    args.add_argument('-g','--guidance_scale',type = float, default = 7.5, required = False,
+                      help='Optional. Affects how closely the image prompt is followed.')
+    
+    
     # power mode
     args.add_argument('-pm','--power_mode',type = str, default = "best performance", required = False,
                       help='Optional. Specify the power mode. Default is best performance')
@@ -254,7 +259,7 @@ def main():
     
     init_image = None 
     num_infer_steps = args.iterations 
-    guidance_scale = 8.0 
+    guidance_scale = args.guidance_scale 
     strength = 1.0
     seed = 4294967294   
     
