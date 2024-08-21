@@ -147,7 +147,7 @@ def parse_args() -> argparse.Namespace:
                       help='Optional. Specify the target device to infer on; CPU, GPU, NPU '
                       'is acceptable for VAE decoder and encoder. Default value is None.')
     # seed, number of iterations
-    args.add_argument('-seed','--seed',type = int, default = None, required = False,
+    args.add_argument('-seed','--seed',type = int, default = 1507302932, required = False,
                       help='Optional. Specify the seed for initialize latent space.')
     args.add_argument('-niter','--iterations',type = int, default = 20, required = False,
                       help='Optional. Iterations for Stable Diffusion.')
@@ -162,11 +162,11 @@ def parse_args() -> argparse.Namespace:
                       help='Optional. Specify the power mode. Default is best performance')
     # prompt, negative prompt
     args.add_argument('-pp','--prompt',type = str, 
-                      default = "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd",
+                      default ="a portrait of an old coal miner in 19th century, beautiful painting with highly detailed face by greg rutkowski and magali villanueve",
                       required = False,
                       #help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
                       help='Optional. Specify the prompt.  Default: "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd"')
-    args.add_argument('-np','--neg_prompt',type = str, default = "low quality, bad, low resolution, monochrome", required = False,
+    args.add_argument('-np','--neg_prompt',type = str, default = "deformed face, Ugly, bad quality, lowres, monochrome, bad anatomy", required = False,
                       help='Optional. Specify the negative prompt.  Default: "low  quality, bad, low resolution, monochrome"')
          
     return parser.parse_args()
@@ -281,7 +281,7 @@ def main():
         log.info('strength: %s',strength) 
         log.info('init_image: %s',init_image) 
     
-        if args.seed:
+        if args.seed and i < 1:
             ran_seed = args.seed
         else:
             ran_seed = random.randrange(seed) #4294967294
@@ -344,7 +344,6 @@ def main():
                 seed=ran_seed
             )
         elif "sd_3.0" in model_name:
-            import torch
             output = engine(
                     prompt = prompt,
                     negative_prompt = negative_prompt,
