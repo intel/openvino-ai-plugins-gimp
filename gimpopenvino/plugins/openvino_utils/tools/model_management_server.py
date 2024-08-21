@@ -18,16 +18,72 @@ PORT = 65434  # Port to listen on (stable_diffusion_ov_server uses port 65432 & 
 
 log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=sys.stdout)
 
-#TODO: Put this in a standalone py, or json config, or something.
+#TODO: Put this in a standalone py, or json config, etc. Someplace outside of model_management_server.py.
 g_supported_models = [
-    {"name": "Stable Diffusion 1.5 (Square)", "description": "A short description of Stable Diffusion 1.5.", "id": "sd_15_square", "install_subdir": os.path.join("stable-diffusion-1.5", "square")},
-    {"name": "Stable Diffusion 1.5 LCM", "description": "A short description of Stable Diffusion 1.5 LCM.", "id": "sd_15_LCM", "install_subdir": os.path.join("stable-diffusion-1.5", "square_lcm")},
-    {"name": "Stable Diffusion 2.1", "description": "A short description of Stable Diffusion 2.1", "id": "sd_21_square", "install_subdir": os.path.join("stable-diffusion-2.1", "square")},
-    {"name": "Some Test Module", "description": "This is just a test entry that doesn't actually download anything.", "id": "test", "install_subdir": os.path.join("test")},
+    {
+        "name": "Stable Diffusion 1.5 (Square)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_square",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "square")
+    },
+    {
+        "name": "Stable Diffusion 1.5 LCM",
+        "description": "A short description of Stable Diffusion 1.5 LCM.",
+        "id": "sd_15_LCM",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "square_lcm")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Portrait)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_portrait",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "portrait")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Landscape)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_landscape",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "landscape")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Inpainting)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_inpainting",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "inpainting")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_openpose",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-openpose")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Canny)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_canny",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-canny")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Scribble)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_scribble",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-scribble")
+    },
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)",
+        "description": "A short description of Stable Diffusion 1.5.",
+        "id": "sd_15_Referenceonly",
+        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-referenceonly")
+    },
+
+    {
+        "name": "Test Model",
+        "description": "This is just a test entry that doesn't actually download anything.",
+        "id": "test", "install_subdir": os.path.join("test")
+    },
 ]
 
 #TODO: This class should be in a separate utils file, so that it can be called from top-level model_setup.py
-from openvino.runtime import Core 
+from openvino.runtime import Core
 from huggingface_hub import snapshot_download, HfFileSystem, hf_hub_url
 import concurrent.futures
 import platform
@@ -47,29 +103,33 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
         print("exporting model_blob to ", output_path)
         with open(output_path, 'wb') as f:
             f.write(model_blob.getvalue())
-            
+
     print("compile_and_export_model: model_path = ", model_path, " done!")
 
 
-def download_file_with_progress(url, local_filename, callback):
+def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size):
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
     downloaded_size = 0
-    
+
     percent_complete_last = -1.0;
     with open(local_filename, 'wb') as file:
         for data in response.iter_content(chunk_size=4096):
             file.write(data)
             downloaded_size += len(data)
+            total_bytes_downloaded += len(data)
             percent_complete = (downloaded_size / total_size) * 100
-            
-            if percent_complete - percent_complete_last > 5:
+
+            if percent_complete - percent_complete_last > 1:
                percent_complete_last = percent_complete
-               print(percent_complete,  "%")
+               #print(percent_complete,  "%")
                if callback:
-                  callback(percent_complete)
-               
-            
+                  callback(total_bytes_downloaded, total_file_list_size)
+
+
+    return downloaded_size
+
+
 class OpenVINOModelInstaller:
     def __init__(self):
         print("OpenVINOModelInstaller..")
@@ -77,16 +137,17 @@ class OpenVINOModelInstaller:
         self._os_type = platform.system().lower()
         self._available_devices = self._core.get_available_devices()
         self._npu_arch = None
-        self._weight_path = get_weight_path() 
+        self._weight_path = get_weight_path()
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
         self._npu_arch = None
         if 'NPU' in self._available_devices:
             self._npu_arch = "3720" if "3720" in self._core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
-            
+
         self.hf_fs = HfFileSystem()
         self.model_install_status = {}
-            
-    def get_all_model_details(self): 
+
+
+    def get_all_model_details(self):
         model_details = []
         for model_detail in g_supported_models:
             model_check_path = os.path.join(self._install_location, model_detail["install_subdir"], )
@@ -99,13 +160,13 @@ class OpenVINOModelInstaller:
                 install_status = "not_installed"
             else:
                 install_status = "installed"
-            
+
             model_detail_entry['install_status'] = install_status
-            
+
             model_details.append(model_detail_entry)
-        
+
         return model_details
-   
+
     def _generate_file_list_from_hf_repo_path(self, repo_id_path, file_list):
         repo_list = self.hf_fs.ls(repo_id_path, detail=True)
         #print("repo_list  = ", repo_list)
@@ -117,13 +178,13 @@ class OpenVINOModelInstaller:
             else:
                 if( item_type == "file" ):
                     file_list.append(item)
-                    
 
-    
-    def _download_hf_repo(self, repo_id):
+
+
+    def _download_hf_repo(self, repo_id, model_id):
         file_list = []
         self._generate_file_list_from_hf_repo_path(repo_id, file_list)
-        
+
         download_list = []
         total_file_list_size = 0
         for file in file_list:
@@ -139,35 +200,54 @@ class OpenVINOModelInstaller:
                     repo_id=repo_id, subfolder=subfolder, filename=relative_filename
                 )
             download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
-            download_list.append( download_list_item ) 
+            download_list.append( download_list_item )
             print(download_list_item)
-            
+
         print("total_file_list_size = ", total_file_list_size)
-        
+
         download_folder = 'hf_download_folder'
         if os.path.isdir(download_folder):
             shutil.rmtree(download_folder)
-            
+
         os.makedirs(download_folder)
-        
+
+
+        def bytes_downloaded_callback(total_bytes_downloaded, total_bytes_to_download):
+
+
+           total_bytes_to_download_gb = total_bytes_to_download / 1073741824.0
+           total_bytes_to_download_gb = f"{total_bytes_to_download_gb:.2f}"
+           total_bytes_downloadeded_gb = total_bytes_downloaded / 1073741824.0
+           total_bytes_downloadeded_gb = f"{total_bytes_downloadeded_gb:.2f}"
+           status = "Downloading... (" + total_bytes_downloadeded_gb + " / " + total_bytes_to_download_gb + ") GiB"
+           if total_bytes_to_download > 0:
+               self.model_install_status[model_id]["status"] = status
+               self.model_install_status[model_id]["percent"] = (total_bytes_downloaded / total_bytes_to_download) * 100.0
+
+
+        total_bytes_downloaded = 0
         #okay, let's download the files one by one.
         for download_list_item in download_list:
            local_filename = os.path.join(download_folder, download_list_item["filename"])
-           
+
            # create the subfolder (it may already exist, which is ok)
            subfolder=os.path.join(download_folder, download_list_item["subfolder"])
            os.makedirs(subfolder,  exist_ok=True)
-           
+
            print("Downloading", download_list_item["url"], " to ", local_filename)
-           download_file_with_progress(download_list_item["url"], local_filename, None)
-           
+
+
+           downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
+
+           total_bytes_downloaded += downloaded_size
+
         return download_folder
-            
-    def _download_quantized_models(self, repo_id, model_fp16, model_int8):
+
+    def _download_quantized_models(self, repo_id, model_fp16, model_int8, model_id):
         download_flag = True
         SD_path_FP16 = os.path.join(self._install_location, model_fp16)
         SD_path_INT8 = os.path.join(self._install_location, model_int8)
-        
+
         os.makedirs(SD_path_FP16,  exist_ok=True)
 
         if os.path.isdir(SD_path_FP16):
@@ -178,47 +258,50 @@ class OpenVINOModelInstaller:
                 download_flag = False
                 print(f"{repo_id} download skipped")
                 return download_flag
-                
+
         if  download_flag:
             retries_left = 5
+            download_success = False
             while retries_left > 0:
-                try:  
+                try:
                     #download_folder = snapshot_download(repo_id=repo_id, token=access_token)
-                    download_folder = self._download_hf_repo(repo_id)
+                    download_folder = self._download_hf_repo(repo_id, model_id)
+                    download_success = True
                     break
                 except Exception as e:
                     print("Error retry:" + str(e))
                     retries_left -= 1
- 
-        FP16_model = os.path.join(download_folder, "FP16")
-        # on some systems, the FP16 subfolder is not created resulting in a installation crash 
-        if not os.path.isdir(FP16_model):
-            os.mkdir(FP16_model)
-        shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-        shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)       
 
-        if model_int8:            
-            if os.path.isdir(SD_path_INT8):
-                    shutil.rmtree(SD_path_INT8)
+            FP16_model = os.path.join(download_folder, "FP16")
+            # on some systems, the FP16 subfolder is not created resulting in a installation crash
+            if not os.path.isdir(FP16_model):
+                os.mkdir(FP16_model)
+            shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))
+            shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)
 
-            INT8_model = os.path.join(download_folder, "INT8")
-            shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-            shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
-            
-            #delete_folder=os.path.join(download_folder, "..", "..", "..")
-            #shutil.rmtree(delete_folder, ignore_errors=True)
+            if model_int8:
+                if os.path.isdir(SD_path_INT8):
+                        shutil.rmtree(SD_path_INT8)
 
-                
+                INT8_model = os.path.join(download_folder, "INT8")
+                shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))
+                shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
+
+
+            if download_success is True:
+                shutil.rmtree(download_folder, ignore_errors=True)
+
+
         return download_flag
-        
-    def _download_model(self, repo_id, model_1, model_2):
+
+    def _download_model(self, repo_id, model_1, model_2, model_id):
         download_flag = True
-        
+
         install_location=self._install_location
-        
+
         if "sd-2.1" in repo_id:
-            sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
-        else:        
+            sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)
+        else:
             sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
         if os.path.isdir(sd_model_1):
@@ -230,84 +313,148 @@ class OpenVINOModelInstaller:
                 download_flag = False
                 print(f"{repo_id} download skipped")
                 return download_flag
-                               
+
         if  download_flag:
             retries_left = 5
+            download_success = False
             while retries_left > 0:
-                try:  
-                    #download_folder = snapshot_download(repo_id=repo_id, token=access_token)
-                    download_folder = self._download_hf_repo(repo_id)
+                try:
+                    download_folder = self._download_hf_repo(repo_id, model_id)
+                    download_success = True
                     break
                 except Exception as e:
                     print("Error retry:" + str(e))
                     retries_left -= 1
-            
+
             if repo_id == "Intel/sd-1.5-lcm-openvino":
                 download_model_1 = download_folder
             else:
-                download_model_1 = os.path.join(download_folder, model_1) 
-            shutil.copytree(download_model_1, sd_model_1)  
-             
+                download_model_1 = os.path.join(download_folder, model_1)
+            shutil.copytree(download_model_1, sd_model_1)
+
             if model_2:
                 if "sd-2.1" in repo_id:
                     sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
-                else: 
+                else:
                     sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
                 if os.path.isdir(sd_model_2):
                         shutil.rmtree(sd_model_2)
                 download_model_2 = os.path.join(download_folder, model_2)
                 shutil.copytree(download_model_2, sd_model_2)
 
-            #delete_folder=os.path.join(download_folder, "../../..")
-            #shutil.rmtree(delete_folder, ignore_errors=True)
-    
+            if download_success is True:
+                shutil.rmtree(download_folder, ignore_errors=True)
+
         return download_flag
-        
-        
+
+
     def install_test(self):
-        
+
         import time
-        
+
         states = [ "Downloading...", "Prepping NPU Models.."]
-        
+
         for state in states:
             percent_complete = 0.0
             self.model_install_status["test"]["status"] = state
             self.model_install_status["test"]["percent"] = percent_complete
-            
+
             last_perc_complete_printed = 0.0
-            
+
             while percent_complete < 100:
                 time.sleep(0.1)
                 #percent_complete += 0.2
                 percent_complete += 1
-                
+
                 self.model_install_status["test"]["percent"] = percent_complete
-                
+
                 if( percent_complete - last_perc_complete_printed > 10 ):
-                    print("install_test %: ", percent_complete) 
+                    print("install_test %: ", percent_complete)
                     last_perc_complete_printed = percent_complete
-   
+
 
     def install_model(self, model_id):
         print("install_model: model_id=", model_id)
-        
-        self.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0} 
+
+        self.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0}
 
         if( model_id == "sd_15_square"):
-            self.dl_sd_15_square()
+            self.dl_sd_15_square(model_id)
         elif ( model_id == "sd_15_LCM"):
-            self.dl_sd_15_LCM()
+            self.dl_sd_15_LCM(model_id)
+        elif ( model_id == "sd_15_portrait"):
+            self.dl_sd_15_portrait(model_id)
+        elif ( model_id == "sd_15_landscape"):
+            self.dl_sd_15_landscape(model_id)
+        elif ( model_id == "sd_15_inpainting"):
+            self.dl_sd_15_inpainting(model_id)
+        elif ( model_id == "sd_15_openpose"):
+            self.dl_sd_15_openpose(model_id)
+        elif ( model_id == "sd_15_canny"):
+            self.dl_sd_15_canny(model_id)
+        elif ( model_id == "sd_15_scribble"):
+            self.dl_sd_15_scribble(model_id)
+        elif ( model_id == "sd_15_Referenceonly"):
+            self.dl_sd_15_Referenceonly(model_id)
         elif (model_id == "test"):
             self.install_test()
         else:
             print("Warning! unknown model_id=", model_id)
-        
+
         self.model_install_status.pop(model_id)
 
         print("install_model: model_id=", model_id, " done!")
 
-    def dl_sd_15_square(self):
+    def dl_sd_15_portrait(self, model_id):
+        print("Downloading Intel/sd-1.5-portrait-quantized Models")
+        repo_id = "Intel/sd-1.5-portrait-quantized"
+        model_1 = "portrait"
+        model_2 = "portrait_512x768"
+        self._download_model(repo_id, model_1, model_2, model_id)
+
+    def dl_sd_15_landscape(self, model_id):
+        print("Downloading Intel/sd-1.5-landscape-quantized Models")
+        repo_id = "Intel/sd-1.5-landscape-quantized"
+        model_1 = "landscape"
+        model_2 = "landscape_768x512"
+        self._download_model(repo_id, model_1, model_2, model_id)
+
+    def dl_sd_15_inpainting(self, model_id):
+        print("Downloading Intel/sd-1.5-inpainting-quantized Models")
+        repo_id = "Intel/sd-1.5-inpainting-quantized"
+        model_fp16 = os.path.join("stable-diffusion-1.5", "inpainting")
+        model_int8 = os.path.join("stable-diffusion-1.5", "inpainting_int8")
+        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
+
+    def dl_sd_15_openpose(self, model_id):
+        print("Downloading Intel/sd-1.5-controlnet-openpose-quantized Models")
+        repo_id="Intel/sd-1.5-controlnet-openpose-quantized"
+        model_fp16 = "controlnet-openpose"
+        model_int8 = "controlnet-openpose-int8"
+        self._download_quantized_models(repo_id, model_fp16,model_int8, model_id)
+
+    def dl_sd_15_canny(self, model_id):
+        print("Downloading Intel/sd-1.5-controlnet-canny-quantized Models")
+        repo_id = "Intel/sd-1.5-controlnet-canny-quantized"
+        model_fp16 = "controlnet-canny"
+        model_int8 = "controlnet-canny-int8"
+        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
+
+    def dl_sd_15_scribble(self, model_id):
+        print("Downloading Intel/sd-1.5-controlnet-scribble-quantized Models")
+        repo_id = "Intel/sd-1.5-controlnet-scribble-quantized"
+        model_fp16 = "controlnet-scribble"
+        model_int8 = "controlnet-scribble-int8"
+        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
+
+    def dl_sd_15_Referenceonly(self, model_id):
+        print("Downloading Intel/sd-reference-only")
+        repo_id = "Intel/sd-reference-only"
+        model_fp16 = "controlnet-referenceonly"
+        model_int8 = None
+        self._download_model(repo_id, model_fp16, model_int8, model_id)
+
+    def dl_sd_15_square(self, model_id):
         print("Downloading Intel/sd-1.5-square-quantized Models")
         repo_id = "Intel/sd-1.5-square-quantized"
         model_fp16 = os.path.join("stable-diffusion-1.5", "square")
@@ -315,25 +462,26 @@ class OpenVINOModelInstaller:
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
-        
-        print("okay, actually downloading..")
-        compile_models = self._download_quantized_models(repo_id, model_fp16, model_int8)
+
+        compile_models = self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
         #compile_models = True
-        
+
         if npu_arch is not None:
             if not compile_models:
                 #user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
                 user_input="y"
                 if user_input == "y":
                     compile_models = True
-        
+
             if compile_models:
+                self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
+                self.model_install_status[model_id]["percent"] = 0.0
                 text_future = None
                 unet_int8_future = None
                 unet_future = None
-                vae_de_future = None        
-                vae_en_future = None        
-                
+                vae_de_future = None
+                vae_en_future = None
+
                 if npu_arch == "3720":
                     # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
                     models_to_compile = [ "unet_int8", "text_encoder"]
@@ -353,7 +501,7 @@ class OpenVINOModelInstaller:
                         "vae_encoder" : vae_en_future,
                         "vae_decoder" : vae_de_future
                     }
-        
+
                 try:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                         for model_name in models_to_compile:
@@ -367,24 +515,21 @@ class OpenVINOModelInstaller:
                             else:
                                 print(f"Creating NPU model for {model_name}")
                                 sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
-                     
-                    if npu_arch == "3720":                  
-                        sd15_futures["unet_int8"].result()
-                        sd15_futures["text_encoder"].result()
-                    else:
-                        sd15_futures["unet_int8"].result()
-                        sd15_futures["unet_bs1"].result()
-                        sd15_futures["vae_decoder"].result()
-                        sd15_futures["vae_encoder"].result()
-                        sd15_futures["text_encoder"].result()
+
+
+                            num_futures = len(sd15_futures)
+                            perc_increment = 100.0 / num_futures
+
+                            self.model_install_status[model_id]["percent"] = 0.0
+                            for model_name, model_future in sd15_futures.items():
+                                model_future.result()
+                                self.model_install_status[model_id]["percent"] += perc_increment
+
                 except Exception as e:
                     print("Compilation failed. Exception: ")
                     print(e)
-                    return 
-            
-                
+                    return
 
-                      
                 # Copy shared models to INT8 directory
                 print("copying shared models... install_location=", install_location)
                 for blob_name in shared_models:
@@ -394,9 +539,9 @@ class OpenVINOModelInstaller:
                         os.path.join(install_location, model_int8, blob_name)
                     )
                 #:::::::::::::: START REMOVE ME ::::::::::::::
-                # Temporary workaround to force the config for Lunar Lake - 
-                # REMOVE ME before publishing to external open source.    
-                config_data = { 	"power modes supported": "yes", 	
+                # Temporary workaround to force the config for Lunar Lake -
+                # REMOVE ME before publishing to external open source.
+                config_data = { 	"power modes supported": "yes",
                                         "best performance" : ["GPU","GPU","GPU","GPU"],
                                                 "balanced" : ["NPU","NPU","GPU","GPU"],
                                    "best power efficiency" : ["NPU","NPU","NPU","NPU"]
@@ -411,30 +556,32 @@ class OpenVINOModelInstaller:
                 with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
                     json.dump(config_data, json_file, indent=4)
                 #:::::::::::::: END REMOVE ME ::::::::::::::
-                
-    
-    def dl_sd_15_LCM(self):
+
+
+    def dl_sd_15_LCM(self, model_id):
         print("Downloading Intel/sd-1.5-lcm-openvino")
         repo_id = "Intel/sd-1.5-lcm-openvino"
         model_1 = "square_lcm"
         model_2 = None
-        compile_models = self._download_model(repo_id, model_1, model_2)
+        compile_models = self._download_model(repo_id, model_1, model_2, model_id)
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
 
-        
+
         if npu_arch is not None:
             if not compile_models:
                 user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
                 if user_input == "y":
                     compile_models = True
-        
-            if compile_models:  
+
+            if compile_models:
+                self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
+                self.model_install_status[model_id]["percent"] = 0.0
                 text_future = None
                 unet_future = None
                 vae_de_future = None
-                
+
                 if npu_arch == "3720":
                     models_to_compile = [ "unet", "text_encoder"]
                     sd15_futures = {
@@ -448,7 +595,7 @@ class OpenVINOModelInstaller:
                         "unet" : unet_future,
                         "vae_decoder" : vae_de_future
                     }
-        
+
                 try:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                         for model_name in models_to_compile:
@@ -456,16 +603,16 @@ class OpenVINOModelInstaller:
                             output_path = os.path.join(install_location,"stable-diffusion-1.5", model_1, model_name + ".blob")
                             print(f"Creating NPU model for {model_name}")
                             sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path, output_path)
-                     
-                    if npu_arch == "3720":                  
-                        sd15_futures["text_encoder"].result()
-                        sd15_futures["unet"].result()
-                    else:
-                        sd15_futures["text_encoder"].result()
-                        sd15_futures["unet"].result()
-                        sd15_futures["vae_decoder"].result()
+
+                        num_futures = len(sd15_futures)
+                        perc_increment = 100.0 / num_futures
+
+                        self.model_install_status[model_id]["percent"] = 0.0
+                        for model_name, model_future in sd15_futures.items():
+                            model_future.result()
+                            self.model_install_status[model_id]["percent"] += perc_increment
                 except:
-                    print("Compilation failed.")    
+                    print("Compilation failed.")
 
 
 
@@ -473,40 +620,38 @@ class OpenVINOModelInstaller:
 def run_connection_routine(ov_model_installer, conn):
     with conn:
         while True:
-            print("Model Management Server Waiting..")
             data = conn.recv(1024)
-            
+
             if not data:
                 break
-            
+
             if data.decode() == "kill":
                 os._exit(0)
             if data.decode() == "ping":
                 conn.sendall(data)
                 continue
-            
-            # request to get the details and state of all supported models                    
+
+            # request to get the details and state of all supported models
             if data.decode() == "get_all_model_details":
                 model_details = ov_model_installer.get_all_model_details()
-                
+
                 #get number of models
                 num_models = len(model_details)
-                
+
                 print("num_models = ", num_models)
                 conn.sendall(bytes(str(num_models), 'utf-8'))
                 #wait for ack
                 data = conn.recv(1024)
-                
+
                 for i in range(0, num_models):
                     for detail in ["name", "description", "id", "install_status"]:
                         conn.sendall(bytes(model_details[i][detail], 'utf-8'))
                         #wait for ack
                         data = conn.recv(1024)
-                    
-                    
-                continue    
-            
-            # request to install a model.                    
+
+                continue
+
+            # request to install a model.
             if data.decode() == "install_model":
                print("Model Management Server: install_model cmd received. Getting model name..")
                #send ack
@@ -515,48 +660,48 @@ def run_connection_routine(ov_model_installer, conn):
                #get model id.
                #TODO: Need a timeout here.
                model_id = conn.recv(1024).decode()
-               
+
                print("Model Management Server: model_id=", model_id)
-               
+
                if model_id not in ov_model_installer.model_install_status:
-                   
-                   # add it to the dictionary here (instead of in ov_model_installer.install_model). 
-                   # This will guarantee that it is present in the dictionary before sending the ack, 
+
+                   # add it to the dictionary here (instead of in ov_model_installer.install_model).
+                   # This will guarantee that it is present in the dictionary before sending the ack,
                    #  and avoiding a potential race condition where the GIMP UI side asks for the status
                    #  before the thread spawns.
-                   ov_model_installer.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0} 
-                   
+                   ov_model_installer.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0}
+
                    #Run the install on another thread. This allows the server to service other requests
                    # while the install is taking place.
                    install_thread = threading.Thread(target=ov_model_installer.install_model, args=(model_id,))
                    install_thread.start()
                else:
                    print(model_id, "is already currently installing!")
-               
+
                #send ack
                conn.sendall(data)
-               
+
                #ov_model_installer.install_model(model_id)
-               
+
                continue
-            
-            # request to get the status of a model that is getting installed.                   
+
+            # request to get the status of a model that is getting installed.
             if data.decode() == "install_status":
-               
+
                 # send ack
                 conn.sendall(data)
-                
-                # make a copy of this so that the number of entries doesn't change while we're 
+
+                # make a copy of this so that the number of entries doesn't change while we're
                 #  in this routine.
                 model_install_status = ov_model_installer.model_install_status.copy()
-                
+
                 # Get the model-id that we are interested in.
                 data = conn.recv(1024)
                 model_id = data.decode()
-                
+
                 if model_id in model_install_status:
                     details = model_install_status[model_id]
-                    
+
                     status = details["status"]
                     perc = details["percent"]
                 else:
@@ -564,36 +709,36 @@ def run_connection_routine(ov_model_installer, conn):
                     # TODO: What about failure cases?
                     status = "done"
                     perc = 100.0
-                    
+
                 # first, send the status
                 conn.sendall(bytes(status, 'utf-8'))
                 data = conn.recv(1024) # <- get ack
-                
+
                 # then, send the send the percent
                 conn.sendall(bytes(str(perc), 'utf-8'))
                 data = conn.recv(1024) # <- get ack
-                  
+
                 continue
-                       
+
             print("Warning! Unsupported command sent: ", data.decode())
 
 def run():
     print("model management server starting...")
     weight_path = get_weight_path()
-    
-    #Move to a temporary working directory in a known place. 
+
+    #Move to a temporary working directory in a known place.
     # This is where we'll be downloading stuff to, etc.
     tmp_working_dir=os.path.join(weight_path, '..', 'mms_tmp')
-    
+
     #if this dir doesn't exist, create it.
     if not os.path.isdir(tmp_working_dir):
         os.mkdir(tmp_working_dir)
-    
-    # go there.    
+
+    # go there.
     os.chdir(tmp_working_dir)
-    
-    ov_model_installer = OpenVINOModelInstaller() 
-    
+
+    ov_model_installer = OpenVINOModelInstaller()
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen()
@@ -601,36 +746,36 @@ def run():
             print("awaiting new connection..")
             conn, addr = s.accept()
             print("new connection established..")
-            
+
             #Run this connection on a dedicated thread. This allows multiple connections to be present at once.
             conn_thread = threading.Thread(target=run_connection_routine, args=(ov_model_installer, conn))
             conn_thread.start()
             #run_connection_routine(ov_model_installer, conn)
-            
-                    
-                    
-                        
+
+
+
+
     print("model management server exiting...")
-    
+
 
 
 def start():
 
     run_thread = threading.Thread(target=run, args=())
     run_thread.start()
-    
+
     gimp_proc = None
     for proc in psutil.process_iter():
         if "gimp-2.99" in proc.name():
             gimp_proc = proc
             break
-            
+
     if gimp_proc:
         psutil.wait_procs([proc])
         print("model management server exiting..!")
         os._exit(0)
 
     run_thread.join()
-    
+
 if __name__ == "__main__":
    start()

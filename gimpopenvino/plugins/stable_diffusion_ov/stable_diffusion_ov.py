@@ -433,7 +433,32 @@ class ModelManagementWindow(Gtk.Window):
         # stop the polling thread.
         self.bStopPoll = True
         
+    
+    def post_install_routine(self, model_id, install_status):
+        print("post_install_routine...")
+        model_ui = self.model_ui_map[model_id]
         
+        download_button = model_ui["download_button"]
+        progress_bar = model_ui["progress_bar"]
+        
+        self.model_box.remove(progress_bar)
+        model_ui.pop("progress_bar")
+        
+        model_row_index = model_ui["row_index"]
+        
+        self.model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the download button across two rows
+        
+        if install_status == "installed":
+            download_button.set_label("Installed")
+            download_button.set_sensitive(False)
+        else:
+            download_button.set_label("Download & Install")
+            download_button.set_sensitive(True)
+            
+        self.model_box.show_all()
+        
+        
+    
     def update_ui_install_progress(self, model_id, install_status):
     
         print("update_ui_install_progress...")
@@ -483,10 +508,16 @@ class ModelManagementWindow(Gtk.Window):
                         
                     install_status = self.get_install_status(s, model_id)
                 
-                # when we're here, the model is complete. Run a routine that puts back the
-                # button, but set it to 'Installed' as long as it's complete.
+                # when we're here, the model installation is complete. 
+                # We will now get details of all models, and then get
+                # the state of the one that we're interested in.
+                all_model_details = self._all_model_details(s)
                 
-                
+                for model_detail in all_model_details:
+                    if model_detail["id"] == model_id:
+                        install_status = model_detail["install_status"]
+                        GLib.idle_add(self.post_install_routine, model_id, install_status)
+                           
         except Exception as e:
             print(f"There was a problem polling install status..")
             print(e)  
