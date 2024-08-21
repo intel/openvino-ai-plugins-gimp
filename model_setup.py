@@ -253,8 +253,8 @@ def dl_sd_15_square():
             
             if npu_arch != "3720":
                 config_data = { 	"power modes supported": "yes", 	
-                                        "best performance" : ["GPU","GPU","GPU","GPU"],
-                                      	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                                        "best performance" : ["GPU","NPU","NPU","GPU"],
+                                      	        "balanced" : ["NPU","NPU","NPU","GPU"],
                                    "best power efficiency" : ["NPU","NPU","NPU","NPU"]
                 }
                 # Specify the file name
@@ -267,7 +267,6 @@ def dl_sd_15_square():
                 with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
                     json.dump(config_data, json_file, indent=4)
             
-
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
     if os.path.isdir(SD_path):
