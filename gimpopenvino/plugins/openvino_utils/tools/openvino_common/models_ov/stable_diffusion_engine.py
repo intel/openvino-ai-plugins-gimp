@@ -474,7 +474,6 @@ class StableDiffusionEngine(DiffusionPipeline):
                 unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
                 unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
             else:
-                print("Loading BS2 model")
                 unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 unet_neg_future = None
 
