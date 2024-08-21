@@ -54,31 +54,37 @@ g_supported_models = [
         "name": "Stable Diffusion 1.5 (Controlnet OpenPose)",
         "description": "A short description of Stable Diffusion 1.5.",
         "id": "sd_15_openpose",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-openpose")
+        "install_subdir": os.path.join(".", "controlnet-openpose")
     },
     {
         "name": "Stable Diffusion 1.5 (Controlnet Canny)",
         "description": "A short description of Stable Diffusion 1.5.",
         "id": "sd_15_canny",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-canny")
+        "install_subdir": os.path.join(".", "controlnet-canny")
     },
     {
         "name": "Stable Diffusion 1.5 (Controlnet Scribble)",
         "description": "A short description of Stable Diffusion 1.5.",
         "id": "sd_15_scribble",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-scribble")
+        "install_subdir": os.path.join(".", "controlnet-scribble")
     },
     {
         "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)",
         "description": "A short description of Stable Diffusion 1.5.",
         "id": "sd_15_Referenceonly",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "controlnet-referenceonly")
+        "install_subdir": os.path.join(".", "controlnet-referenceonly")
     },
 
     {
-        "name": "Test Model",
+        "name": "Test Model 1",
         "description": "This is just a test entry that doesn't actually download anything.",
-        "id": "test", "install_subdir": os.path.join("test")
+        "id": "test1", "install_subdir": os.path.join("test")
+    },
+
+    {
+        "name": "Test Model 2",
+        "description": "This is just a test entry that doesn't actually download anything.",
+        "id": "test2", "install_subdir": os.path.join("test")
     },
 ]
 
@@ -90,6 +96,7 @@ import platform
 import shutil
 import io
 import requests
+import queue
 access_token = None
 
 def compile_and_export_model(core, model_path, output_path, device='NPU', config=None):
@@ -145,6 +152,8 @@ class OpenVINOModelInstaller:
 
         self.hf_fs = HfFileSystem()
         self.model_install_status = {}
+        self.install_queue = queue.Queue()
+        self.install_lock = threading.Condition()
 
 
     def get_all_model_details(self):
@@ -348,7 +357,7 @@ class OpenVINOModelInstaller:
         return download_flag
 
 
-    def install_test(self):
+    def install_test(self, model_id):
 
         import time
 
@@ -356,8 +365,8 @@ class OpenVINOModelInstaller:
 
         for state in states:
             percent_complete = 0.0
-            self.model_install_status["test"]["status"] = state
-            self.model_install_status["test"]["percent"] = percent_complete
+            self.model_install_status[model_id]["status"] = state
+            self.model_install_status[model_id]["percent"] = percent_complete
 
             last_perc_complete_printed = 0.0
 
@@ -366,7 +375,7 @@ class OpenVINOModelInstaller:
                 #percent_complete += 0.2
                 percent_complete += 1
 
-                self.model_install_status["test"]["percent"] = percent_complete
+                self.model_install_status[model_id]["percent"] = percent_complete
 
                 if( percent_complete - last_perc_complete_printed > 10 ):
                     print("install_test %: ", percent_complete)
@@ -376,30 +385,51 @@ class OpenVINOModelInstaller:
     def install_model(self, model_id):
         print("install_model: model_id=", model_id)
 
-        self.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0}
+        # set the status to 'Queued' this is what will display in the UI
+        # until it's this model's turn to get installed.
+        self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0}
 
-        if( model_id == "sd_15_square"):
-            self.dl_sd_15_square(model_id)
-        elif ( model_id == "sd_15_LCM"):
-            self.dl_sd_15_LCM(model_id)
-        elif ( model_id == "sd_15_portrait"):
-            self.dl_sd_15_portrait(model_id)
-        elif ( model_id == "sd_15_landscape"):
-            self.dl_sd_15_landscape(model_id)
-        elif ( model_id == "sd_15_inpainting"):
-            self.dl_sd_15_inpainting(model_id)
-        elif ( model_id == "sd_15_openpose"):
-            self.dl_sd_15_openpose(model_id)
-        elif ( model_id == "sd_15_canny"):
-            self.dl_sd_15_canny(model_id)
-        elif ( model_id == "sd_15_scribble"):
-            self.dl_sd_15_scribble(model_id)
-        elif ( model_id == "sd_15_Referenceonly"):
-            self.dl_sd_15_Referenceonly(model_id)
-        elif (model_id == "test"):
-            self.install_test()
-        else:
-            print("Warning! unknown model_id=", model_id)
+        # Put this thread into the quueue
+        self.install_queue.put(threading.current_thread())
+
+        # acquire the lock
+        with self.install_lock:
+
+            # check to see if it's our turn
+            while self.install_queue.queue[0] != threading.current_thread():
+                # it's not our turn.. go back to sleep
+                lock.wait()
+
+            # Dequeue the thread now that it's our turn
+            self.install_queue.get()
+
+            if( model_id == "sd_15_square"):
+                self.dl_sd_15_square(model_id)
+            elif ( model_id == "sd_15_LCM"):
+                self.dl_sd_15_LCM(model_id)
+            elif ( model_id == "sd_15_portrait"):
+                self.dl_sd_15_portrait(model_id)
+            elif ( model_id == "sd_15_landscape"):
+                self.dl_sd_15_landscape(model_id)
+            elif ( model_id == "sd_15_inpainting"):
+                self.dl_sd_15_inpainting(model_id)
+            elif ( model_id == "sd_15_openpose"):
+                self.dl_sd_15_openpose(model_id)
+            elif ( model_id == "sd_15_canny"):
+                self.dl_sd_15_canny(model_id)
+            elif ( model_id == "sd_15_scribble"):
+                self.dl_sd_15_scribble(model_id)
+            elif ( model_id == "sd_15_Referenceonly"):
+                self.dl_sd_15_Referenceonly(model_id)
+            elif (model_id == "test1"):
+                self.install_test(model_id)
+            elif (model_id == "test2"):
+                self.install_test(model_id)
+            else:
+                print("Warning! unknown model_id=", model_id)
+
+            # Notify the next thread in the queue
+            self.install_lock.notify_all()
 
         self.model_install_status.pop(model_id)
 
