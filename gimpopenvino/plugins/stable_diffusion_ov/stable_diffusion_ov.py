@@ -279,6 +279,7 @@ def is_server_running():
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.1) # <- set connection timeout to 100 ms (default is a few seconds)
             s.connect((HOST, PORT))
             s.sendall(b"ping")
             data = s.recv(1024)
@@ -333,10 +334,12 @@ def on_toggled(widget, dialog):
 #
 #TODO: This model management window class should be moved into it's own .py.
 from gi.repository import Gtk, Gdk
+import threading
+import time 
 class ModelManagementWindow(Gtk.Window):
     def __init__(self, config_path, python_path):
         Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
-        self.set_default_size(800, 600)
+        self.set_default_size(1200, 800)
         
         self.hide()
         
@@ -345,6 +348,7 @@ class ModelManagementWindow(Gtk.Window):
         server = "model_management_server.py"
         server_path = os.path.join(config_path, server)
         
+        print("checking if server is running..")
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
             _process = subprocess.Popen([python_path, server_path], close_fds=True)
@@ -353,82 +357,206 @@ class ModelManagementWindow(Gtk.Window):
         self.connect("delete-event", self.on_delete_event)
 
         # Create a vertical box to hold the models
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-        vbox.set_homogeneous(False)
-        vbox.set_margin_top(20)
-        vbox.set_margin_bottom(20)
-        vbox.set_margin_start(20)
-        vbox.set_margin_end(20)
-        self.add(vbox)
+        #vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        #vbox.set_homogeneous(False)
+        #vbox.set_margin_top(20)
+        #vbox.set_margin_bottom(20)
+        #vbox.set_margin_start(20)
+        #vbox.set_margin_end(20)
+        #self.add(vbox)
 
-        models = self.get_model_details()
+         
+        models = self.get_all_model_details()
+  
+        self.poll_install_status_thread = None
+        self.bStopPoll = False
+        
+        
+        model_box = Gtk.Grid()
+        model_box.set_row_spacing(20)
+        model_box.set_column_spacing(20)
+        model_box.set_margin_start(20)
+        model_box.set_margin_top(20)
+        self.add(model_box)
 
-
+        model_row_index = 0
+        
+        
+        self.model_box = model_box
+        self.model_ui_map = {}
         # Add each model to the window
-        for model in models:
-            model_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            model_box.set_homogeneous(False)
+        if models is not None:
+            for model in models:
 
-            # Model name label
-            name_label = Gtk.Label(label=model["name"])
-            name_label.set_xalign(0)  # Align left
-            name_label.set_name("model-name") 
-            model_box.pack_start(name_label, True, True, 0)
+                # Model name label
+                name_label = Gtk.Label()
+                name_label.set_markup("<b>" + model["name"] + "</b>")
+                name_label.set_xalign(0.5)  # Align center
+                name_label.set_name("model-name") 
+                model_box.attach(name_label, 0, model_row_index, 1, 1)
 
-            # Model description label
-            description_label = Gtk.Label(label=model["description"])
-            description_label.set_xalign(0)  # Align left
-            description_label.set_name("model-description")  
-            description_label.set_line_wrap(True)
-            model_box.pack_start(description_label, True, True, 0)
+                # Model description label
+                description_label = Gtk.Label(label=model["description"])
+                description_label.set_xalign(0)  # Align left
+                description_label.set_name("model-description")  
+                description_label.set_line_wrap(True)
+                model_box.attach(description_label, 1, model_row_index, 1, 1)
 
-            # Download button
-            if model["install_status"] == "not_installed":
-                download_button = Gtk.Button(label="Download & Install")
-                download_button.connect("clicked", self.on_download_clicked, model["id"])
-            elif model["install_status"] == "installed":
-                download_button = Gtk.Button(label="Installed")
-                download_button.set_sensitive(False)
+                # Download button
+                if model["install_status"] == "not_installed":
+                    download_button = Gtk.Button(label="Download & Install")
+                    download_button.connect("clicked", self.on_download_clicked, model["id"])
+                    
+                elif model["install_status"] == "installed":
+                    download_button = Gtk.Button(label="Installed")
+                    download_button.set_sensitive(False)
+                    
+                #TODO: Do the right thing if the state is 'installing'. In that case, we need to kick off a poll thread 
+                # for this model.
+                # Note: It's likely we could get into this situation. If the user triggers an install of a model, but to
+                # close SD dialog (or runs SD on an already installed model), and then launches SD dialog again.
 
-            model_box.pack_start(download_button, False, False, 0)
+                model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the button across two rows
 
-            # Add the model box to the main vertical box
-            vbox.pack_start(model_box, False, False, 0)
+                # Add the model box to the main vertical box
+                #vbox.pack_start(model_box, False, False, 0)
+                
+                self.model_ui_map[model["id"]] = { "row_index": model_row_index, "download_button": download_button}
+                
+                model_row_index += 4
+        else:
+            print("list of supported models is empty!")
 
         self.show_all()
         
+    def __del__(self):
+        # stop the polling thread.
+        self.bStopPoll = True
         
-            
-    def get_model_details(self):
-        model_details = []
+        
+    def update_ui_install_progress(self, model_id, install_status):
+    
+        print("update_ui_install_progress...")
+        
+        model_ui = self.model_ui_map[model_id]
+        
+        model_row_index = model_ui["row_index"]
+        
+        status = install_status["status"]
+        perc = install_status["percent"]
+        
+        if "progress_bar" not in model_ui:
+            download_button = model_ui["download_button"]
+            self.model_box.remove(download_button)
+            progress_bar = Gtk.ProgressBar()
+            progress_bar.set_show_text(True)
+            self.model_box.attach(progress_bar, 2, model_row_index, 1, 2)  # Span the progress bar across two rows
+            self.model_box.show_all()
+            model_ui["progress_bar"] = progress_bar
+        else: 
+            progress_bar = model_ui["progress_bar"]
+        
+        progress_bar.set_text(status)
+        print("setting fraction as ", perc / 100.0)
+        progress_bar.set_fraction(perc / 100.0)
+               
+        
+    def poll_install_status(self, model_id):
+    
+        print("poll_install_status!")
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
                 
-                #send cmd
-                s.sendall(b"get_model_details")
+                print("self.get_install_status ->")
+                install_status = self.get_install_status(s, model_id)
+                print("<-self.get_install_status")
+                 
+                while( install_status["status"] != "done" ):
+                    GLib.idle_add(self.update_ui_install_progress, model_id, install_status)
+                    
+                    # poll every 1 second.
+                    time.sleep(1)
+                    
+                    if self.bStopPoll is True:
+                        break  
+                        
+                    install_status = self.get_install_status(s, model_id)
                 
-                # get number of models
+                # when we're here, the model is complete. Run a routine that puts back the
+                # button, but set it to 'Installed' as long as it's complete.
+                
+                
+        except Exception as e:
+            print(f"There was a problem polling install status..")
+            print(e)  
+            import traceback
+            traceback.print_exc()
+            
+        print("poll thread exiting..")
+                
+                
+
+    def get_install_status(self, s, model_id):
+
+        #send cmd
+        s.sendall(b"install_status")
+        
+        #wait for an ack
+        data = s.recv(1024)
+        
+        # send the model_id
+        s.sendall(bytes(model_id, 'utf-8'))
+        
+        # get the status
+        data = s.recv(1024)
+        status = data.decode()
+        s.sendall(data) # <- send ack
+        
+        # get the percent
+        data = s.recv(1024)
+        percent = float(data.decode())
+        s.sendall(data) # <- send ack    
+
+        install_status = {"status": status, "percent": percent}        
+
+        return install_status
+        
+    
+    def _all_model_details(self, s):
+        model_details = []
+        
+        #send cmd
+        s.sendall(b"get_all_model_details")
+        
+        # get number of models
+        data = s.recv(1024)
+        num_models = int(data.decode())
+        
+        #send ack
+        s.sendall(data)
+
+        for i in range(0, num_models):
+            model_detail = {}
+            for detail in ["name", "description", "id", "install_status"]:
                 data = s.recv(1024)
-                
-                print("data.decode() = ", data.decode())
-                num_models = int(data.decode())
-                
+                model_detail[detail] = data.decode()
                 #send ack
                 s.sendall(data)
+            
+            model_details.append(model_detail)
+            
+        print("model details = ", model_details)
+        
+        return model_details
+    
+    def get_all_model_details(self):
+        
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((self._host, self._port))
                 
-                
-                for i in range(0, num_models):
-                    model_detail = {}
-                    for detail in ["name", "description", "id", "install_status"]:
-                        data = s.recv(1024)
-                        model_detail[detail] = data.decode()
-                        #send ack
-                        s.sendall(data)
-                    
-                    model_details.append(model_detail)
-                    
-                print("model details = ", model_details)
+                model_details = self._all_model_details(s)
                 
                 return model_details
                    
@@ -437,9 +565,14 @@ class ModelManagementWindow(Gtk.Window):
             print(e)
         
 
-    def on_download_clicked(self, button, model_name):
+    def on_download_clicked(self, button, model_id):
+    
+        # prevent user from clicking it again while we kick off the install 
+        button.set_sensitive(False)
+         
         # This method will be called when the download button is clicked
-        print(f"Downloading {model_name}...")
+        print(f"Downloading {model_id}...")
+        
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
@@ -451,13 +584,16 @@ class ModelManagementWindow(Gtk.Window):
                 data = s.recv(1024)
                 
                 #send model name
-                s.sendall(bytes(model_name, 'utf-8'))
+                s.sendall(bytes(model_id, 'utf-8'))
                 
                 #wait for ack
                 data = s.recv(1024)
+
+                poll_install_status_thread = threading.Thread(target=self.poll_install_status, args=(model_id,))
+                poll_install_status_thread.start()
                 
         except Exception as e:
-            print(f"There was a problem downloading {model_name}...")
+            print(f"There was a problem downloading {model_id}...")
             print(e)
         
     def on_delete_event(self, widget, event):
@@ -468,19 +604,23 @@ class ModelManagementWindow(Gtk.Window):
         return True
         
     def is_server_running(self):
+        start_time = time.time()
+        ret = False
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.1) # <- set connection timeout to 100 ms (default is a few seconds)
                 s.connect((self._host, self._port))
                 s.sendall(b"ping")
                 data = s.recv(1024)
                 if data.decode() == "ping":
-                    return True
+                    ret = True
         except Exception as e:
             print(f"There was a problem pinging the model server ...")
             print(e)
-            return False
-
-        return False
+            ret = False
+        end_time =time.time()
+        print("is_server_running took ", end_time - start_time, "seconds")
+        return ret
         
 
 #
@@ -874,8 +1014,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         initialImage_checkbox.connect("toggled", initImage_toggled)
         
         
+        print("creating ModelManagementWindow...")
         model_management_window = ModelManagementWindow(config_path, python_path)
         model_management_window.hide()
+        print("done creating ModelManagementWindow...")
         
         def model_management_launch_button_clicked(widget):
             print("model_management_launch_button_clicked")
@@ -887,9 +1029,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
         model_management_launch_button.show()
         
-        
-
-                
+   
 
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 

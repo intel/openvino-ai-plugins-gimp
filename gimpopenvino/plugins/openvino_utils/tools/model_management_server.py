@@ -23,6 +23,7 @@ g_supported_models = [
     {"name": "Stable Diffusion 1.5 (Square)", "description": "A short description of Stable Diffusion 1.5.", "id": "sd_15_square", "install_subdir": os.path.join("stable-diffusion-1.5", "square")},
     {"name": "Stable Diffusion 1.5 LCM", "description": "A short description of Stable Diffusion 1.5 LCM.", "id": "sd_15_LCM", "install_subdir": os.path.join("stable-diffusion-1.5", "square_lcm")},
     {"name": "Stable Diffusion 2.1", "description": "A short description of Stable Diffusion 2.1", "id": "sd_21_square", "install_subdir": os.path.join("stable-diffusion-2.1", "square")},
+    {"name": "Some Test Module", "description": "This is just a test entry that doesn't actually download anything.", "id": "test", "install_subdir": os.path.join("test")},
 ]
 
 #TODO: This class should be in a separate utils file, so that it can be called from top-level model_setup.py
@@ -71,6 +72,7 @@ def download_file_with_progress(url, local_filename, callback):
             
 class OpenVINOModelInstaller:
     def __init__(self):
+        print("OpenVINOModelInstaller..")
         self._core = Core()
         self._os_type = platform.system().lower()
         self._available_devices = self._core.get_available_devices()
@@ -82,17 +84,20 @@ class OpenVINOModelInstaller:
             self._npu_arch = "3720" if "3720" in self._core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
             
         self.hf_fs = HfFileSystem()
+        self.model_install_status = {}
             
-    def get_model_details(self): 
+    def get_all_model_details(self): 
         model_details = []
         for model_detail in g_supported_models:
             model_check_path = os.path.join(self._install_location, model_detail["install_subdir"], )
 
             model_detail_entry = model_detail.copy()
-            if not os.path.isdir(model_check_path):
+
+            if model_detail["id"] in  self.model_install_status:
+                install_status = "installing"
+            elif not os.path.isdir(model_check_path):
                 install_status = "not_installed"
             else:
-                #TODO: Need to differentiate between installed and installing.
                 install_status = "installed"
             
             model_detail_entry['install_status'] = install_status
@@ -257,16 +262,49 @@ class OpenVINOModelInstaller:
             #shutil.rmtree(delete_folder, ignore_errors=True)
     
         return download_flag
+        
+        
+    def install_test(self):
+        
+        import time
+        
+        states = [ "Downloading...", "Prepping NPU Models.."]
+        
+        for state in states:
+            percent_complete = 0.0
+            self.model_install_status["test"]["status"] = state
+            self.model_install_status["test"]["percent"] = percent_complete
+            
+            last_perc_complete_printed = 0.0
+            
+            while percent_complete < 100:
+                time.sleep(0.1)
+                #percent_complete += 0.2
+                percent_complete += 1
+                
+                self.model_install_status["test"]["percent"] = percent_complete
+                
+                if( percent_complete - last_perc_complete_printed > 10 ):
+                    print("install_test %: ", percent_complete) 
+                    last_perc_complete_printed = percent_complete
+   
 
     def install_model(self, model_id):
         print("install_model: model_id=", model_id)
+        
+        self.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0} 
+
         if( model_id == "sd_15_square"):
             self.dl_sd_15_square()
         elif ( model_id == "sd_15_LCM"):
             self.dl_sd_15_LCM()
+        elif (model_id == "test"):
+            self.install_test()
         else:
             print("Warning! unknown model_id=", model_id)
         
+        self.model_install_status.pop(model_id)
+
         print("install_model: model_id=", model_id, " done!")
 
     def dl_sd_15_square(self):
@@ -432,7 +470,112 @@ class OpenVINOModelInstaller:
 
 
 
+def run_connection_routine(ov_model_installer, conn):
+    with conn:
+        while True:
+            print("Model Management Server Waiting..")
+            data = conn.recv(1024)
+            
+            if not data:
+                break
+            
+            if data.decode() == "kill":
+                os._exit(0)
+            if data.decode() == "ping":
+                conn.sendall(data)
+                continue
+            
+            # request to get the details and state of all supported models                    
+            if data.decode() == "get_all_model_details":
+                model_details = ov_model_installer.get_all_model_details()
+                
+                #get number of models
+                num_models = len(model_details)
+                
+                print("num_models = ", num_models)
+                conn.sendall(bytes(str(num_models), 'utf-8'))
+                #wait for ack
+                data = conn.recv(1024)
+                
+                for i in range(0, num_models):
+                    for detail in ["name", "description", "id", "install_status"]:
+                        conn.sendall(bytes(model_details[i][detail], 'utf-8'))
+                        #wait for ack
+                        data = conn.recv(1024)
+                    
+                    
+                continue    
+            
+            # request to install a model.                    
+            if data.decode() == "install_model":
+               print("Model Management Server: install_model cmd received. Getting model name..")
+               #send ack
+               conn.sendall(data)
 
+               #get model id.
+               #TODO: Need a timeout here.
+               model_id = conn.recv(1024).decode()
+               
+               print("Model Management Server: model_id=", model_id)
+               
+               if model_id not in ov_model_installer.model_install_status:
+                   
+                   # add it to the dictionary here (instead of in ov_model_installer.install_model). 
+                   # This will guarantee that it is present in the dictionary before sending the ack, 
+                   #  and avoiding a potential race condition where the GIMP UI side asks for the status
+                   #  before the thread spawns.
+                   ov_model_installer.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0} 
+                   
+                   #Run the install on another thread. This allows the server to service other requests
+                   # while the install is taking place.
+                   install_thread = threading.Thread(target=ov_model_installer.install_model, args=(model_id,))
+                   install_thread.start()
+               else:
+                   print(model_id, "is already currently installing!")
+               
+               #send ack
+               conn.sendall(data)
+               
+               #ov_model_installer.install_model(model_id)
+               
+               continue
+            
+            # request to get the status of a model that is getting installed.                   
+            if data.decode() == "install_status":
+               
+                # send ack
+                conn.sendall(data)
+                
+                # make a copy of this so that the number of entries doesn't change while we're 
+                #  in this routine.
+                model_install_status = ov_model_installer.model_install_status.copy()
+                
+                # Get the model-id that we are interested in.
+                data = conn.recv(1024)
+                model_id = data.decode()
+                
+                if model_id in model_install_status:
+                    details = model_install_status[model_id]
+                    
+                    status = details["status"]
+                    perc = details["percent"]
+                else:
+                    # the model_id is not found in the installer map... set status to "done" / 100.0
+                    # TODO: What about failure cases?
+                    status = "done"
+                    perc = 100.0
+                    
+                # first, send the status
+                conn.sendall(bytes(status, 'utf-8'))
+                data = conn.recv(1024) # <- get ack
+                
+                # then, send the send the percent
+                conn.sendall(bytes(str(perc), 'utf-8'))
+                data = conn.recv(1024) # <- get ack
+                  
+                continue
+                       
+            print("Warning! Unsupported command sent: ", data.decode())
 
 def run():
     print("model management server starting...")
@@ -458,60 +601,12 @@ def run():
             print("awaiting new connection..")
             conn, addr = s.accept()
             print("new connection established..")
-            with conn:
-                while True:
-                    print("Model Management Server Waiting..")
-                    data = conn.recv(1024)
-                    
-                    if not data:
-                        break
-                    
-                    if data.decode() == "kill":
-                        os._exit(0)
-                    if data.decode() == "ping":
-                        conn.sendall(data)
-                        continue
-                        
-                    if data.decode() == "get_model_details":
-                        model_details = ov_model_installer.get_model_details()
-                        
-                        #get number of models
-                        num_models = len(model_details)
-                        
-                        print("num_models = ", num_models)
-                        conn.sendall(bytes(str(num_models), 'utf-8'))
-                        #wait for ack
-                        data = conn.recv(1024)
-                        
-                        for i in range(0, num_models):
-                            for detail in ["name", "description", "id", "install_status"]:
-                                conn.sendall(bytes(model_details[i][detail], 'utf-8'))
-                                #wait for ack
-                                data = conn.recv(1024)
-                            
-                            
-                        continue    
-                        
-                    if data.decode() == "install_model":
-                       print("Model Management Server: install_model cmd received. Getting model name..")
-                       #send ack
-                       conn.sendall(data)
-
-                       #get model id.
-                       #TODO: Need a timeout here.
-                       model_id = conn.recv(1024).decode()
-                       
-                       print("Model Management Server: model_id=", model_id)
-                       
-                       #send ack
-                       conn.sendall(data)
-                       
-                       #todo: run on another thread, so that we can service other requests while this one is downloading.
-                       ov_model_installer.install_model(model_id)
-                       
-                       continue
-                       
-                    print("Warning! Unsupported command sent: ", data.decode())
+            
+            #Run this connection on a dedicated thread. This allows multiple connections to be present at once.
+            conn_thread = threading.Thread(target=run_connection_routine, args=(ov_model_installer, conn))
+            conn_thread.start()
+            #run_connection_routine(ov_model_installer, conn)
+            
                     
                     
                         
