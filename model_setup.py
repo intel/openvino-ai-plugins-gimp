@@ -20,7 +20,7 @@ access_token = None
 # Constants
 NPU_ARCH_3720 = "3720"
 NPU_ARCH_4000 = "4000"
-NPU_THRESHOLD = 4500
+NPU_THRESHOLD = 4300
 
 # Initialize OpenVINO Core
 core = ov.Core()
