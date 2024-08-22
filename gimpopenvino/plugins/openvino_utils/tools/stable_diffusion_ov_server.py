@@ -210,7 +210,7 @@ def initialize_engine(model_name, model_path, device_list):
         return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny_int8":
         log.info('Device list: %s', device_list)
-        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+        return controlnet_cannyedge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_scribble_int8":
         log.info('Device list: %s', device_list)
         return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
