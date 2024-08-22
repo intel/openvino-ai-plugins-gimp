@@ -252,20 +252,26 @@ def dl_sd_15_square():
                 )
             
             if npu_arch != "3720":
-                config_data = { 	"power modes supported": "yes", 	
-                                        "best performance" : ["GPU","NPU","NPU","GPU"],
-                                      	        "balanced" : ["NPU","NPU","NPU","GPU"],
+                config_fp_16 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["GPU","GPU","GPU","GPU"],
+                                      	        "balanced" : ["NPU","NPU","GPU","GPU"],
                                    "best power efficiency" : ["NPU","NPU","NPU","NPU"]
                 }
+                config_int8 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["GPU","NPU","GPU","GPU"],
+                                      	        "balanced" : ["GPU","NPU","GPU","GPU"],
+                                   "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                }
+                
                 # Specify the file name
                 file_name = "config.json"
 
                 # Write the data to a JSON file
                 with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
-                    json.dump(config_data, json_file, indent=4)
+                    json.dump(config_fp_16, json_file, indent=4)
                 # Write the data to a JSON file
                 with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
-                    json.dump(config_data, json_file, indent=4)
+                    json.dump(config_int8, json_file, indent=4)
             
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
