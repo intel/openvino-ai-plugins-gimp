@@ -340,7 +340,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                     negative_prompt = negative_prompt,
                     num_inference_steps = num_infer_steps,
                     guidance_scale = 0,
-                    generator=torch.Generator().manual_seed(seed),
+                    generator=torch.Generator().manual_seed(int(seed)),
                     callback=progress_callback,
                     callback_userdata=conn
                     #callback_on_step_end_tensor_inputs = conn,
