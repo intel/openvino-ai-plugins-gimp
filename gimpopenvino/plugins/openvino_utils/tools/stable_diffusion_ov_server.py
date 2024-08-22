@@ -156,40 +156,6 @@ def run(model_name, available_devices, power_mode):
                         break
                     handle_client_data(data, conn, engine, model_name, model_path, scheduler)
 
-# def initialize_engine(model_name, model_path, device_list):
-#     if model_name == "sd_3.0_square":
-#         device_list = ["GPU"]
-#         log.info('Device list: %s', device_list)
-#         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
-#     if model_name == "sd_1.5_square_int8":
-#         log.info('Device list: %s', device_list)
-#         return StableDiffusionEngineAdvanced(model=model_path, device=device_list)
-#     if model_name == "sd_1.5_inpainting":
-#         return StableDiffusionEngineInpainting(model=model_path, device=device_list)
-#     if model_name == "sd_1.5_square_lcm":
-#         return LatentConsistencyEngine(model=model_path, device=device_list)
-#     if model_name == "sd_1.5_inpainting_int8":
-#         log.info('Advanced Inpainting Device list: %s', device_list)
-#         return StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
-#     if model_name == "controlnet_openpose_int8":
-#         log.info('Device list: %s', device_list)
-#         return ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
-#     if model_name == "controlnet_canny_int8":
-#         log.info('Device list: %s', device_list)
-#         return ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
-#     if model_name == "controlnet_scribble_int8":
-#         log.info('Device list: %s', device_list)
-#         return ControlNetScribbleAdvanced(model=model_path, device=device_list)
-#     if model_name == "controlnet_canny":
-#         return ControlNetCannyEdge(model=model_path, device=device_list)
-#     if model_name == "controlnet_scribble":
-#         return ControlNetScribble(model=model_path, device=device_list)
-#     if model_name == "controlnet_openpose":
-#         return ControlNetOpenPose(model=model_path, device=device_list)
-#     if model_name == "controlnet_referenceonly":
-#         return StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-#     return StableDiffusionEngine(model=model_path, device=device_list)
-
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
