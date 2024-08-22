@@ -258,8 +258,8 @@ def dl_sd_15_square():
                                    "best power efficiency" : ["NPU","NPU","NPU","NPU"]
                 }
                 config_int8 = { 	"power modes supported": "yes", 	
-                                        "best performance" : ["GPU","NPU","GPU","GPU"],
-                                      	        "balanced" : ["GPU","NPU","GPU","GPU"],
+                                        "best performance" : ["NPU","NPU","GPU","GPU"],
+                                      	        "balanced" : ["GPU","NPU","NPU","GPU"],
                                    "best power efficiency" : ["NPU","NPU","NPU","NPU"]
                 }
                 
