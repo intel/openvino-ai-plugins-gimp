@@ -352,7 +352,7 @@ class StableDiffusionEngineInpainting(DiffusionPipeline):
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
         if input_image is None:
-            print("Image is NONE")
+            #print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(scheduler, LMSDiscreteScheduler):
              
