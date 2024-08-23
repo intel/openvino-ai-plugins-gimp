@@ -12,9 +12,6 @@ from datetime import datetime
 from statistics import mean
 import platform
 import os
-import wmi
-import win32com.client
-
 
 import cv2
 import numpy as np
@@ -40,6 +37,7 @@ log = logging.getLogger()
 
 
 def get_bios_version():
+    import wmi
     try:
         c = wmi.WMI()
         bios = c.Win32_BIOS()[0]
@@ -48,6 +46,7 @@ def get_bios_version():
         return str(e)
 
 def get_windows_pcie_device_driver_versions():
+    import win32com.client
     try:
         # Initialize the WMI client
         wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
@@ -76,16 +75,26 @@ def check_windows_device_driver_version(device_name, driver_info):
             return info["DriverVersion"]
     return None
 
-def print_system_info(driver_info):
+def print_system_info():
     log.info("System Information")
     log.info("==================")
     log.info(f"System: {platform.system()}")
     log.info(f"Node Name: {platform.node()}")
     log.info(f"Python Version: {platform.python_version()}")
     log.info(f"Platform: {platform.platform()}")
-    log.info(f'BIOS: {get_bios_version()}')
-    log.info(f'NPU Driver: {check_windows_device_driver_version(device_name="AI Boost",driver_info=driver_info)}')
-    log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
+    if "window" in platform.system().lower():
+        driver_info = get_windows_pcie_device_driver_versions()
+        log.info(f'BIOS: {get_bios_version()}')
+        log.info(f'NPU Driver: {check_windows_device_driver_version(device_name="AI Boost",driver_info=driver_info)}')
+        log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
+    elif "linux" in platform.system().lower():
+        try:
+            log.info(f'BIOS: <unsupported>')
+            with open('/sys/module/intel_vpu/version', 'r') as f:
+                log.info(f'NPU Driver: {f.readline()}')
+            log.info(f'GPU Driver: <unsupported>')
+        except:
+            pass
 
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
@@ -240,10 +249,7 @@ def main():
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
 
-    # ::TODO:: make this work for Linux, too. 
-    if "windows" in platform.system().lower():
-        driver_info = get_windows_pcie_device_driver_versions()
-        print_system_info(driver_info) 
+    print_system_info() 
     
     log.info('')
     log.info('Device : Version')
