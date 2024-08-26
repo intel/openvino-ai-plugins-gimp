@@ -87,7 +87,7 @@ class DeviceEnum:
     def get_tree_model_no_npu(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
-       
+
         for i in range(len(self.keys)):
             if self.keys[i] != "NPU":
                 tree_model.append([self.keys[i], self.values[i]])
@@ -102,7 +102,7 @@ def check_files_exist(dir_path, files):
     return all(os.path.isfile(Path(dir_path) / file) for file in files)
 
 def list_models(weight_path, SD):
-    model_list = []    
+    model_list = []
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
@@ -130,12 +130,12 @@ def list_models(weight_path, SD):
     dir_path = os.path.join(weight_path, *model_paths.get(SD, ""))
     if Path(dir_path).is_dir():
         model_list.append(SD)
-    
+
     return model_list
 
 
 
-    
+
 class SDRunner:
     def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
                   strength, seed, progress_bar, config_path_output):
@@ -252,7 +252,7 @@ class SDRunner:
             Gimp.displays_flush()
             image.undo_group_end()
             Gimp.context_pop()
-           
+
 
             # Remove temporary layers that were saved
             my_dir = os.path.join(weight_path, "..")
@@ -270,7 +270,7 @@ class SDRunner:
                 "error",
                 image_paths
             )
-           
+
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def is_server_running():
@@ -335,55 +335,50 @@ def on_toggled(widget, dialog):
 #TODO: This model management window class should be moved into it's own .py.
 from gi.repository import Gtk, Gdk
 import threading
-import time 
+import time
 class ModelManagementWindow(Gtk.Window):
     def __init__(self, config_path, python_path):
         Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
-        self.set_default_size(1200, 800)
-        
-        self.hide()
-        
+        #self.set_default_size(1200, 800)
+
+        #self.hide()
+        self.set_visible(False)
+
         self._host = "127.0.0.1"
         self._port = 65434
         server = "model_management_server.py"
         server_path = os.path.join(config_path, server)
-        
+
         print("checking if server is running..")
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
             _process = subprocess.Popen([python_path, server_path], close_fds=True)
-        
+
         # Connect the delete-event signal to a custom handler
+
         self.connect("delete-event", self.on_delete_event)
 
-        # Create a vertical box to hold the models
-        #vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-        #vbox.set_homogeneous(False)
-        #vbox.set_margin_top(20)
-        #vbox.set_margin_bottom(20)
-        #vbox.set_margin_start(20)
-        #vbox.set_margin_end(20)
-        #self.add(vbox)
-
-         
         models = self.get_all_model_details()
-  
+
         self.poll_install_status_thread = None
         self.bStopPoll = False
-        
-        
+
+
         model_box = Gtk.Grid()
         model_box.set_row_spacing(20)
         model_box.set_column_spacing(20)
         model_box.set_margin_start(20)
+        model_box.set_margin_end(20)
         model_box.set_margin_top(20)
+        model_box.set_margin_bottom(20)
         self.add(model_box)
 
         model_row_index = 0
-        
-        
+
         self.model_box = model_box
         self.model_ui_map = {}
+
+
         # Add each model to the window
         if models is not None:
             for model in models:
@@ -392,84 +387,90 @@ class ModelManagementWindow(Gtk.Window):
                 name_label = Gtk.Label()
                 name_label.set_markup("<b>" + model["name"] + "</b>")
                 name_label.set_xalign(0.5)  # Align center
-                name_label.set_name("model-name") 
+                name_label.set_name("model-name")
                 model_box.attach(name_label, 0, model_row_index, 1, 1)
 
                 # Model description label
                 description_label = Gtk.Label(label=model["description"])
                 description_label.set_xalign(0)  # Align left
-                description_label.set_name("model-description")  
-                description_label.set_line_wrap(True)
+                description_label.set_name("model-description")
+                #description_label.set_line_wrap(True)
+
                 model_box.attach(description_label, 1, model_row_index, 1, 1)
 
                 # Download button
                 if model["install_status"] == "not_installed":
-                    download_button = Gtk.Button(label="Download & Install")
-                    download_button.connect("clicked", self.on_download_clicked, model["id"])
-                    
+                    download_button = Gtk.Button(label="Install")
+                    download_button.set_sensitive(True)
                 elif model["install_status"] == "installed":
                     download_button = Gtk.Button(label="Installed")
                     download_button.set_sensitive(False)
-                    
-                #TODO: Do the right thing if the state is 'installing'. In that case, we need to kick off a poll thread 
-                # for this model.
-                # Note: It's likely we could get into this situation. If the user triggers an install of a model, but to
-                # close SD dialog (or runs SD on an already installed model), and then launches SD dialog again.
+                elif model["install_status"] == "installing":
+                    download_button = Gtk.Button(label="Install")
+                    download_button.set_sensitive(False)
+
+                download_button.connect("clicked", self.on_download_clicked, model["id"])
 
                 model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the button across two rows
 
-                # Add the model box to the main vertical box
-                #vbox.pack_start(model_box, False, False, 0)
-                
                 self.model_ui_map[model["id"]] = { "row_index": model_row_index, "download_button": download_button}
-                
+
+                # if the state of the model is installing, kick off the poll thread for it.
+                if model["install_status"] == "installing":
+                    poll_install_status_thread = threading.Thread(target=self.poll_install_status, args=(model["id"],))
+                    poll_install_status_thread.start()
+
+
                 model_row_index += 4
+
         else:
             print("list of supported models is empty!")
 
-        self.show_all()
-        
+        #self.show_all()
+
     def __del__(self):
         # stop the polling thread.
+        self.stop_poll_thread()
+
+    def stop_poll_thread(self):
         self.bStopPoll = True
-        
-    
+
+
     def post_install_routine(self, model_id, install_status):
         print("post_install_routine...")
         model_ui = self.model_ui_map[model_id]
-        
+
         download_button = model_ui["download_button"]
         progress_bar = model_ui["progress_bar"]
-        
+
         self.model_box.remove(progress_bar)
         model_ui.pop("progress_bar")
-        
+
         model_row_index = model_ui["row_index"]
-        
+
         self.model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the download button across two rows
-        
+
         if install_status == "installed":
             download_button.set_label("Installed")
             download_button.set_sensitive(False)
         else:
-            download_button.set_label("Download & Install")
+            download_button.set_label("Install")
             download_button.set_sensitive(True)
-            
+
         self.model_box.show_all()
-        
-        
-    
+        self.show_all()
+
+
+
     def update_ui_install_progress(self, model_id, install_status):
-    
-        print("update_ui_install_progress...")
-        
+
         model_ui = self.model_ui_map[model_id]
-        
+
         model_row_index = model_ui["row_index"]
-        
+
         status = install_status["status"]
         perc = install_status["percent"]
-        
+
         if "progress_bar" not in model_ui:
             download_button = model_ui["download_button"]
             self.model_box.remove(download_button)
@@ -478,92 +479,94 @@ class ModelManagementWindow(Gtk.Window):
             self.model_box.attach(progress_bar, 2, model_row_index, 1, 2)  # Span the progress bar across two rows
             self.model_box.show_all()
             model_ui["progress_bar"] = progress_bar
-        else: 
+        else:
             progress_bar = model_ui["progress_bar"]
-        
+
         progress_bar.set_text(status)
-        print("setting fraction as ", perc / 100.0)
         progress_bar.set_fraction(perc / 100.0)
-               
-        
+
+
+
+
     def poll_install_status(self, model_id):
-    
-        print("poll_install_status!")
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
-                
-                print("self.get_install_status ->")
+
                 install_status = self.get_install_status(s, model_id)
-                print("<-self.get_install_status")
-                 
+
                 while( install_status["status"] != "done" ):
                     GLib.idle_add(self.update_ui_install_progress, model_id, install_status)
-                    
+
                     # poll every 1 second.
                     time.sleep(1)
-                    
+
                     if self.bStopPoll is True:
-                        break  
-                        
+                        break
+
                     install_status = self.get_install_status(s, model_id)
-                
-                # when we're here, the model installation is complete. 
-                # We will now get details of all models, and then get
-                # the state of the one that we're interested in.
+
+                # If we're here, the model installation is complete (or perhaps it failed)
+                # TODO: Handle failure case. How we do inform user?
+
+                # We will now get details of all models
                 all_model_details = self._all_model_details(s)
-                
+
                 for model_detail in all_model_details:
+                    # if this is the model that we are interested in..
                     if model_detail["id"] == model_id:
                         install_status = model_detail["install_status"]
+                        # launch the post_install routine (UI updates) on the main thread
                         GLib.idle_add(self.post_install_routine, model_id, install_status)
-                           
+                        break
+
         except Exception as e:
             print(f"There was a problem polling install status..")
-            print(e)  
+            print(e)
             import traceback
             traceback.print_exc()
-            
+
         print("poll thread exiting..")
-                
-                
+
+
 
     def get_install_status(self, s, model_id):
 
         #send cmd
         s.sendall(b"install_status")
-        
+
         #wait for an ack
         data = s.recv(1024)
-        
+
         # send the model_id
         s.sendall(bytes(model_id, 'utf-8'))
-        
+
         # get the status
         data = s.recv(1024)
         status = data.decode()
         s.sendall(data) # <- send ack
-        
+
         # get the percent
         data = s.recv(1024)
         percent = float(data.decode())
-        s.sendall(data) # <- send ack    
+        s.sendall(data) # <- send ack
 
-        install_status = {"status": status, "percent": percent}        
+        install_status = {"status": status, "percent": percent}
 
         return install_status
-        
-    
+
+
     def _all_model_details(self, s):
         model_details = []
-        
+
         #send cmd
         s.sendall(b"get_all_model_details")
-        
+
         # get number of models
         data = s.recv(1024)
         num_models = int(data.decode())
-        
+
         #send ack
         s.sendall(data)
 
@@ -574,66 +577,66 @@ class ModelManagementWindow(Gtk.Window):
                 model_detail[detail] = data.decode()
                 #send ack
                 s.sendall(data)
-            
+
             model_details.append(model_detail)
-            
+
         print("model details = ", model_details)
-        
+
         return model_details
-    
+
     def get_all_model_details(self):
-        
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
-                
+
                 model_details = self._all_model_details(s)
-                
+
                 return model_details
-                   
+
         except Exception as e:
             print(f"There was a problem getting model details..")
             print(e)
-        
+
 
     def on_download_clicked(self, button, model_id):
-    
-        # prevent user from clicking it again while we kick off the install 
+
+        # prevent user from clicking it again while we kick off the install
         button.set_sensitive(False)
-         
+
         # This method will be called when the download button is clicked
         print(f"Downloading {model_id}...")
-        
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
-                
+
                 #send cmd
                 s.sendall(b"install_model")
-                
+
                 #wait for ack
                 data = s.recv(1024)
-                
+
                 #send model name
                 s.sendall(bytes(model_id, 'utf-8'))
-                
+
                 #wait for ack
                 data = s.recv(1024)
 
                 poll_install_status_thread = threading.Thread(target=self.poll_install_status, args=(model_id,))
                 poll_install_status_thread.start()
-                
+
         except Exception as e:
             print(f"There was a problem downloading {model_id}...")
             print(e)
-        
+
     def on_delete_event(self, widget, event):
         print("on_delete_event called..")
         # Hide the window instead of destroying it
         self.hide()
         # Returning True prevents the window from being destroyed
         return True
-        
+
     def is_server_running(self):
         start_time = time.time()
         ret = False
@@ -652,7 +655,7 @@ class ModelManagementWindow(Gtk.Window):
         end_time =time.time()
         print("is_server_running took ", end_time - start_time, "seconds")
         return ret
-        
+
 
 #
 # This is what brings up the UI
@@ -670,20 +673,20 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         python_path = config_path_output["python_path"]
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(config_path, client)
-        
+
         supported_devices = []
         for device in config_path_output["supported_devices"]:
            if 'GNA' not in device:
                 supported_devices.append(device)
-        
+
         list_layers = []
 
         try:
             list_layers = image.get_layers()
         except:
             list_layers = image.list_layers()
-     
-        
+
+
         if list_layers[0].get_mask() == None:
             n_layers = 1
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
@@ -710,23 +713,23 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
                           list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
                           list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") + 
+                          list_models(config_path_output["weight_path"],"controlnet_openpose") +
                           list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
-                          list_models(config_path_output["weight_path"],"controlnet_canny") + 
-                          list_models(config_path_output["weight_path"],"controlnet_scribble") + 
+                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") +
+                          list_models(config_path_output["weight_path"],"controlnet_canny") +
+                          list_models(config_path_output["weight_path"],"controlnet_scribble") +
                           list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
-                          
+
         print("model_list = ", model_list)
 
-        model_name_enum = DeviceEnum(model_list)  
-        
+        model_name_enum = DeviceEnum(model_list)
+
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
         else:
             supported_modes = ["Best performance"]
-        device_name_enum = DeviceEnum(supported_modes)        
-        
+        device_name_enum = DeviceEnum(supported_modes)
+
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
@@ -740,7 +743,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         try:
             with open(sd_option_cache, "r") as file:
                 sd_option_cache_data = json.load(file)
-               
+
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
@@ -749,8 +752,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-        
- 
+
+
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
@@ -772,7 +775,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.set_row_spacing(10)
         vbox.add(grid)
         grid.show()
-        
+
         # Model Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
         grid.attach(label, 0, 0, 1, 1)
@@ -787,32 +790,32 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
         num_images_spin = GimpUi.prop_spin_button_new(
             config, "num_images", step_increment=1, page_increment=0.1, digits=0
-        ) 
+        )
 
         # num_infer_steps parameter
         steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-               
+
         steps_spin = GimpUi.prop_spin_button_new(
             config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
 
         # guidance_scale parameter
         gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
-        
+
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
-        
-        
+
+
 
         # seed
         seed = Gtk.Entry.new()
-        
+
         seed.set_width_chars(40)
         seed.set_placeholder_text(_("If left blank, random seed will be set.."))
 
         seed.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["seed"], -1))
-        
+
 
         seed_text = _("Seed")
         seed_label = Gtk.Label(label=seed_text)
@@ -822,7 +825,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         adv_power_mode_combo = GimpUi.prop_string_combo_box_new(
             config, "power_mode", device_name_enum.get_tree_model(), 0, 1
         )
-        
+
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
                                                   _("_Advanced Settings                                                       "))
@@ -840,25 +843,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(invisible_label5,0, 4, 1, 1)
         grid.attach(invisible_label6,0, 5, 1, 1)
         grid.attach(invisible_label7,0, 6, 1, 1)
-        grid.attach(invisible_label8,0, 7, 1, 1)    
-    
+        grid.attach(invisible_label8,0, 7, 1, 1)
+
         invisible_label4.show()
         invisible_label5.show()
         invisible_label6.show()
-        invisible_label7.show()  
-        invisible_label8.show()           
+        invisible_label7.show()
+        invisible_label8.show()
 
         def power_modes_supported(model_name):
             if "sd_1.5_square" in model_name or "int8" in model_name:
                 return True
             return False
-        
+
         def remove_all_advanced_widgets():
             grid.remove(gscale_label)
             gscale_label.hide()
             grid.remove(gscale_spin)
             gscale_spin.hide()
-           
+
             grid.remove(steps_label)
             steps_label.hide()
             grid.remove(steps_spin)
@@ -867,8 +870,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.remove(num_images_label)
             num_images_label.hide()
             grid.remove(num_images_spin)
-            num_images_spin.hide()            
-            
+            num_images_spin.hide()
+
 
             grid.remove(seed)
             seed.hide()
@@ -879,19 +882,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.remove(adv_power_mode_label)
             adv_power_mode_label.hide()
             grid.remove(adv_power_mode_combo)
-            adv_power_mode_combo.hide()       
+            adv_power_mode_combo.hide()
 
             invisible_label4.show()
             invisible_label5.show()
             invisible_label6.show()
             invisible_label7.show()
-            invisible_label8.show() 
+            invisible_label8.show()
 
         def populate_advanced_settings():
 
             grid.attach(num_images_label, 0, 3, 1, 1)
-            grid.attach(num_images_spin, 1, 3, 1, 1)              
-           
+            grid.attach(num_images_spin, 1, 3, 1, 1)
+
             grid.attach(steps_label, 0, 4, 1, 1)
             grid.attach(steps_spin, 1, 4, 1, 1)
             grid.attach(gscale_label, 0, 5, 1, 1)
@@ -899,7 +902,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
             model_name = config.get_property("model_name")
-            
+
             if power_modes_supported(model_name):
                 grid.attach(adv_power_mode_label, 0, 7, 1, 1)
                 grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
@@ -915,18 +918,18 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             seed_label.show()
             seed.show()
             num_images_label.show()
-            num_images_spin.show()               
-        
+            num_images_spin.show()
+
             invisible_label4.hide()
             invisible_label5.hide()
-            invisible_label6.hide()   
+            invisible_label6.hide()
             invisible_label7.hide()
-            invisible_label8.hide()           
+            invisible_label8.hide()
 
 
         if adv_checkbox.get_active():
             populate_advanced_settings()
-     
+
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -939,13 +942,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         prompt_text_label = _("Enter text to generate image")
         prompt_label = Gtk.Label(label=prompt_text_label)
         grid.attach(prompt_label, 0, 1, 1, 1)
-       
+
         prompt_label.show()
 
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
-  
+
         negative_prompt_label.show()
 
         # Negative Prompt text
@@ -966,19 +969,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             file_chooser_dialog.hide()
 
         file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
-    
+
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
-        
-      
+
+
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
-          
-            file_entry.set_text(initial_image) 
-    
+
+            file_entry.set_text(initial_image)
+
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -987,19 +990,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
         file_chooser_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         file_chooser_dialog.add_button("_OK", Gtk.ResponseType.OK)
-        
+
         # Initial_image strength parameter
         strength_label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
         invisible_label1 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label2 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label3 = Gtk.Label.new_with_mnemonic(_("_"))
-        
+
         spin = GimpUi.prop_spin_button_new(
             config, "strength", step_increment=0.1, page_increment=0.1, digits=1
         )
 
-        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image", 
-                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))   
+        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image",
+                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))
 
 
         def populate_init_image_section():
@@ -1011,7 +1014,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             strength_label.show()
             grid.attach(spin, 1, 9, 1, 1)
             spin.show()
-            
+
         if n_layers == 1:
             grid.attach(initialImage_checkbox, 3, 1, 1, 1)
             initialImage_checkbox.show()
@@ -1020,10 +1023,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             #grid.attach(invisible_label3,0, 10, 1, 1)
             invisible_label1.show()
             invisible_label2.show()
-            #invisible_label3.show()            
+            #invisible_label3.show()
             if initialImage_checkbox.get_active():
-                populate_init_image_section()     
-        
+                populate_init_image_section()
+
         def initImage_toggled(widget):
             if initialImage_checkbox.get_active():
                 invisible_label1.hide()
@@ -1040,30 +1043,30 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 #grid.attach(invisible_label3,0, 10, 1, 1)
                 invisible_label1.show()
                 invisible_label2.show()
-                #invisible_label3.show()            
+                #invisible_label3.show()
 
         initialImage_checkbox.connect("toggled", initImage_toggled)
-        
-        
+
+
         print("creating ModelManagementWindow...")
         model_management_window = ModelManagementWindow(config_path, python_path)
         model_management_window.hide()
         print("done creating ModelManagementWindow...")
-        
+
         def model_management_launch_button_clicked(widget):
             print("model_management_launch_button_clicked")
-            model_management_window.show()
-            
- 
+            model_management_window.show_all()
+
+
         model_management_launch_button = Gtk.Button(label="Manage Models")
         model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
         grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
         model_management_launch_button.show()
-        
-   
+
+
 
         # status label
-        sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
+        sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
         grid.attach(sd_run_label, 1, 12, 1, 1)
 
         # spinner
@@ -1093,14 +1096,14 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
-        
+
         if "sd_3.0" in model_name:
-                initialImage_checkbox.hide()               
+                initialImage_checkbox.hide()
 
         if is_server_running():
             run_button.set_sensitive(True)
-            if adv_checkbox.get_active() and power_modes_supported(model_name): 
-                device_power_mode = config.get_property("power_mode")           
+            if adv_checkbox.get_active() and power_modes_supported(model_name):
+                device_power_mode = config.get_property("power_mode")
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -1112,7 +1115,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             # LCM model has no negative prompt
             if model_name_tmp == "sd_1.5_square_lcm":
                 negative_prompt_text.hide()
-                negative_prompt_label.hide()    
+                negative_prompt_label.hide()
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
@@ -1121,9 +1124,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
-                
+
             if "controlnet" in config.get_property("model_name"):
-                
+
                 initialImage_checkbox.set_active(True)
             else:
                 initialImage_checkbox.set_active(False)
@@ -1131,10 +1134,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if adv_checkbox.get_active():
                 if "int8" in model_name:
                     device_power_mode_tmp = config.get_property("power_mode")
-                
+
                 else:
                     device_power_mode_tmp = None
-    
+
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
                 run_button.set_sensitive(True)
@@ -1145,35 +1148,35 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             remove_all_advanced_widgets()
             if adv_checkbox.get_active():
                 populate_advanced_settings()
-      
+
 
         model_combo.connect("changed", model_combo_changed)
         model_combo.connect("changed", model_sensitive_combo_changed)
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
         adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
- 
+
         # Wait for user to click
         dialog.show()
-     
+
         import threading
         run_inference_thread = None
         run_load_model_thread = None
 
         runner = None
-        
+
         while True:
-            response = dialog.run()                           
-                
+            response = dialog.run()
+
             if response == Gtk.ResponseType.OK:
 
                 model_combo.set_sensitive(False)
-          
+
                 #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
-                                  
+
                 if adv_checkbox.get_active():
-                    num_images = config.get_property("num_images") 
+                    num_images = config.get_property("num_images")
                     num_infer_steps = config.get_property("num_infer_steps")
                     guidance_scale = config.get_property("guidance_scale")
                     strength = config.get_property("strength")
@@ -1199,7 +1202,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                         initial_image = os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png")
                 else:
                     initial_image = None
-                      
+
 
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, progress_bar, config_path_output)
@@ -1216,7 +1219,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 continue
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
- 
+
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
                 run_button.set_sensitive(False)
@@ -1229,12 +1232,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if power_modes_supported(model_name):
                     if adv_checkbox.get_active():
-                        device_power_mode = config.get_property("power_mode")     
+                        device_power_mode = config.get_property("power_mode")
                     else:
-                        device_power_mode = "Best performance" 
+                        device_power_mode = "Best performance"
 
                 server = "stable_diffusion_ov_server.py"
-                server_path = os.path.join(config_path, server)  
+                server_path = os.path.join(config_path, server)
 
                 run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()
@@ -1257,7 +1260,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_button.set_sensitive(True)
                 load_model_button.set_sensitive(True)
                 model_combo.set_sensitive(True)
-           
+
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
                 if run_inference_thread:
@@ -1265,6 +1268,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     result = runner.result
                     if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
                         config.end_run(Gimp.PDBStatusType.SUCCESS)
+
+                    #if the model managemer is installing something, we have a thread polling for updates.
+                    # Force stop the poll thread (the install will still continue in background), so that the SD
+                    # dialog is allowed to close.
+                    model_management_window.stop_poll_thread()
+
                     return result
             elif response == SDDialogResponse.ProgressUpdate:
                 progress_string=""
@@ -1281,9 +1290,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 remove_all_advanced_widgets()
                 if adv_checkbox.get_active():
                     populate_advanced_settings()
-             
+
 
             else:
+                model_management_window.stop_poll_thread()
+
 #                dialog.destroy()
                 return procedure.new_return_values(
                     Gimp.PDBStatusType.CANCEL, GLib.Error()
@@ -1295,7 +1306,7 @@ class StableDiffusion(Gimp.PlugIn):
     __gproperties__ = {
         "num_images": (
         int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
-        GObject.ParamFlags.READWRITE,),        
+        GObject.ParamFlags.READWRITE,),
         "num_infer_steps": (
         int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:20)", 1, 50, 20,
         GObject.ParamFlags.READWRITE,),
@@ -1311,7 +1322,7 @@ class StableDiffusion(Gimp.PlugIn):
             "Model Name: 'sd_1.4', 'sd_1.5'",
             "sd_1.4",
             GObject.ParamFlags.READWRITE,
-        ),    
+        ),
 
         "advanced_setting": (
             bool,
@@ -1327,15 +1338,15 @@ class StableDiffusion(Gimp.PlugIn):
             "Power Mode: 'Balanced', 'Best performance'",
             "Best performance",
             GObject.ParamFlags.READWRITE,
-        ),        
-        
+        ),
+
         "use_initial_image": (
             bool,
             _("_Use Initial Image (Default: Open Image in Canvas"),
             "Use Initial Image (Default: Open Image in Canvas",
             False,
             GObject.ParamFlags.READWRITE,
-        ),        
+        ),
 
 
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
@@ -1381,10 +1392,10 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
             procedure.add_argument_from_property(self, "model_name")
- 
+
             procedure.add_argument_from_property(self, "advanced_setting")
             procedure.add_argument_from_property(self, "power_mode")
-           
+
             procedure.add_argument_from_property(self, "use_initial_image")
 
 
