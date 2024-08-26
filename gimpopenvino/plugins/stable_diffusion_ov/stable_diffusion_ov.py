@@ -363,7 +363,6 @@ class ModelManagementWindow(Gtk.Window):
         self.poll_install_status_thread = None
         self.bStopPoll = False
 
-
         model_box = Gtk.Grid()
         model_box.set_row_spacing(20)
         model_box.set_column_spacing(20)
@@ -377,27 +376,33 @@ class ModelManagementWindow(Gtk.Window):
 
         self.model_box = model_box
         self.model_ui_map = {}
-
+        
+        self.expanded_descriptions = []
 
         # Add each model to the window
         if models is not None:
             for model in models:
-
+            
                 # Model name label
                 name_label = Gtk.Label()
                 name_label.set_markup("<b>" + model["name"] + "</b>")
-                name_label.set_xalign(0.5)  # Align center
+                name_label.set_xalign(0)  # Align left
                 name_label.set_name("model-name")
-                model_box.attach(name_label, 0, model_row_index, 1, 1)
+                name_label.set_sensitive(True)  # Make it sensitive to events
+                name_label.set_visible(True)
 
-                # Model description label
-                description_label = Gtk.Label(label=model["description"])
-                description_label.set_xalign(0)  # Align left
-                description_label.set_name("model-description")
-                #description_label.set_line_wrap(True)
-
-                model_box.attach(description_label, 1, model_row_index, 1, 1)
-
+                name_label.set_halign(Gtk.Align.START)
+                name_label.set_valign(Gtk.Align.CENTER)
+                #title_event_box = Gtk.EventBox()
+                #title_event_box.add(name_label)
+                #title_event_box.connect("button-press-event", self.on_title_clicked, model_row_index)
+                
+                # Change cursor to hand pointer when hovering over the title
+                #title_event_box.connect("enter-notify-event", self.on_mouse_enter)
+                #title_event_box.connect("leave-notify-event", self.on_mouse_leave)
+                
+                model_box.attach(name_label, 0, model_row_index * 2, 1, 1)
+ 
                 # Download button
                 if model["install_status"] == "not_installed":
                     download_button = Gtk.Button(label="Install")
@@ -411,9 +416,10 @@ class ModelManagementWindow(Gtk.Window):
 
                 download_button.connect("clicked", self.on_download_clicked, model["id"])
 
-                model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the button across two rows
+                # Attach the download button to the grid
+                model_box.attach(download_button, 2, model_row_index * 2, 1, 1)
 
-                self.model_ui_map[model["id"]] = { "row_index": model_row_index, "download_button": download_button}
+                self.model_ui_map[model["id"]] = { "row_index": model_row_index*2, "download_button": download_button}
 
                 # if the state of the model is installing, kick off the poll thread for it.
                 if model["install_status"] == "installing":
@@ -421,12 +427,32 @@ class ModelManagementWindow(Gtk.Window):
                     poll_install_status_thread.start()
 
 
-                model_row_index += 4
+                model_row_index += 1
 
         else:
             print("list of supported models is empty!")
 
         #self.show_all()
+        
+    
+    
+    def on_title_clicked(self, widget, event, index):
+         # Toggle the visibility of the detailed description
+        detailed_description = self.expanded_descriptions[index]
+        detailed_description.set_visible(not detailed_description.get_visible())
+        
+    def on_mouse_enter(self, widget, event):
+        # Change the cursor to a hand pointer when the mouse enters the widget
+        Gdk.Window.set_cursor(widget.get_window(), Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer"))
+
+    def on_mouse_leave(self, widget, event):
+        # Restore the default cursor when the mouse leaves the widget
+        Gdk.Window.set_cursor(widget.get_window(), None)
+        
+    def display(self):
+        self.show_all()
+        for description in self.expanded_descriptions:
+            description.set_visible(False)
 
     def __del__(self):
         # stop the polling thread.
@@ -434,21 +460,23 @@ class ModelManagementWindow(Gtk.Window):
 
     def stop_poll_thread(self):
         self.bStopPoll = True
-
-
+        
     def post_install_routine(self, model_id, install_status):
         print("post_install_routine...")
         model_ui = self.model_ui_map[model_id]
 
         download_button = model_ui["download_button"]
         progress_bar = model_ui["progress_bar"]
+        cancel_button = model_ui["cancel_button"]
 
         self.model_box.remove(progress_bar)
+        self.model_box.remove(cancel_button)
         model_ui.pop("progress_bar")
+        model_ui.pop("cancel_button")
 
         model_row_index = model_ui["row_index"]
 
-        self.model_box.attach(download_button, 2, model_row_index, 1, 2)  # Span the download button across two rows
+        self.model_box.attach(download_button, 2, model_row_index, 1, 1)  
 
         if install_status == "installed":
             download_button.set_label("Installed")
@@ -457,11 +485,8 @@ class ModelManagementWindow(Gtk.Window):
             download_button.set_label("Install")
             download_button.set_sensitive(True)
 
-        self.model_box.show_all()
-        self.show_all()
-
-
-
+        download_button.set_visible(True)
+        
     def update_ui_install_progress(self, model_id, install_status):
 
         model_ui = self.model_ui_map[model_id]
@@ -474,18 +499,31 @@ class ModelManagementWindow(Gtk.Window):
         if "progress_bar" not in model_ui:
             download_button = model_ui["download_button"]
             self.model_box.remove(download_button)
+            
             progress_bar = Gtk.ProgressBar()
             progress_bar.set_show_text(True)
-            self.model_box.attach(progress_bar, 2, model_row_index, 1, 2)  # Span the progress bar across two rows
-            self.model_box.show_all()
+            progress_bar.set_visible(True)
+
+            self.model_box.attach(progress_bar, 2, model_row_index, 1, 1)  
+
+            cancel_button = Gtk.Button(label="Cancel")
+            cancel_button.set_visible(True)
+            cancel_button.set_halign(Gtk.Align.CENTER)  # Center the button horizontally
+            cancel_button.set_valign(Gtk.Align.CENTER)  # Center the button vertically
+            self.model_box.attach(cancel_button, 2, model_row_index + 1, 1, 1) 
+            #cancel_button.connect("size-allocate", self.on_cancel_button_size_allocate)  
+            cancel_button.connect("clicked", self.on_cancel_clicked, model_id)            
+            
             model_ui["progress_bar"] = progress_bar
+            model_ui["cancel_button"] = cancel_button
+            
+            
+            
         else:
             progress_bar = model_ui["progress_bar"]
 
         progress_bar.set_text(status)
         progress_bar.set_fraction(perc / 100.0)
-
-
 
 
     def poll_install_status(self, model_id):
@@ -599,13 +637,35 @@ class ModelManagementWindow(Gtk.Window):
             print(e)
 
 
+    def on_cancel_clicked(self, button, model_id):
+        # prevent user from clicking it again while we kick off the cancel
+        button.set_sensitive(False)
+        
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((self._host, self._port))
+
+                #send cmd
+                s.sendall(b"install_cancel")
+
+                #wait for ack
+                data = s.recv(1024)
+
+                #send model name
+                s.sendall(bytes(model_id, 'utf-8'))
+
+                #wait for ack
+                data = s.recv(1024)
+
+
+        except Exception as e:
+            print(f"There was a problem triggering cancel for {model_id}...")
+            print(e)
+
     def on_download_clicked(self, button, model_id):
 
         # prevent user from clicking it again while we kick off the install
         button.set_sensitive(False)
-
-        # This method will be called when the download button is clicked
-        print(f"Downloading {model_id}...")
 
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -1054,8 +1114,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         print("done creating ModelManagementWindow...")
 
         def model_management_launch_button_clicked(widget):
-            print("model_management_launch_button_clicked")
-            model_management_window.show_all()
+            model_management_window.display()
 
 
         model_management_launch_button = Gtk.Button(label="Manage Models")

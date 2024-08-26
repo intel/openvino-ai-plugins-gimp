@@ -131,9 +131,10 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
                percent_complete_last = percent_complete
                #print(percent_complete,  "%")
                if callback:
-                  callback(total_bytes_downloaded, total_file_list_size)
-
-
+                  # if the callback returns True, the user cancelled. So just return right now.
+                  if callback(total_bytes_downloaded, total_file_list_size):
+                      return downloaded_size
+    
     return downloaded_size
 
 
@@ -152,6 +153,7 @@ class OpenVINOModelInstaller:
 
         self.hf_fs = HfFileSystem()
         self.model_install_status = {}
+        self.model_install_status_lock = threading.Lock()
         self.install_queue = queue.Queue()
         self.install_lock = threading.Condition()
 
@@ -190,67 +192,86 @@ class OpenVINOModelInstaller:
 
 
 
-    def _download_hf_repo(self, repo_id, model_id):
-        file_list = []
-        self._generate_file_list_from_hf_repo_path(repo_id, file_list)
+    def _download_hf_repo(self, repo_id, model_id, download_folder):
+        
+        retries_left = 5
+        while retries_left > 0:
+            try:
+                file_list = []
+                if os.path.isdir(download_folder):
+                    shutil.rmtree(download_folder)
+                        
+                os.makedirs(download_folder)
+                
+                self.model_install_status[model_id]["status"] = "Downloading..."
+                self.model_install_status[model_id]["percent"] = 0.0
+                
+                self._generate_file_list_from_hf_repo_path(repo_id, file_list)
+                download_list = []
+                total_file_list_size = 0
+                for file in file_list:
+                    file_name: str = file.get("name")
+                    file_size: int = file.get("size")
+                    file_checksum: int = file.get("sha256")
+                    total_file_list_size += file_size
+                    #print(file_name)
+                    relative_path = os.path.relpath(file_name, repo_id)
+                    subfolder = os.path.dirname(relative_path).replace("\\", "/")
+                    relative_filename = os.path.basename(relative_path)
+                    url = hf_hub_url(
+                            repo_id=repo_id, subfolder=subfolder, filename=relative_filename
+                        )
+                    download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
+                    download_list.append( download_list_item )
+                    print(download_list_item)
 
-        download_list = []
-        total_file_list_size = 0
-        for file in file_list:
-            file_name: str = file.get("name")
-            file_size: int = file.get("size")
-            file_checksum: int = file.get("sha256")
-            total_file_list_size += file_size
-            #print(file_name)
-            relative_path = os.path.relpath(file_name, repo_id)
-            subfolder = os.path.dirname(relative_path).replace("\\", "/")
-            relative_filename = os.path.basename(relative_path)
-            url = hf_hub_url(
-                    repo_id=repo_id, subfolder=subfolder, filename=relative_filename
-                )
-            download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
-            download_list.append( download_list_item )
-            print(download_list_item)
-
-        print("total_file_list_size = ", total_file_list_size)
-
-        download_folder = 'hf_download_folder'
-        if os.path.isdir(download_folder):
-            shutil.rmtree(download_folder)
-
-        os.makedirs(download_folder)
-
-
-        def bytes_downloaded_callback(total_bytes_downloaded, total_bytes_to_download):
-
-
-           total_bytes_to_download_gb = total_bytes_to_download / 1073741824.0
-           total_bytes_to_download_gb = f"{total_bytes_to_download_gb:.2f}"
-           total_bytes_downloadeded_gb = total_bytes_downloaded / 1073741824.0
-           total_bytes_downloadeded_gb = f"{total_bytes_downloadeded_gb:.2f}"
-           status = "Downloading... (" + total_bytes_downloadeded_gb + " / " + total_bytes_to_download_gb + ") GiB"
-           if total_bytes_to_download > 0:
-               self.model_install_status[model_id]["status"] = status
-               self.model_install_status[model_id]["percent"] = (total_bytes_downloaded / total_bytes_to_download) * 100.0
+                print("total_file_list_size = ", total_file_list_size)
 
 
-        total_bytes_downloaded = 0
-        #okay, let's download the files one by one.
-        for download_list_item in download_list:
-           local_filename = os.path.join(download_folder, download_list_item["filename"])
+                # define a callback. returns True if download is cancelled.
+                def bytes_downloaded_callback(total_bytes_downloaded, total_bytes_to_download):
+                    total_bytes_to_download_gb = total_bytes_to_download / 1073741824.0
+                    total_bytes_to_download_gb = f"{total_bytes_to_download_gb:.2f}"
+                    total_bytes_downloadeded_gb = total_bytes_downloaded / 1073741824.0
+                    total_bytes_downloadeded_gb = f"{total_bytes_downloadeded_gb:.2f}"
+                    status = "Downloading... (" + total_bytes_downloadeded_gb + " / " + total_bytes_to_download_gb + ") GiB"
+                    if total_bytes_to_download > 0:
+                        self.model_install_status[model_id]["status"] = status
+                        self.model_install_status[model_id]["percent"] = (total_bytes_downloaded / total_bytes_to_download) * 100.0
+                       
+                        if "cancelled" in self.model_install_status[model_id]:
+                            return True
+                           
+                        return False
+                           
+                total_bytes_downloaded = 0
+                #okay, let's download the files one by one.
+                for download_list_item in download_list:
+                   local_filename = os.path.join(download_folder, download_list_item["filename"])
 
-           # create the subfolder (it may already exist, which is ok)
-           subfolder=os.path.join(download_folder, download_list_item["subfolder"])
-           os.makedirs(subfolder,  exist_ok=True)
+                   # create the subfolder (it may already exist, which is ok)
+                   subfolder=os.path.join(download_folder, download_list_item["subfolder"])
+                   os.makedirs(subfolder,  exist_ok=True)
 
-           print("Downloading", download_list_item["url"], " to ", local_filename)
+                   print("Downloading", download_list_item["url"], " to ", local_filename)
 
 
-           downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
+                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
+                   
+                   if "cancelled" in self.model_install_status[model_id]:
+                       return False
+             
+                   total_bytes_downloaded += downloaded_size
 
-           total_bytes_downloaded += downloaded_size
-
-        return download_folder
+                return True
+            except Exception as e:
+                    print("Error retry:" + str(e))
+                    retries_left -= 1
+                    if "cancelled" in self.model_install_status[model_id]:
+                       return False
+        
+        #we only get here if we failed (and exceeded max number of retries) 
+        return False
 
     def _download_quantized_models(self, repo_id, model_fp16, model_int8, model_id):
         download_flag = True
@@ -268,38 +289,30 @@ class OpenVINOModelInstaller:
                 print(f"{repo_id} download skipped")
                 return download_flag
 
-        if  download_flag:
-            retries_left = 5
-            download_success = False
-            while retries_left > 0:
-                try:
-                    #download_folder = snapshot_download(repo_id=repo_id, token=access_token)
-                    download_folder = self._download_hf_repo(repo_id, model_id)
-                    download_success = True
-                    break
-                except Exception as e:
-                    print("Error retry:" + str(e))
-                    retries_left -= 1
-
-            FP16_model = os.path.join(download_folder, "FP16")
-            # on some systems, the FP16 subfolder is not created resulting in a installation crash
-            if not os.path.isdir(FP16_model):
-                os.mkdir(FP16_model)
-            shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))
-            shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)
-
-            if model_int8:
-                if os.path.isdir(SD_path_INT8):
-                        shutil.rmtree(SD_path_INT8)
-
-                INT8_model = os.path.join(download_folder, "INT8")
-                shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))
-                shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
-
+        if  download_flag:        
+            download_folder = 'hf_download_folder'
+            download_success = self._download_hf_repo(repo_id, model_id, download_folder)
 
             if download_success is True:
-                shutil.rmtree(download_folder, ignore_errors=True)
+                FP16_model = os.path.join(download_folder, "FP16")
+                # on some systems, the FP16 subfolder is not created resulting in a installation crash
+                if not os.path.isdir(FP16_model):
+                    os.mkdir(FP16_model)
+                shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))
+                shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)
 
+                if model_int8:
+                    if os.path.isdir(SD_path_INT8):
+                            shutil.rmtree(SD_path_INT8)
+
+                    INT8_model = os.path.join(download_folder, "INT8")
+                    shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))
+                    shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
+
+            if os.path.isdir(download_folder):
+                shutil.rmtree(download_folder, ignore_errors=True)
+                
+            download_flag = download_success
 
         return download_flag
 
@@ -324,34 +337,26 @@ class OpenVINOModelInstaller:
                 return download_flag
 
         if  download_flag:
-            retries_left = 5
-            download_success = False
-            while retries_left > 0:
-                try:
-                    download_folder = self._download_hf_repo(repo_id, model_id)
-                    download_success = True
-                    break
-                except Exception as e:
-                    print("Error retry:" + str(e))
-                    retries_left -= 1
-
-            if repo_id == "Intel/sd-1.5-lcm-openvino":
-                download_model_1 = download_folder
-            else:
-                download_model_1 = os.path.join(download_folder, model_1)
-            shutil.copytree(download_model_1, sd_model_1)
-
-            if model_2:
-                if "sd-2.1" in repo_id:
-                    sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
+            download_folder = 'hf_download_folder'
+            download_success = self._download_hf_repo(repo_id, model_id, download_folder)
+            if download_success:
+                if repo_id == "Intel/sd-1.5-lcm-openvino":
+                    download_model_1 = download_folder
                 else:
-                    sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
-                if os.path.isdir(sd_model_2):
-                        shutil.rmtree(sd_model_2)
-                download_model_2 = os.path.join(download_folder, model_2)
-                shutil.copytree(download_model_2, sd_model_2)
+                    download_model_1 = os.path.join(download_folder, model_1)
+                shutil.copytree(download_model_1, sd_model_1)
 
-            if download_success is True:
+                if model_2:
+                    if "sd-2.1" in repo_id:
+                        sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
+                    else:
+                        sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+                    if os.path.isdir(sd_model_2):
+                            shutil.rmtree(sd_model_2)
+                    download_model_2 = os.path.join(download_folder, model_2)
+                    shutil.copytree(download_model_2, sd_model_2)
+
+            if os.path.isdir(download_folder):
                 shutil.rmtree(download_folder, ignore_errors=True)
 
         return download_flag
@@ -372,6 +377,10 @@ class OpenVINOModelInstaller:
 
             while percent_complete < 100:
                 time.sleep(0.1)
+                
+                if "cancelled" in self.model_install_status[model_id]:
+                    return
+               
                 #percent_complete += 0.2
                 percent_complete += 1
 
@@ -382,12 +391,22 @@ class OpenVINOModelInstaller:
                     last_perc_complete_printed = percent_complete
 
 
+    def cancel_install(self, model_id):
+        print("cancel_install: model_id=", model_id)
+        
+        with self.model_install_status_lock:
+            if model_id in self.model_install_status:
+                self.model_install_status[model_id]["cancelled"] = True
+        
+        
+        
     def install_model(self, model_id):
         print("install_model: model_id=", model_id)
 
-        # set the status to 'Queued' this is what will display in the UI
-        # until it's this model's turn to get installed.
-        self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0}
+        with self.model_install_status_lock:
+            # set the status to 'Queued' this is what will display in the UI
+            # until it's this model's turn to get installed.
+            self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0}
 
         # Put this thread into the quueue
         self.install_queue.put(threading.current_thread())
@@ -431,7 +450,10 @@ class OpenVINOModelInstaller:
             # Notify the next thread in the queue
             self.install_lock.notify_all()
 
-        self.model_install_status.pop(model_id)
+        with self.model_install_status_lock:
+            self.model_install_status.pop(model_id)
+            
+        
 
         print("install_model: model_id=", model_id, " done!")
 
@@ -493,17 +515,10 @@ class OpenVINOModelInstaller:
         core = self._core
         npu_arch = self._npu_arch
 
-        compile_models = self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
-        #compile_models = True
+        download_success = self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
 
         if npu_arch is not None:
-            if not compile_models:
-                #user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
-                user_input="y"
-                if user_input == "y":
-                    compile_models = True
-
-            if compile_models:
+            if download_success:
                 self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
                 self.model_install_status[model_id]["percent"] = 0.0
                 text_future = None
@@ -748,6 +763,21 @@ def run_connection_routine(ov_model_installer, conn):
                 conn.sendall(bytes(str(perc), 'utf-8'))
                 data = conn.recv(1024) # <- get ack
 
+                continue
+                
+            if data.decode() == "install_cancel":
+                # send ack
+                conn.sendall(data)
+                
+                # Get the model-id that we are interested in.
+                data = conn.recv(1024)
+                model_id = data.decode()
+                
+                #send ack
+                conn.sendall(data)
+               
+                ov_model_installer.cancel_install(model_id)
+                
                 continue
 
             print("Warning! Unsupported command sent: ", data.decode())
