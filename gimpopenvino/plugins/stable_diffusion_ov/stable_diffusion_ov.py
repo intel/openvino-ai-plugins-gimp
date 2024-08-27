@@ -743,9 +743,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
+            initialImage_checkbox.hide()               
         
         if "sd_3.0" in model_name:
-                initialImage_checkbox.hide()               
+            initialImage_checkbox.hide()               
 
         if is_server_running():
             run_button.set_sensitive(True)
@@ -763,11 +764,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if model_name_tmp == "sd_1.5_square_lcm":
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()    
+                
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
+                
 
-            if "sd_3.0" in model_name_tmp:
+            if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp:
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
