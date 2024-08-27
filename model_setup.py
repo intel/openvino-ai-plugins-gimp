@@ -2,14 +2,14 @@ import platform
 import json
 from huggingface_hub import snapshot_download
 import os
+import sys
 import shutil
 from pathlib import Path
-from openvino.runtime import Core
+import openvino as ov
 import io
 import logging
 import concurrent.futures
-logging.basicConfig(level=logging.INFO)
-
+logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout) 
     
 base_model_dir = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
 install_location = os.path.join(base_model_dir, "stable-diffusion-ov")
@@ -17,14 +17,36 @@ src_dir = os.path.join(os.path.dirname(__file__), "weights")
 test_path = os.path.join(install_location, "superresolution-ov")
 
 access_token = None
+# Constants
+NPU_ARCH_3720 = "3720"
+NPU_ARCH_4000 = "4000"
+NPU_THRESHOLD = 43000
 
 # Initialize OpenVINO Core
-core = Core()
+core = ov.Core()
 os_type = platform.system().lower()
 available_devices = core.get_available_devices()
-npu_arch = None
-if 'NPU' in available_devices:
-    npu_arch = "3720" if "3720" in core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
+        
+def get_npu_architecture(core):
+    try:
+        if 'NPU' in available_devices:
+            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+            return NPU_ARCH_3720 if NPU_ARCH_3720 in architecture else NPU_ARCH_4000
+    except Exception as e:
+        logging.error(f"Error retrieving NPU architecture: {str(e)}")
+        return None
+
+def get_npu_config(core, architecture):
+    try:
+        if architecture == NPU_ARCH_4000:
+            gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
+            return 6 if gops_value > NPU_THRESHOLD else None
+    except Exception as e:
+        logging.error(f"Error retrieving NPU configuration: {str(e)}")
+        return None
+
+npu_arch = get_npu_architecture(core)
+npu_config = get_npu_config(core, npu_arch)
 
 
 def load_model(self, model, model_name, device):
@@ -88,10 +110,7 @@ def download_quantized_models(repo_id, model_fp16, model_int8):
 def download_model(repo_id, model_1, model_2):
     download_flag = True
     
-    if "sd-2.1" in repo_id:
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
-    else:        
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
+    sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
 
     if os.path.isdir(sd_model_1):
         choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
@@ -110,17 +129,14 @@ def download_model(repo_id, model_1, model_2):
             except Exception as e:
                 print("Error retry:" + str(e))
         
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
+        if repo_id == "Intel/sd-1.5-lcm-openvino" or repo_id == "Intel/sd-reference-only" :
             download_model_1 = download_folder
         else:
             download_model_1 = os.path.join(download_folder, model_1) 
         shutil.copytree(download_model_1, sd_model_1)  
          
         if model_2:
-            if "sd-2.1" in repo_id:
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
-            else: 
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+            sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
             if os.path.isdir(sd_model_2):
                     shutil.rmtree(sd_model_2)
             download_model_2 = os.path.join(download_folder, model_2)
@@ -131,17 +147,32 @@ def download_model(repo_id, model_1, model_2):
     
     return download_flag
 
-
-
 def compile_and_export_model(core, model_path, output_path, device='NPU', config=None):
-    """
-    Compile the model and export it to the specified path.
-    """
-    model = core.compile_model(model_path, device, config=config)
-    with io.BytesIO() as model_blob:
-        model.export_model(model_blob)
-        with open(output_path, 'wb') as f:
-            f.write(model_blob.getvalue())
+    try:
+        # Compile the model for the specified device
+        model = core.compile_model(model_path, device, config=config)
+        
+        # Export the compiled model to a binary blob
+        with io.BytesIO() as model_blob:
+            model.export_model(model_blob)
+            
+            # Write the binary blob to the output path
+            temp_output_path = str(output_path) + ".tmp"
+            with open(temp_output_path, 'wb') as f:
+                f.write(model_blob.getvalue())
+            
+            # Remove the existing file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+            # Rename the temporary file to the final output path
+            os.rename(temp_output_path, output_path)
+        
+        logging.info(f"Model compiled and exported successfully to {output_path}")
+    
+    except Exception as e:
+        logging.error(f"Failed to compile and export model: {str(e)}")
+        raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}")
 
 def dl_sd_15_square():
     print("Downloading Intel/sd-1.5-square-quantized Models")
@@ -186,17 +217,21 @@ def dl_sd_15_square():
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     for model_name in models_to_compile:
-                        model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
-                        output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-                        if "unet_int8" in model_name:
+                        config = None
+                        logging.info(f"Creating NPU model for {model_name}")
+
+                        if "unet_int8" in model_name or "unet_bs1" in model_name:
+                            config = { "NPU_DPU_GROUPS" : npu_config, "NPU_MAX_TILES": npu_config } if npu_config is not None else None
+                        
+                        if "unet_int8" not in model_name:
+                            model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
+                            output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16, config=config)
+                        else:    
                             model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                             output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
-                            print(f"Creating NPU model for {model_name}")
-                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8)
-                        else:
-                            print(f"Creating NPU model for {model_name}")
-                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
-                 
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8, config=config)
+                        
                 if npu_arch == "3720":                  
                     sd15_futures["unet_int8"].result()
                     sd15_futures["text_encoder"].result()
@@ -215,25 +250,29 @@ def dl_sd_15_square():
                     os.path.join(install_location, model_fp16, blob_name),
                     os.path.join(install_location, model_int8, blob_name)
                 )
-            #:::::::::::::: START REMOVE ME ::::::::::::::
-            # Temporary workaround to force the config for Lunar Lake - 
-            # REMOVE ME before publishing to external open source.    
-            config_data = { 	"power modes supported": "yes", 	
-                                    "best performance" : ["GPU","GPU","GPU","GPU"],
-                                  	        "balanced" : ["NPU","NPU","GPU","GPU"],
-                               "best power efficiency" : ["NPU","NPU","NPU","NPU"]
-                            }
-            # Specify the file name
-            file_name = "config.json"
+            
+            if npu_arch != "3720":
+                config_fp_16 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["GPU","GPU","GPU","GPU"],
+                                      	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                }
+                config_int8 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["NPU","NPU","GPU","GPU"],
+                                      	        "balanced" : ["GPU","NPU","NPU","GPU"],
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                }
+                
+                # Specify the file name
+                file_name = "config.json"
 
-            # Write the data to a JSON file
-            with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
-                json.dump(config_data, json_file, indent=4)
-            # Write the data to a JSON file
-            with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
-                json.dump(config_data, json_file, indent=4)
-            #:::::::::::::: END REMOVE ME ::::::::::::::
-
+                # Write the data to a JSON file
+                with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                    json.dump(config_fp_16, json_file, indent=4)
+                # Write the data to a JSON file
+                with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                    json.dump(config_int8, json_file, indent=4)
+            
 def dl_sd_14_square():
     SD_path = os.path.join(install_location, "stable-diffusion-1.4")
     if os.path.isdir(SD_path):
@@ -250,13 +289,6 @@ def dl_sd_14_square():
     shutil.copytree(download_folder, SD_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
-
-def dl_sd_21_square():
-    print("Downloading Intel/sd-2.1-square-quantized Models")
-    repo_id = "Intel/sd-2.1-square-quantized"
-    model_1 = "square"
-    model_2 = "square_base"
-    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_portrait():
     print("Downloading Intel/sd-1.5-portrait-quantized Models")
@@ -349,6 +381,22 @@ def dl_sd_15_LCM():
                     sd15_futures["vae_decoder"].result()
             except:
                 print("Compilation failed.")    
+
+
+            # Write out config file. GPU used for VAE in all cases. 
+            config = { 	"power modes supported": "yes", 	
+                            "best performance" : ["GPU","GPU","GPU"],
+                                    "balanced" : ["GPU","NPU","GPU"],
+                       "best power efficiency" : ["NPU","NPU","GPU"]
+                }
+            
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
+                json.dump(config, json_file, indent=4)
+            
     
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
@@ -367,10 +415,8 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    dl_sd_21_square()
     print("All models downloaded")
     exit()
-
     
 
 def show_menu():
@@ -387,8 +433,7 @@ def show_menu():
     print("7  - SD-1.5 Controlnet-Scribble")
     print("8  - SD-1.5 LCM")
     print("9  - SD-1.5 Controlnet-ReferenceOnly")
-    print("10 - SD-2.1 Square (768x768)")
-    print("11 - SD 1.4 Square")
+    print("10 - SD 1.4 Square")
     print("12 - All the above models")
     print("0  - Exit SD Model setup")
 
@@ -404,8 +449,7 @@ def main():
                 "7": dl_sd_15_scribble,
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
-                "10": dl_sd_21_square,
-                "11" : dl_sd_14_square,
+                "10" : dl_sd_14_square,
                 "12" : dl_all,
                 "0": exit,
             }
