@@ -255,12 +255,12 @@ def dl_sd_15_square():
                 config_fp_16 = { 	"power modes supported": "yes", 	
                                         "best performance" : ["GPU","GPU","GPU","GPU"],
                                       	        "balanced" : ["NPU","NPU","GPU","GPU"],
-                                   "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
                 }
                 config_int8 = { 	"power modes supported": "yes", 	
                                         "best performance" : ["NPU","NPU","GPU","GPU"],
                                       	        "balanced" : ["GPU","NPU","NPU","GPU"],
-                                   "best power efficiency" : ["NPU","NPU","NPU","NPU"]
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
                 }
                 
                 # Specify the file name
@@ -381,6 +381,22 @@ def dl_sd_15_LCM():
                     sd15_futures["vae_decoder"].result()
             except:
                 print("Compilation failed.")    
+
+
+            # Write out config file. GPU used for VAE in all cases. 
+            config = { 	"power modes supported": "yes", 	
+                            "best performance" : ["GPU","GPU","GPU"],
+                                    "balanced" : ["GPU","NPU","GPU"],
+                       "best power efficiency" : ["NPU","NPU","GPU"]
+                }
+            
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
+                json.dump(config, json_file, indent=4)
+            
     
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
