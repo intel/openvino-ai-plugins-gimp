@@ -16,8 +16,8 @@ protobuf==5.27.3
 safetensors==0.4.4
 sentencepiece==0.2.0
 streamlit==1.37.1
-torch>=2.2.0,<2.4.0
-torchvision
+torch==2.3.1
+torchvision==0.18.1
 tqdm==4.66.5
 transformers==4.44.0
 watchdog==4.0.2
