@@ -108,7 +108,8 @@ def list_models(weight_path, SD):
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
         "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
         "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
-        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],        
+        "sd_1.5_square_int8a16" : ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],        
         "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
         "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
         "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
@@ -375,6 +376,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                           list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
                           list_models(config_path_output["weight_path"],"sd_1.5_square") +
                           list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
+                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8a16") +
                           list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
                           list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
                           list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
