@@ -18,75 +18,246 @@ PORT = 65434  # Port to listen on (stable_diffusion_ov_server uses port 65432 & 
 
 log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=sys.stdout)
 
-#TODO: Put this in a standalone py, or json config, etc. Someplace outside of model_management_server.py.
-g_supported_models = [
+#TODO: Put these in a standalone py, or json config, etc. Someplace outside of model_management_server.py.
+
+
+# This dictionary is used to populate the drop-down model selection list.
+# It's a map from model-id -> model_details.
+# 'install_id' is the key used for the 'installable model map'
+#  Note that two models in this map may have the same install_id -- this just
+#   means a single 'Install' entry in the Model Manager UI will install both of them.
+#  If 'install_id' is None, it means that we don't (yet) support installing this model
+#   from the Model Manager UI (but we'll still populate the model selection drop-down
+#   with this model, if we detect that it is available).
+g_supported_model_map = {
+    "sd_1.5_square":
+    {
+        "name": "Stable Diffusion 1.5 (Square 512x512)(FP16)",
+        "install_id": "sd_15_square",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
+    },
+
+    "sd_1.5_square_int8":
+    {
+        "name": "Stable Diffusion 1.5 (Square 512x512)(INT8)",
+        "install_id": "sd_15_square",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"]
+    },
+
+    "sd_1.5_square_lcm":
+    {
+        "name": "Stable Diffusion 1.5 LCM (Square 512x512)(INT8)",
+        "install_id": "sd_15_LCM",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+    },
+
+    "sd_3.0_square_int8":
+    {
+        "name": "Stable Diffusion 3.0 (Square 512x512)(INT8)",
+        "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
+    },
+
+    "sd_3.0_square_int4":
+    {
+        "name": "Stable Diffusion 3.0 (Square 512x512)(INT4)",
+        "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+    },
+
+    "sd_1.5_portrait":
+    {
+        "name": "Stable Diffusion 1.5 (Portrait 360x640)(INT8)",
+        "install_id": "sd_15_portrait",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"]
+    },
+
+    "sd_1.5_portrait_512x768":
+    {
+        "name": "Stable Diffusion 1.5 (Portrait 512x768)(INT8)",
+        "install_id": "sd_15_portrait",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
+    },
+
+    "sd_1.5_landscape":
+    {
+        "name": "Stable Diffusion 1.5 (Landscape 640x360)(INT8)",
+        "install_id": "sd_15_landscape",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
+    },
+
+    "sd_1.5_landscape_768x512":
+    {
+        "name": "Stable Diffusion 1.5 (Landscape 768x512)(INT8)",
+        "install_id": "sd_15_landscape",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
+    },
+
+    "sd_1.5_inpainting":
+    {
+        "name": "Stable Diffusion 1.5 (Inpainting)(FP16)",
+        "install_id": "sd_15_inpainting",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
+    },
+
+    "sd_1.5_inpainting_int8":
+    {
+        "name": "Stable Diffusion 1.5 (Inpainting)(INT8)",
+        "install_id": "sd_15_inpainting",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
+    },
+
+    "controlnet_openpose":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)(FP16)",
+        "install_id": "sd_15_openpose",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-openpose"],
+    },
+
+    "controlnet_openpose_int8":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)(INT8)",
+        "install_id": "sd_15_openpose",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-openpose-int8"],
+    },
+
+    "controlnet_canny":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Canny)(FP16)",
+        "install_id": "sd_15_canny",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-canny"],
+    },
+
+    "controlnet_canny_int8":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Canny)(INT8)",
+        "install_id": "sd_15_canny",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-canny-int8"],
+    },
+
+    "controlnet_scribble":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Scribble)(FP16)",
+        "install_id": "sd_15_scribble",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-scribble"],
+    },
+
+    "controlnet_scribble_int8":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Scribble)(INT8)",
+        "install_id": "sd_15_scribble",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-scribble-int8"],
+    },
+
+    "controlnet_referenceonly":
+    {
+        "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)(FP16)",
+        "install_id": "sd_15_Referenceonly",
+        "install_subdir": ["stable-diffusion-ov", "controlnet-referenceonly"],
+    },
+
+    "test.1":
+    {
+        "name": "Test 1 Model",
+        "install_id": "test1",
+        "install_subdir": ["stable-diffusion-ov", "test1"],
+    },
+
+    "test.2":
+    {
+        "name": "Test 2 Model",
+        "install_id": "test2",
+        "install_subdir": ["stable-diffusion-ov", "test2"],
+    },
+
+}
+
+
+# The thing used to populate the Model Manager UI (or model_setup.py console selections)
+# Each model in g_supported_model_map define 'install_id',
+#  which is the key to use.
+# It's called 'base' model map, since it's meant to be
+#  an initializer.. not something to use as-is. For example,
+#  OpenVINOModelInstaller makes a copy of it, and actually adds
+#  more details to each entry.
+g_installable_base_model_map = {
+    "sd_15_square":
     {
         "name": "Stable Diffusion 1.5 (Square)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_square",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "square")
+        "repo_id": "Intel/sd-1.5-square-quantized",
+        "download_exclude_filters": ["*.blob"],
     },
+
+    "sd_15_LCM":
     {
         "name": "Stable Diffusion 1.5 LCM",
-        "description": "A short description of Stable Diffusion 1.5 LCM.",
-        "id": "sd_15_LCM",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "square_lcm")
+        "repo_id": "Intel/sd-1.5-lcm-openvino",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_portrait":
     {
         "name": "Stable Diffusion 1.5 (Portrait)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_portrait",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "portrait")
+        "repo_id": "Intel/sd-1.5-portrait-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_landscape":
     {
         "name": "Stable Diffusion 1.5 (Landscape)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_landscape",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "landscape")
+        "repo_id": "Intel/sd-1.5-landscape-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_inpainting":
     {
         "name": "Stable Diffusion 1.5 (Inpainting)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_inpainting",
-        "install_subdir": os.path.join("stable-diffusion-1.5", "inpainting")
+        "repo_id": "Intel/sd-1.5-inpainting-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_openpose":
     {
         "name": "Stable Diffusion 1.5 (Controlnet OpenPose)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_openpose",
-        "install_subdir": os.path.join(".", "controlnet-openpose")
+        "repo_id": "Intel/sd-1.5-controlnet-openpose-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_canny":
     {
         "name": "Stable Diffusion 1.5 (Controlnet Canny)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_canny",
-        "install_subdir": os.path.join(".", "controlnet-canny")
+        "repo_id": "Intel/sd-1.5-controlnet-canny-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_scribble":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Scribble)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_scribble",
-        "install_subdir": os.path.join(".", "controlnet-scribble")
+        "name": "Stable Diffusion 1.5 (Controlnet Canny)",
+        "repo_id": "Intel/sd-1.5-controlnet-scribble-quantized",
+        "download_exclude_filters": [],
     },
+
+    "sd_15_Referenceonly":
     {
         "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)",
-        "description": "A short description of Stable Diffusion 1.5.",
-        "id": "sd_15_Referenceonly",
-        "install_subdir": os.path.join(".", "controlnet-referenceonly")
+        "repo_id": "Intel/sd-reference-only",
+        "download_exclude_filters": [],
     },
 
+    "test1":
     {
         "name": "Test Model 1",
-        "description": "This is just a test entry that doesn't actually download anything.",
-        "id": "test1", "install_subdir": os.path.join("test")
+        "repo_id": None,
+        "download_exclude_filters": [],
     },
 
+    "test2":
     {
         "name": "Test Model 2",
-        "description": "This is just a test entry that doesn't actually download anything.",
-        "id": "test2", "install_subdir": os.path.join("test")
-    },
-]
+        "repo_id": None,
+        "download_exclude_filters": [],
+    }
+}
 
 #TODO: This class should be in a separate utils file, so that it can be called from top-level model_setup.py
 from openvino.runtime import Core
@@ -98,6 +269,14 @@ import io
 import requests
 import queue
 access_token = None
+
+def is_subdirectory(child_path, parent_path):
+    # Convert to absolute paths
+    child_path = Path(child_path).resolve()
+    parent_path = Path(parent_path).resolve()
+
+    # Check if the parent path is a prefix of the child path
+    return parent_path in child_path.parents
 
 def compile_and_export_model(core, model_path, output_path, device='NPU', config=None):
     """
@@ -134,7 +313,7 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
                   # if the callback returns True, the user cancelled. So just return right now.
                   if callback(total_bytes_downloaded, total_file_list_size):
                       return downloaded_size
-    
+
     return downloaded_size
 
 
@@ -157,24 +336,76 @@ class OpenVINOModelInstaller:
         self.install_queue = queue.Queue()
         self.install_lock = threading.Condition()
 
+        # make a copy of the base map
+        self.installable_model_map = g_installable_base_model_map.copy()
+
+        # first, add empty array as 'supported_model_ids' key (so that we can simply append in next looop)
+        for install_details in self.installable_model_map.values():
+            install_details["supported_model_ids"] = []
+
+        # for each supported model, append id to the 'supported_model_ids' array.
+        for supported_model_id, supported_model_details in g_supported_model_map.items():
+            install_id =  supported_model_details["install_id"]
+
+            if install_id not in self.installable_model_map:
+                print("Unexpected error: install_id=", install_id, " not present in installable model map..")
+                continue
+
+            self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
+
+
+    # Given a model_id, is it installed? This is a very simply check right now (check for existence of directory)
+    #  but it likely needs to be transformed into something better (i.e. reading a json from the directly, cross-checking
+    #  HF commit-id, etc.)
+    def is_model_installed(self, model_id):
+
+        if model_id not in g_supported_model_map:
+            return False
+
+        install_subdir = g_supported_model_map[model_id]["install_subdir"]
+
+        model_check_path = os.path.join(self._weight_path, *install_subdir)
+
+        if os.path.isdir(model_check_path):
+            return True
+
+        return False
+
 
     def get_all_model_details(self):
+
         model_details = []
-        for model_detail in g_supported_models:
-            model_check_path = os.path.join(self._install_location, model_detail["install_subdir"], )
+        for install_id, install_details in self.installable_model_map.items():
 
-            model_detail_entry = model_detail.copy()
-
-            if model_detail["id"] in  self.model_install_status:
+            # If all models in supported_model_ids are installed, then we give
+            #  an overall status of 'installed'.
+            # If the install_id is currently in the model_install_status map,
+            #  then we set overall status to 'installing'.
+            # If any of the models are *not* installed, then we give an overall status
+            #  of 'not_installed'
+            if install_id in self.model_install_status:
                 install_status = "installing"
-            elif not os.path.isdir(model_check_path):
-                install_status = "not_installed"
             else:
-                install_status = "installed"
+                all_are_installed = True
 
-            model_detail_entry['install_status'] = install_status
+                for model_id in install_details["supported_model_ids"]:
+                    if self.is_model_installed(model_id) is False:
+                        all_are_installed = False
+                        break
 
-            model_details.append(model_detail_entry)
+                if all_are_installed:
+                    install_status = "installed"
+                else:
+                    install_status = "not_installed"
+
+                #TODO: this will get refactored.
+                model_detail_entry = {}
+                model_detail_entry["name"] = install_details["name"]
+                model_detail_entry["description"] = "Some unused description"
+                model_detail_entry["id"] = install_id
+                model_detail_entry['install_status'] = install_status
+
+                model_details.append(model_detail_entry)
 
         return model_details
 
@@ -193,19 +424,19 @@ class OpenVINOModelInstaller:
 
 
     def _download_hf_repo(self, repo_id, model_id, download_folder):
-        
+
         retries_left = 5
         while retries_left > 0:
             try:
                 file_list = []
                 if os.path.isdir(download_folder):
                     shutil.rmtree(download_folder)
-                        
+
                 os.makedirs(download_folder)
-                
+
                 self.model_install_status[model_id]["status"] = "Downloading..."
                 self.model_install_status[model_id]["percent"] = 0.0
-                
+
                 self._generate_file_list_from_hf_repo_path(repo_id, file_list)
                 download_list = []
                 total_file_list_size = 0
@@ -238,12 +469,12 @@ class OpenVINOModelInstaller:
                     if total_bytes_to_download > 0:
                         self.model_install_status[model_id]["status"] = status
                         self.model_install_status[model_id]["percent"] = (total_bytes_downloaded / total_bytes_to_download) * 100.0
-                       
+
                         if "cancelled" in self.model_install_status[model_id]:
                             return True
-                           
+
                         return False
-                           
+
                 total_bytes_downloaded = 0
                 #okay, let's download the files one by one.
                 for download_list_item in download_list:
@@ -257,10 +488,10 @@ class OpenVINOModelInstaller:
 
 
                    downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
-                   
+
                    if "cancelled" in self.model_install_status[model_id]:
                        return False
-             
+
                    total_bytes_downloaded += downloaded_size
 
                 return True
@@ -269,98 +500,113 @@ class OpenVINOModelInstaller:
                     retries_left -= 1
                     if "cancelled" in self.model_install_status[model_id]:
                        return False
-        
-        #we only get here if we failed (and exceeded max number of retries) 
+
+        #we only get here if we failed (and exceeded max number of retries)
         return False
 
-    def _download_quantized_models(self, repo_id, model_fp16, model_int8, model_id):
-        download_flag = True
-        SD_path_FP16 = os.path.join(self._install_location, model_fp16)
-        SD_path_INT8 = os.path.join(self._install_location, model_int8)
+    # this combines the previous 'download_model' and 'download_quantized_models` routines into a single function (that rules them all)
+    def _download_model(self, model_id):
+        if model_id not in self.installable_model_map:
+            print("Unexpected error! model_id=", model_id, " not found in installable_map!")
+            return False
 
-        os.makedirs(SD_path_FP16,  exist_ok=True)
+        installable_details = self.installable_model_map[model_id]
 
-        if os.path.isdir(SD_path_FP16):
-            choice = "Y"
-            if choice == "Y" or choice == "y":
-                shutil.rmtree(SD_path_FP16)
-            else:
-                download_flag = False
-                print(f"{repo_id} download skipped")
-                return download_flag
+        if "repo_id" not in installable_details:
+            print("Unexpected error! 'repo_id' key not found in installable_details for model_id=", model_id)
+            return False
 
-        if  download_flag:        
-            download_folder = 'hf_download_folder'
-            download_success = self._download_hf_repo(repo_id, model_id, download_folder)
+        if "supported_model_ids" not in installable_details:
+            print("Unexpected error! 'supported_model_ids' key not found in installable_details for model_id=", model_id)
+            return False
 
-            if download_success is True:
-                FP16_model = os.path.join(download_folder, "FP16")
-                # on some systems, the FP16 subfolder is not created resulting in a installation crash
-                if not os.path.isdir(FP16_model):
-                    os.mkdir(FP16_model)
-                shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))
-                shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)
+        repo_id = installable_details["repo_id"]
 
-                if model_int8:
-                    if os.path.isdir(SD_path_INT8):
-                            shutil.rmtree(SD_path_INT8)
+        if repo_id is None:
+            print("Unexpected error! 'repo_id' value is None for model_id=", model_id)
+            return False
 
-                    INT8_model = os.path.join(download_folder, "INT8")
-                    shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))
-                    shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
+        download_folder = 'hf_download_folder'
+        download_success = self._download_hf_repo(repo_id, model_id, download_folder)
 
-            if os.path.isdir(download_folder):
-                shutil.rmtree(download_folder, ignore_errors=True)
-                
-            download_flag = download_success
+        if download_success:
 
-        return download_flag
+            # A given install_id may install multiple models. So, iterate through these.
+            for supported_model in installable_details["supported_model_ids"]:
 
-    def _download_model(self, repo_id, model_1, model_2, model_id):
-        download_flag = True
+                # The 'supported_model' here, is the key to use for g_supported_model_map, which
+                #  we will retrieve to get further installation location details.
+                if supported_model not in g_supported_model_map:
+                    print("Unexpected error! supported_model=", supported_model, " not found in supported model map. Installation model_id=", model_id)
+                    return False
 
-        install_location=self._install_location
+                supported_model_details = g_supported_model_map[supported_model]
 
-        if "sd-2.1" in repo_id:
-            sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)
-        else:
-            sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
+                if "install_subdir" not in supported_model_details:
+                    print("Unexpected error! 'install_subdir' not in supported_model_details for supported_model=", supported_model, ". Installation model_id=", model_id)
+                    return False
 
-        if os.path.isdir(sd_model_1):
-            #choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
-            choice = "Y"
-            if choice == "Y" or choice == "y":
-                shutil.rmtree(sd_model_1)
-            else:
-                download_flag = False
-                print(f"{repo_id} download skipped")
-                return download_flag
+                install_subdir = supported_model_details["install_subdir"]
 
-        if  download_flag:
-            download_folder = 'hf_download_folder'
-            download_success = self._download_hf_repo(repo_id, model_id, download_folder)
-            if download_success:
-                if repo_id == "Intel/sd-1.5-lcm-openvino":
-                    download_model_1 = download_folder
+                # We expect the subdir to have *at least* 2 entries.. e.g. ["stable-diffusion-ov", "some-model-specific-folder"],
+                #  so double check that
+                if len(install_subdir) < 2:
+                    print("Unexpected error! 'install_subdir' for supported_model=", supported_model, " is array of less than 2 entries...")
+                    return False
+
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
+
+                # get 'right-most' folder in the subdir.
+                leaf_folder = install_subdir[-1]
+
+                # If <download_folder>/<leaf_folder> exists, then *that* is the folder we will copy
+                #  to <full_install_path>
+                # Otherwise, we will copy <download_folder> itself to <full_install_path>
+                if os.path.isdir(os.path.join(download_folder, leaf_folder)):
+                    copy_from_folder = os.path.join(download_folder, leaf_folder)
                 else:
-                    download_model_1 = os.path.join(download_folder, model_1)
-                shutil.copytree(download_model_1, sd_model_1)
+                    copy_from_folder = download_folder
 
-                if model_2:
-                    if "sd-2.1" in repo_id:
-                        sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
+                # double check that 'copy_from_folder' exists..
+                if not os.path.isdir(copy_from_folder):
+                    print("Unexpected error! copy_from_folder=", copy_from_folder, " doesn't exist.")
+                    return False
+
+                # double check that full_install_path is a subdirectory of our weight path.
+                # (As we don't want to touch anything outside of our top-level 'weights' folder)
+                if not is_subdirectory(full_install_path, self._weight_path):
+                    print("Unexpected error! full_install_path=", full_install_path, " is not a subdirectory of the top-level weights folder.")
+                    return False
+
+                # if it already exists, delete it first
+                if os.path.isdir(full_install_path):
+                    shutil.rmtree(SD_path_INT8)
+
+                # okay, copy it!
+                # (the ignore_patterns were added to pull logic of 'download_quantized_models' into here. See below)
+                shutil.copytree(copy_from_folder, full_install_path, ignore=shutil.ignore_patterns('FP16', 'INT8'))
+
+                # The following logic was addeded so that we could call this function in place of 'download_quantized_models'
+                # (as so much of the logic was the same.. just this INT8 / FP16 folder thing differed).
+                # We should probably find a better way to handle it, but it beats having a completely separate function (I think)
+                if os.path.isdir(os.path.join(download_folder, 'FP16')):
+                    #if the 'right-most' installation directory *doesn't* contain 'int8',
+                    # then this is the FP16 model.
+                    if not 'int8' in leaf_folder:
+                        # copy the FP16 collateral
+                        shutil.copytree(os.path.join(download_folder, 'FP16'), full_install_path, dirs_exist_ok=True)
                     else:
-                        sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
-                    if os.path.isdir(sd_model_2):
-                            shutil.rmtree(sd_model_2)
-                    download_model_2 = os.path.join(download_folder, model_2)
-                    shutil.copytree(download_model_2, sd_model_2)
+                        if os.path.isdir(os.path.join(download_folder, 'INT8')):
+                            # copy the INT8 collateral
+                            shutil.copytree(os.path.join(download_folder, 'INT8'), full_install_path, dirs_exist_ok=True)
 
-            if os.path.isdir(download_folder):
+        # we redefine this, just to be sure it didn't somehow get changed/corrupted during the
+        # download method.
+        download_folder = 'hf_download_folder'
+        if os.path.isdir(download_folder):
                 shutil.rmtree(download_folder, ignore_errors=True)
 
-        return download_flag
-
+        return True
 
     def install_test(self, model_id):
 
@@ -377,10 +623,10 @@ class OpenVINOModelInstaller:
 
             while percent_complete < 100:
                 time.sleep(0.1)
-                
+
                 if "cancelled" in self.model_install_status[model_id]:
                     return
-               
+
                 #percent_complete += 0.2
                 percent_complete += 1
 
@@ -393,18 +639,18 @@ class OpenVINOModelInstaller:
 
     def cancel_install(self, model_id):
         print("cancel_install: model_id=", model_id)
-        
+
         with self.model_install_status_lock:
             if model_id in self.model_install_status:
                 self.model_install_status[model_id]["cancelled"] = True
-        
-        
-        
+
+
+
     def install_model(self, model_id):
         print("install_model: model_id=", model_id)
 
         with self.model_install_status_lock:
-            # set the status to 'Queued' this is what will display in the UI
+            # set the status to 'Queued'. This is what will display in the UI
             # until it's this model's turn to get installed.
             self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0}
 
@@ -422,24 +668,23 @@ class OpenVINOModelInstaller:
             # Dequeue the thread now that it's our turn
             self.install_queue.get()
 
-            if( model_id == "sd_15_square"):
+            # a list of installation id's where we simply call
+            # our download function (no fancy post-processing required)
+            simply_download_models = [
+            "sd_15_portrait",
+            "sd_15_landscape",
+            "sd_15_inpainting",
+            "sd_15_openpose",
+            "sd_15_canny",
+            "sd_15_scribble",
+            "sd_15_Referenceonly"]
+
+            if model_id in simply_download_models:
+                self._download_model(model_id)
+            elif  model_id == "sd_15_square":
                 self.dl_sd_15_square(model_id)
-            elif ( model_id == "sd_15_LCM"):
+            elif model_id == "sd_15_LCM":
                 self.dl_sd_15_LCM(model_id)
-            elif ( model_id == "sd_15_portrait"):
-                self.dl_sd_15_portrait(model_id)
-            elif ( model_id == "sd_15_landscape"):
-                self.dl_sd_15_landscape(model_id)
-            elif ( model_id == "sd_15_inpainting"):
-                self.dl_sd_15_inpainting(model_id)
-            elif ( model_id == "sd_15_openpose"):
-                self.dl_sd_15_openpose(model_id)
-            elif ( model_id == "sd_15_canny"):
-                self.dl_sd_15_canny(model_id)
-            elif ( model_id == "sd_15_scribble"):
-                self.dl_sd_15_scribble(model_id)
-            elif ( model_id == "sd_15_Referenceonly"):
-                self.dl_sd_15_Referenceonly(model_id)
             elif (model_id == "test1"):
                 self.install_test(model_id)
             elif (model_id == "test2"):
@@ -447,64 +692,16 @@ class OpenVINOModelInstaller:
             else:
                 print("Warning! unknown model_id=", model_id)
 
+
             # Notify the next thread in the queue
             self.install_lock.notify_all()
 
         with self.model_install_status_lock:
             self.model_install_status.pop(model_id)
-            
-        
+
+
 
         print("install_model: model_id=", model_id, " done!")
-
-    def dl_sd_15_portrait(self, model_id):
-        print("Downloading Intel/sd-1.5-portrait-quantized Models")
-        repo_id = "Intel/sd-1.5-portrait-quantized"
-        model_1 = "portrait"
-        model_2 = "portrait_512x768"
-        self._download_model(repo_id, model_1, model_2, model_id)
-
-    def dl_sd_15_landscape(self, model_id):
-        print("Downloading Intel/sd-1.5-landscape-quantized Models")
-        repo_id = "Intel/sd-1.5-landscape-quantized"
-        model_1 = "landscape"
-        model_2 = "landscape_768x512"
-        self._download_model(repo_id, model_1, model_2, model_id)
-
-    def dl_sd_15_inpainting(self, model_id):
-        print("Downloading Intel/sd-1.5-inpainting-quantized Models")
-        repo_id = "Intel/sd-1.5-inpainting-quantized"
-        model_fp16 = os.path.join("stable-diffusion-1.5", "inpainting")
-        model_int8 = os.path.join("stable-diffusion-1.5", "inpainting_int8")
-        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
-
-    def dl_sd_15_openpose(self, model_id):
-        print("Downloading Intel/sd-1.5-controlnet-openpose-quantized Models")
-        repo_id="Intel/sd-1.5-controlnet-openpose-quantized"
-        model_fp16 = "controlnet-openpose"
-        model_int8 = "controlnet-openpose-int8"
-        self._download_quantized_models(repo_id, model_fp16,model_int8, model_id)
-
-    def dl_sd_15_canny(self, model_id):
-        print("Downloading Intel/sd-1.5-controlnet-canny-quantized Models")
-        repo_id = "Intel/sd-1.5-controlnet-canny-quantized"
-        model_fp16 = "controlnet-canny"
-        model_int8 = "controlnet-canny-int8"
-        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
-
-    def dl_sd_15_scribble(self, model_id):
-        print("Downloading Intel/sd-1.5-controlnet-scribble-quantized Models")
-        repo_id = "Intel/sd-1.5-controlnet-scribble-quantized"
-        model_fp16 = "controlnet-scribble"
-        model_int8 = "controlnet-scribble-int8"
-        self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
-
-    def dl_sd_15_Referenceonly(self, model_id):
-        print("Downloading Intel/sd-reference-only")
-        repo_id = "Intel/sd-reference-only"
-        model_fp16 = "controlnet-referenceonly"
-        model_int8 = None
-        self._download_model(repo_id, model_fp16, model_int8, model_id)
 
     def dl_sd_15_square(self, model_id):
         print("Downloading Intel/sd-1.5-square-quantized Models")
@@ -515,7 +712,7 @@ class OpenVINOModelInstaller:
         core = self._core
         npu_arch = self._npu_arch
 
-        download_success = self._download_quantized_models(repo_id, model_fp16, model_int8, model_id)
+        download_success = self._download_model(model_id)
 
         if npu_arch is not None:
             if download_success:
@@ -562,13 +759,13 @@ class OpenVINOModelInstaller:
                                 sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
 
 
-                            num_futures = len(sd15_futures)
-                            perc_increment = 100.0 / num_futures
+                        num_futures = len(sd15_futures)
+                        perc_increment = 100.0 / num_futures
 
-                            self.model_install_status[model_id]["percent"] = 0.0
-                            for model_name, model_future in sd15_futures.items():
-                                model_future.result()
-                                self.model_install_status[model_id]["percent"] += perc_increment
+                        self.model_install_status[model_id]["percent"] = 0.0
+                        for model_name, model_future in sd15_futures.items():
+                            model_future.result()
+                            self.model_install_status[model_id]["percent"] += perc_increment
 
                 except Exception as e:
                     print("Compilation failed. Exception: ")
@@ -608,7 +805,7 @@ class OpenVINOModelInstaller:
         repo_id = "Intel/sd-1.5-lcm-openvino"
         model_1 = "square_lcm"
         model_2 = None
-        compile_models = self._download_model(repo_id, model_1, model_2, model_id)
+        compile_models = self._download_model(model_id)
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
@@ -764,20 +961,20 @@ def run_connection_routine(ov_model_installer, conn):
                 data = conn.recv(1024) # <- get ack
 
                 continue
-                
+
             if data.decode() == "install_cancel":
                 # send ack
                 conn.sendall(data)
-                
+
                 # Get the model-id that we are interested in.
                 data = conn.recv(1024)
                 model_id = data.decode()
-                
+
                 #send ack
                 conn.sendall(data)
-               
+
                 ov_model_installer.cancel_install(model_id)
-                
+
                 continue
 
             print("Warning! Unsupported command sent: ", data.decode())
