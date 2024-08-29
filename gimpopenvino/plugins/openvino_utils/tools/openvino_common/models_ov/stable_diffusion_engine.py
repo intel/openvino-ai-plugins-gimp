@@ -87,6 +87,38 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 
     return image, {"padding": pad, "src_width": src_width, "src_height": src_height}
 
+def try_enable_npu_turbo(device, core):
+    import platform
+    if "windows" in platform.system().lower():
+        if "NPU" in device and "3720" not in core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+            try:
+                core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+            except:
+                print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
+            else:
+                print_npu_turbo_art()
+        else:
+            print(f"Skipping NPU_TURBO for device {device}")
+    elif "linux" in platform.system().lower():
+        if os.path.isfile('/sys/module/intel_vpu/parameters/test_mode'):
+            with open('/sys/module/intel_vpu/version', 'r') as f:
+                version = f.readline().split()[0]
+                if tuple(map(int, version.split('.'))) < tuple(map(int, '1.9.0'.split('.'))):
+                    print(f"The driver intel_vpu-1.9.0 (or later) needs to be loaded for NPU Turbo (currently {version}). Skipping...")
+                else:
+                    with open('/sys/module/intel_vpu/parameters/test_mode', 'r') as tm_file:
+                        test_mode = int(tm_file.readline().split()[0])
+                        if test_mode == 512:
+                            print_npu_turbo_art()
+                        else:
+                            print("The driver >=intel_vpu-1.9.0 was must be loaded with "
+                                  "\"modprobe intel_vpu test_mode=512\" to enable NPU_TURBO "
+                                  f"(currently test_mode={test_mode}). Skipping...")
+        else:
+            print(f"The driver >=intel_vpu-1.9.0 must be loaded with  \"modprobe intel_vpu test_mode=512\" to enable NPU_TURBO. Skipping...")
+    else:
+        print(f"This platform ({platform.system()}) does not support NPU Turbo")
+
 def result(var):
     return next(iter(var.values()))
 
@@ -102,12 +134,11 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
-        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+        try_enable_npu_turbo(device, self.core)
             
         print("Loading models... ")
         
+
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = {
@@ -341,7 +372,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
         if image is None:
-            print("Image is NONE")
+            ##print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(scheduler, LMSDiscreteScheduler):
 
@@ -443,11 +474,8 @@ class StableDiffusionEngine(DiffusionPipeline):
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
         
         self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
-        
-        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-        
+        try_enable_npu_turbo(device, self.core)
+
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except Exception as e:
@@ -466,7 +494,6 @@ class StableDiffusionEngine(DiffusionPipeline):
                 unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
                 unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
             else:
-                print("Loading BS2 model")
                 unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 unet_neg_future = None
 
@@ -674,7 +701,7 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         noise = np.random.randn(*latents_shape).astype(np.float32)
         if image is None:
-            print("Image is NONE")
+            #print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(scheduler, LMSDiscreteScheduler):
 
@@ -784,10 +811,9 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
-        if "NPU" in device and "3720" not in self.core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-            print_npu_turbo_art()    
-            self.core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-            
+        try_enable_npu_turbo(device, self.core)
+               
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
             unet_future = executor.submit(self.load_model, model, "unet", device[1])    
@@ -1296,7 +1322,7 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
    
         noise = np.random.randn(*latents_shape).astype(np.float32)
         if image is None:
-            print("Image is NONE")
+            #print("Image is NONE")
             # if we use LMSDiscreteScheduler, let's make sure latents are mulitplied by sigmas
             if isinstance(scheduler, LMSDiscreteScheduler):
              

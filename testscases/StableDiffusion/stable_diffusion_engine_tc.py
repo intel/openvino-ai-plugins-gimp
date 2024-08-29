@@ -12,9 +12,6 @@ from datetime import datetime
 from statistics import mean
 import platform
 import os
-import wmi
-import win32com.client
-
 
 import cv2
 import numpy as np
@@ -40,6 +37,7 @@ log = logging.getLogger()
 
 
 def get_bios_version():
+    import wmi
     try:
         c = wmi.WMI()
         bios = c.Win32_BIOS()[0]
@@ -48,6 +46,7 @@ def get_bios_version():
         return str(e)
 
 def get_windows_pcie_device_driver_versions():
+    import win32com.client
     try:
         # Initialize the WMI client
         wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
@@ -76,22 +75,33 @@ def check_windows_device_driver_version(device_name, driver_info):
             return info["DriverVersion"]
     return None
 
-def print_system_info(driver_info):
+def print_system_info():
     log.info("System Information")
     log.info("==================")
     log.info(f"System: {platform.system()}")
     log.info(f"Node Name: {platform.node()}")
     log.info(f"Python Version: {platform.python_version()}")
     log.info(f"Platform: {platform.platform()}")
-    log.info(f'BIOS: {get_bios_version()}')
-    log.info(f'NPU Driver: {check_windows_device_driver_version(device_name="AI Boost",driver_info=driver_info)}')
-    log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
+    if "window" in platform.system().lower():
+        driver_info = get_windows_pcie_device_driver_versions()
+        log.info(f'BIOS: {get_bios_version()}')
+        log.info(f'NPU Driver: {check_windows_device_driver_version(device_name="AI Boost",driver_info=driver_info)}')
+        log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
+    elif "linux" in platform.system().lower():
+        try:
+            log.info(f'BIOS: <unsupported>')
+            with open('/sys/module/intel_vpu/version', 'r') as f:
+                log.info(f'NPU Driver: {f.readline()}')
+            log.info(f'GPU Driver: <unsupported>')
+        except:
+            pass
 
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
         return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
-    if model_name == "sd_3.0_square_int8" or model_name == "sd_3.0_square_int4":
+    if model_name == "sd_3.0_square":
+        device_list = ["GPU"]
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
@@ -146,7 +156,7 @@ def parse_args() -> argparse.Namespace:
                       help='Optional. Specify the target device to infer on; CPU, GPU, NPU '
                       'is acceptable for VAE decoder and encoder. Default value is None.')
     # seed, number of iterations
-    args.add_argument('-seed','--seed',type = int, default = None, required = False,
+    args.add_argument('-seed','--seed',type = int, default = 1507302932, required = False,
                       help='Optional. Specify the seed for initialize latent space.')
     args.add_argument('-niter','--iterations',type = int, default = 20, required = False,
                       help='Optional. Iterations for Stable Diffusion.')
@@ -156,13 +166,21 @@ def parse_args() -> argparse.Namespace:
     # generate multiple images
     args.add_argument('-n','--num_images',type = int, default = 1, required = False,
                       help='Optional. Number of images to generate.')
+    # guidance scale
+    args.add_argument('-g','--guidance_scale',type = float, default = 7.5, required = False,
+                      help='Optional. Affects how closely the image prompt is followed.')
+    
+    
     # power mode
     args.add_argument('-pm','--power_mode',type = str, default = "best performance", required = False,
                       help='Optional. Specify the power mode. Default is best performance')
     # prompt, negative prompt
-    args.add_argument('-pp','--prompt',type = str, default = "a bowl of cherries", required = False,
-                      help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
-    args.add_argument('-np','--neg_prompt',type = str, default = "low quality, bad, low resolution, monochrome", required = False,
+    args.add_argument('-pp','--prompt',type = str, 
+                      default ="a portrait of an old coal miner in 19th century, beautiful painting with highly detailed face by greg rutkowski and magali villanueve",
+                      required = False,
+                      #help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
+                      help='Optional. Specify the prompt.  Default: "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd"')
+    args.add_argument('-np','--neg_prompt',type = str, default = "deformed face, Ugly, bad quality, lowres, monochrome, bad anatomy", required = False,
                       help='Optional. Specify the negative prompt.  Default: "low  quality, bad, low resolution, monochrome"')
          
     return parser.parse_args()
@@ -196,8 +214,7 @@ def main():
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
-        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
-        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
         "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
         "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
         "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
@@ -232,10 +249,7 @@ def main():
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
 
-    # ::TODO:: make this work for Linux, too. 
-    if "windows" in platform.system().lower():
-        driver_info = get_windows_pcie_device_driver_versions()
-        print_system_info(driver_info) 
+    print_system_info() 
     
     log.info('')
     log.info('Device : Version')
@@ -251,7 +265,7 @@ def main():
     
     init_image = None 
     num_infer_steps = args.iterations 
-    guidance_scale = 8.0 
+    guidance_scale = args.guidance_scale 
     strength = 1.0
     seed = 4294967294   
     
@@ -278,7 +292,7 @@ def main():
         log.info('strength: %s',strength) 
         log.info('init_image: %s',init_image) 
     
-        if args.seed:
+        if args.seed and i < 1:
             ran_seed = args.seed
         else:
             ran_seed = random.randrange(seed) #4294967294
@@ -345,11 +359,14 @@ def main():
                     prompt = prompt,
                     negative_prompt = negative_prompt,
                     num_inference_steps = num_infer_steps,
-                    guidance_scale = guidance_scale,
-                    callback = progress_callback,
-                    callback_userdata = conn,
-                    seed = ran_seed
-            )        
+                    guidance_scale = 0,
+                    callback=progress_callback,
+                    callback_userdata=conn,
+                    generator=torch.Generator().manual_seed(seed),
+                    # callback_on_step_end = progress_callback,
+                    # callback_on_step_end_tensor_inputs = conn,
+                    
+            ).images[0]    
         else: # Covers SD 1.5 Square, Square INT8, SD 2.0
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(

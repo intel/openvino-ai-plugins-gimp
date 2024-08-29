@@ -642,7 +642,8 @@ class ControlNetScribbleAdvanced(DiffusionPipeline):
                     self.npu_flag_neg = False
     
         else:
-
+            self.npu_flag_neg = False
+            self.npu_flag = False
             self.unet = self.core.compile_model(os.path.join(model, unet_int8_model), device[1])
             self.unet_neg = self.core.compile_model(os.path.join(model, unet_int8_model), device[2])
 
