@@ -68,6 +68,22 @@ class StringEnum:
         return tree_model
 
 
+class ModelsEnum:
+    def __init__(self, model_list):
+        self.keys = []
+        self.values = []
+        for model in model_list:
+            self.keys.append(model["id"])
+            self.values.append(model["name"])
+
+    def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
+        tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+        for i in range(len(self.keys)):
+            tree_model.append([self.keys[i], self.values[i]])
+        return tree_model
+
+
 class DeviceEnum:
     def __init__(self, supported_devices):
         self.keys = []
@@ -1150,10 +1166,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             if adv_checkbox.get_active():
                 populate_advanced_settings()
 
-
-
-
-
         model_combo = None
         def populate_model_combo(installed_models):
             nonlocal model_combo
@@ -1167,12 +1179,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 model_id = installed_model["id"]
                 if n_layers == 2:
                     if "inpainting" in model_id:
-                        model_list.append(model_id)
+                        model_list.append(installed_model)
                 else:
                     if "inpainting" not in model_id:
-                        model_list.append(model_id)
+                        model_list.append(installed_model)
 
-            model_name_enum = DeviceEnum(model_list)
+            model_name_enum = ModelsEnum(model_list)
 
             if model_combo is not None:
                 model_combo.hide()
