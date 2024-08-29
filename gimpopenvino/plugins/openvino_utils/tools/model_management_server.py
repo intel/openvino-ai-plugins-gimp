@@ -51,18 +51,11 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
     },
 
-    "sd_3.0_square_int8":
+    "sd_3.0_square":
     {
-        "name": "Stable Diffusion 3.0 [Square] [INT8]",
+        "name": "Stable Diffusion 3.0 [Square]",
         "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
-    },
-
-    "sd_3.0_square_int4":
-    {
-        "name": "Stable Diffusion 3.0 [Square] [INT4]",
-        "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0"],
     },
 
     "sd_1.5_portrait":
