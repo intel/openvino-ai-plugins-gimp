@@ -337,13 +337,14 @@ from gi.repository import Gtk, Gdk
 import threading
 import time
 class ModelManagementWindow(Gtk.Window):
-    def __init__(self, config_path, python_path):
+    def __init__(self, config_path, python_path, models_updated_callback):
         Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
         #self.set_default_size(1200, 800)
 
         #self.hide()
         self.set_visible(False)
 
+        self._models_updated_callback = models_updated_callback
         self._host = "127.0.0.1"
         self._port = 65434
         server = "model_management_server.py"
@@ -376,13 +377,13 @@ class ModelManagementWindow(Gtk.Window):
 
         self.model_box = model_box
         self.model_ui_map = {}
-        
+
         self.expanded_descriptions = []
 
         # Add each model to the window
         if models is not None:
             for model in models:
-            
+
                 # Model name label
                 name_label = Gtk.Label()
                 name_label.set_markup("<b>" + model["name"] + "</b>")
@@ -396,13 +397,13 @@ class ModelManagementWindow(Gtk.Window):
                 #title_event_box = Gtk.EventBox()
                 #title_event_box.add(name_label)
                 #title_event_box.connect("button-press-event", self.on_title_clicked, model_row_index)
-                
+
                 # Change cursor to hand pointer when hovering over the title
                 #title_event_box.connect("enter-notify-event", self.on_mouse_enter)
                 #title_event_box.connect("leave-notify-event", self.on_mouse_leave)
-                
+
                 model_box.attach(name_label, 0, model_row_index * 2, 1, 1)
- 
+
                 # Download button
                 if model["install_status"] == "not_installed":
                     download_button = Gtk.Button(label="Install")
@@ -433,14 +434,14 @@ class ModelManagementWindow(Gtk.Window):
             print("list of supported models is empty!")
 
         #self.show_all()
-        
-    
-    
+
+
+
     def on_title_clicked(self, widget, event, index):
          # Toggle the visibility of the detailed description
         detailed_description = self.expanded_descriptions[index]
         detailed_description.set_visible(not detailed_description.get_visible())
-        
+
     def on_mouse_enter(self, widget, event):
         # Change the cursor to a hand pointer when the mouse enters the widget
         Gdk.Window.set_cursor(widget.get_window(), Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer"))
@@ -448,7 +449,7 @@ class ModelManagementWindow(Gtk.Window):
     def on_mouse_leave(self, widget, event):
         # Restore the default cursor when the mouse leaves the widget
         Gdk.Window.set_cursor(widget.get_window(), None)
-        
+
     def display(self):
         self.show_all()
         for description in self.expanded_descriptions:
@@ -460,7 +461,7 @@ class ModelManagementWindow(Gtk.Window):
 
     def stop_poll_thread(self):
         self.bStopPoll = True
-        
+
     def post_install_routine(self, model_id, install_status):
         print("post_install_routine...")
         model_ui = self.model_ui_map[model_id]
@@ -476,7 +477,7 @@ class ModelManagementWindow(Gtk.Window):
 
         model_row_index = model_ui["row_index"]
 
-        self.model_box.attach(download_button, 2, model_row_index, 1, 1)  
+        self.model_box.attach(download_button, 2, model_row_index, 1, 1)
 
         if install_status == "installed":
             download_button.set_label("Installed")
@@ -486,7 +487,10 @@ class ModelManagementWindow(Gtk.Window):
             download_button.set_sensitive(True)
 
         download_button.set_visible(True)
-        
+
+        if self._models_updated_callback:
+            self._models_updated_callback()
+
     def update_ui_install_progress(self, model_id, install_status):
 
         model_ui = self.model_ui_map[model_id]
@@ -499,26 +503,26 @@ class ModelManagementWindow(Gtk.Window):
         if "progress_bar" not in model_ui:
             download_button = model_ui["download_button"]
             self.model_box.remove(download_button)
-            
+
             progress_bar = Gtk.ProgressBar()
             progress_bar.set_show_text(True)
             progress_bar.set_visible(True)
 
-            self.model_box.attach(progress_bar, 2, model_row_index, 1, 1)  
+            self.model_box.attach(progress_bar, 2, model_row_index, 1, 1)
 
             cancel_button = Gtk.Button(label="Cancel")
             cancel_button.set_visible(True)
             cancel_button.set_halign(Gtk.Align.CENTER)  # Center the button horizontally
             cancel_button.set_valign(Gtk.Align.CENTER)  # Center the button vertically
-            self.model_box.attach(cancel_button, 2, model_row_index + 1, 1, 1) 
-            #cancel_button.connect("size-allocate", self.on_cancel_button_size_allocate)  
-            cancel_button.connect("clicked", self.on_cancel_clicked, model_id)            
-            
+            self.model_box.attach(cancel_button, 2, model_row_index + 1, 1, 1)
+            #cancel_button.connect("size-allocate", self.on_cancel_button_size_allocate)
+            cancel_button.connect("clicked", self.on_cancel_clicked, model_id)
+
             model_ui["progress_bar"] = progress_bar
             model_ui["cancel_button"] = cancel_button
-            
-            
-            
+
+
+
         else:
             progress_bar = model_ui["progress_bar"]
 
@@ -640,7 +644,7 @@ class ModelManagementWindow(Gtk.Window):
     def on_cancel_clicked(self, button, model_id):
         # prevent user from clicking it again while we kick off the cancel
         button.set_sensitive(False)
-        
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
@@ -756,33 +760,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
-        if n_layers == 2:
-            model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
-        else:
-            model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
-                          list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
-                          list_models(config_path_output["weight_path"],"sd_2.1_square") +
-                          list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
-                          list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny") +
-                          list_models(config_path_output["weight_path"],"controlnet_scribble") +
-                          list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
 
-        print("model_list = ", model_list)
-
-        model_name_enum = DeviceEnum(model_list)
 
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
@@ -836,15 +814,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
 
+
+
         # Model Name parameter
         label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
         grid.attach(label, 0, 0, 1, 1)
         label.show()
-        model_combo = GimpUi.prop_string_combo_box_new(
-            config, "model_name", model_name_enum.get_tree_model(), 0, 1
-        )
-        grid.attach(model_combo, 1, 0, 1, 1)
-        model_combo.show()
 
         #number of images
         num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
@@ -1108,22 +1083,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         initialImage_checkbox.connect("toggled", initImage_toggled)
 
 
-        print("creating ModelManagementWindow...")
-        model_management_window = ModelManagementWindow(config_path, python_path)
-        model_management_window.hide()
-        print("done creating ModelManagementWindow...")
-
-        def model_management_launch_button_clicked(widget):
-            model_management_window.display()
-
-
-        model_management_launch_button = Gtk.Button(label="Manage Models")
-        model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
-        grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
-        model_management_launch_button.show()
-
-
-
         # status label
         sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
         grid.attach(sd_run_label, 1, 12, 1, 1)
@@ -1209,8 +1168,75 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 populate_advanced_settings()
 
 
-        model_combo.connect("changed", model_combo_changed)
-        model_combo.connect("changed", model_sensitive_combo_changed)
+        model_combo = None
+        def populate_model_combo():
+            nonlocal model_combo
+            nonlocal grid
+            nonlocal config
+            nonlocal model_combo_changed
+            nonlocal model_sensitive_combo_changed
+
+            if n_layers == 2:
+                model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
+            else:
+                model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_square") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
+                              list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
+                              list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
+                              list_models(config_path_output["weight_path"],"sd_2.1_square") +
+                              list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
+                              list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
+                              list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
+                              list_models(config_path_output["weight_path"],"controlnet_openpose") +
+                              list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
+                              list_models(config_path_output["weight_path"],"controlnet_canny_int8") +
+                              list_models(config_path_output["weight_path"],"controlnet_canny") +
+                              list_models(config_path_output["weight_path"],"controlnet_scribble") +
+                              list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
+
+            print("model_list = ", model_list)
+
+            model_name_enum = DeviceEnum(model_list)
+
+            if model_combo is not None:
+                model_combo.hide()
+                grid.remove(model_combo)
+
+            model_combo = GimpUi.prop_string_combo_box_new(
+                config, "model_name", model_name_enum.get_tree_model(), 0, 1
+            )
+            grid.attach(model_combo, 1, 0, 1, 1)
+            model_combo.show()
+
+            model_combo.connect("changed", model_combo_changed)
+            model_combo.connect("changed", model_sensitive_combo_changed)
+
+        # do the initial population of the model_combo.
+        # Note that 'populate_model_combo' can be called again by the ModelManagerWindow,
+        #  upon installation of a model.
+        populate_model_combo()
+
+        print("creating ModelManagementWindow...")
+        model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
+        model_management_window.hide()
+        print("done creating ModelManagementWindow...")
+
+        def model_management_launch_button_clicked(widget):
+            model_management_window.display()
+
+
+        model_management_launch_button = Gtk.Button(label="Manage Models")
+        model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
+        grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
+        model_management_launch_button.show()
+
+
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
         adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
 
