@@ -452,7 +452,8 @@ class StableDiffusionEngine(DiffusionPipeline):
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except Exception as e:
             print("Local tokenizer not found. Attempting to download...")
-            self.tokenizer = self.download_tokenizer(tokenizer, model)
+            self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+            self.tokenizer.save_pretrained(model)
     
         print("Loading models... ")
 
