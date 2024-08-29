@@ -32,126 +32,126 @@ log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=
 g_supported_model_map = {
     "sd_1.5_square":
     {
-        "name": "Stable Diffusion 1.5 (Square 512x512)(FP16)",
+        "name": "Stable Diffusion 1.5 [Square] [FP16]",
         "install_id": "sd_15_square",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
     },
 
     "sd_1.5_square_int8":
     {
-        "name": "Stable Diffusion 1.5 (Square 512x512)(INT8)",
+        "name": "Stable Diffusion 1.5 [Square] [INT8]",
         "install_id": "sd_15_square",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"]
     },
 
     "sd_1.5_square_lcm":
     {
-        "name": "Stable Diffusion 1.5 LCM (Square 512x512)(INT8)",
+        "name": "Stable Diffusion 1.5 LCM [Square] [INT8]",
         "install_id": "sd_15_LCM",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
     },
 
     "sd_3.0_square_int8":
     {
-        "name": "Stable Diffusion 3.0 (Square 512x512)(INT8)",
+        "name": "Stable Diffusion 3.0 [Square] [INT8]",
         "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
     },
 
     "sd_3.0_square_int4":
     {
-        "name": "Stable Diffusion 3.0 (Square 512x512)(INT4)",
+        "name": "Stable Diffusion 3.0 [Square] [INT4]",
         "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
     },
 
     "sd_1.5_portrait":
     {
-        "name": "Stable Diffusion 1.5 (Portrait 360x640)(INT8)",
+        "name": "Stable Diffusion 1.5 [Portrait 360x640] [INT8]",
         "install_id": "sd_15_portrait",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"]
     },
 
     "sd_1.5_portrait_512x768":
     {
-        "name": "Stable Diffusion 1.5 (Portrait 512x768)(INT8)",
+        "name": "Stable Diffusion 1.5 [Portrait 512x768] [INT8]",
         "install_id": "sd_15_portrait",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
     },
 
     "sd_1.5_landscape":
     {
-        "name": "Stable Diffusion 1.5 (Landscape 640x360)(INT8)",
+        "name": "Stable Diffusion 1.5 [Landscape 640x360] [INT8]",
         "install_id": "sd_15_landscape",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
     },
 
     "sd_1.5_landscape_768x512":
     {
-        "name": "Stable Diffusion 1.5 (Landscape 768x512)(INT8)",
+        "name": "Stable Diffusion 1.5 [Landscape 768x512] [INT8]",
         "install_id": "sd_15_landscape",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
     },
 
     "sd_1.5_inpainting":
     {
-        "name": "Stable Diffusion 1.5 (Inpainting)(FP16)",
+        "name": "Stable Diffusion 1.5 [Inpainting] [FP16]",
         "install_id": "sd_15_inpainting",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
     },
 
     "sd_1.5_inpainting_int8":
     {
-        "name": "Stable Diffusion 1.5 (Inpainting)(INT8)",
+        "name": "Stable Diffusion 1.5 [Inpainting] [INT8]",
         "install_id": "sd_15_inpainting",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
     },
 
     "controlnet_openpose":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)(FP16)",
+        "name": "Stable Diffusion 1.5 [Controlnet OpenPose] [FP16]",
         "install_id": "sd_15_openpose",
         "install_subdir": ["stable-diffusion-ov", "controlnet-openpose"],
     },
 
     "controlnet_openpose_int8":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)(INT8)",
+        "name": "Stable Diffusion 1.5 [Controlnet OpenPose] [INT8]",
         "install_id": "sd_15_openpose",
         "install_subdir": ["stable-diffusion-ov", "controlnet-openpose-int8"],
     },
 
     "controlnet_canny":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Canny)(FP16)",
+        "name": "Stable Diffusion 1.5 [Controlnet Canny] [FP16]",
         "install_id": "sd_15_canny",
         "install_subdir": ["stable-diffusion-ov", "controlnet-canny"],
     },
 
     "controlnet_canny_int8":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Canny)(INT8)",
+        "name": "Stable Diffusion 1.5 [Controlnet Canny] [INT8]",
         "install_id": "sd_15_canny",
         "install_subdir": ["stable-diffusion-ov", "controlnet-canny-int8"],
     },
 
     "controlnet_scribble":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Scribble)(FP16)",
+        "name": "Stable Diffusion 1.5 [Controlnet Scribble] [FP16]",
         "install_id": "sd_15_scribble",
         "install_subdir": ["stable-diffusion-ov", "controlnet-scribble"],
     },
 
     "controlnet_scribble_int8":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Scribble)(INT8)",
+        "name": "Stable Diffusion 1.5 [Controlnet Scribble] [INT8]",
         "install_id": "sd_15_scribble",
         "install_subdir": ["stable-diffusion-ov", "controlnet-scribble-int8"],
     },
 
     "controlnet_referenceonly":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)(FP16)",
+        "name": "Stable Diffusion 1.5 [Controlnet Reference-Only] [FP16]",
         "install_id": "sd_15_Referenceonly",
         "install_subdir": ["stable-diffusion-ov", "controlnet-referenceonly"],
     },
@@ -187,7 +187,7 @@ g_supported_model_map = {
 g_installable_base_model_map = {
     "sd_15_square":
     {
-        "name": "Stable Diffusion 1.5 (Square)",
+        "name": "Stable Diffusion 1.5 Square",
         "repo_id": "Intel/sd-1.5-square-quantized",
         "download_exclude_filters": ["*.blob"],
     },
@@ -201,49 +201,49 @@ g_installable_base_model_map = {
 
     "sd_15_portrait":
     {
-        "name": "Stable Diffusion 1.5 (Portrait)",
+        "name": "Stable Diffusion 1.5 Portrait",
         "repo_id": "Intel/sd-1.5-portrait-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_landscape":
     {
-        "name": "Stable Diffusion 1.5 (Landscape)",
+        "name": "Stable Diffusion 1.5 Landscape",
         "repo_id": "Intel/sd-1.5-landscape-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_inpainting":
     {
-        "name": "Stable Diffusion 1.5 (Inpainting)",
+        "name": "Stable Diffusion 1.5 Inpainting",
         "repo_id": "Intel/sd-1.5-inpainting-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_openpose":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet OpenPose)",
+        "name": "Stable Diffusion 1.5 Controlnet: OpenPose",
         "repo_id": "Intel/sd-1.5-controlnet-openpose-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_canny":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Canny)",
+        "name": "Stable Diffusion 1.5 Controlnet: Canny",
         "repo_id": "Intel/sd-1.5-controlnet-canny-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_scribble":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Canny)",
+        "name": "Stable Diffusion 1.5 Controlnet: Scribble",
         "repo_id": "Intel/sd-1.5-controlnet-scribble-quantized",
         "download_exclude_filters": [],
     },
 
     "sd_15_Referenceonly":
     {
-        "name": "Stable Diffusion 1.5 (Controlnet Reference-Only)",
+        "name": "Stable Diffusion 1.5 Controlnet: Reference-Only",
         "repo_id": "Intel/sd-reference-only",
         "download_exclude_filters": [],
     },
