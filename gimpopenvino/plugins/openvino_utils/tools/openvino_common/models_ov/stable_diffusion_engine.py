@@ -472,7 +472,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
-        
+
         self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
         try_enable_npu_turbo(device, self.core)
 
@@ -491,8 +491,12 @@ class StableDiffusionEngine(DiffusionPipeline):
             vae_en_future = executor.submit(self.load_model, model, "vae_encoder", device[3])
 
             if self.batch_size == 1:
-                unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
-                unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
+                if "int8" not in model:
+                    unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
+                    unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
+                else:
+                    unet_future = executor.submit(self.load_model, model, "unet_int8a16", device[1])
+                    unet_neg_future = executor.submit(self.load_model, model, "unet_int8a16", device[2]) if device[1] != device[2] else None
             else:
                 unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 unet_neg_future = None

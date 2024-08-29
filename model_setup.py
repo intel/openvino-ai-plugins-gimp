@@ -179,6 +179,7 @@ def dl_sd_15_square():
     repo_id = "Intel/sd-1.5-square-quantized"
     model_fp16 = os.path.join("stable-diffusion-1.5", "square")
     model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
+
     compile_models = download_quantized_models(repo_id, model_fp16, model_int8)
     
     if npu_arch is not None:
@@ -190,25 +191,28 @@ def dl_sd_15_square():
         if compile_models:
             text_future = None
             unet_int8_future = None
+            unet_int8a16_future = None
             unet_future = None
             vae_de_future = None        
             vae_en_future = None        
             
             if npu_arch == "3720":
                 # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
-                models_to_compile = [ "unet_int8", "text_encoder"]
+                models_to_compile = [ "unet_int8a16", "unet_int8", "text_encoder"]
                 shared_models = ["text_encoder.blob"]
                 sd15_futures = {
                     "text_encoder" : text_future,
                     "unet_int8" : unet_int8_future,
+                    "unet_int8a16" : unet_int8a16_future
                 }
             else:
                 # also modified the model order for less checking in the future object when it gets result
-                models_to_compile = [ "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
+                models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
                 shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
                 sd15_futures = {
                     "text_encoder" : text_future,
                     "unet_bs1" : unet_future,
+                    "unet_int8a16" : unet_int8a16_future, 
                     "unet_int8" : unet_int8_future,
                     "vae_encoder" : vae_en_future,
                     "vae_decoder" : vae_de_future
@@ -234,10 +238,12 @@ def dl_sd_15_square():
                         
                 if npu_arch == "3720":                  
                     sd15_futures["unet_int8"].result()
+                    sd15_futures["unet_int8a16"].result()
                     sd15_futures["text_encoder"].result()
                 else:
                     sd15_futures["unet_int8"].result()
                     sd15_futures["unet_bs1"].result()
+                    sd15_futures["unet_int8a16"].result()
                     sd15_futures["vae_decoder"].result()
                     sd15_futures["vae_encoder"].result()
                     sd15_futures["text_encoder"].result()

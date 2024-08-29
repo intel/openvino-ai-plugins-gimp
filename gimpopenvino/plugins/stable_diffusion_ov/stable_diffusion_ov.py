@@ -759,7 +759,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
             save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
-
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
         else:
