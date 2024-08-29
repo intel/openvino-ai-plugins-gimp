@@ -180,6 +180,10 @@ g_supported_model_map = {
 #  an initializer.. not something to use as-is. For example,
 #  OpenVINOModelInstaller makes a copy of it, and actually adds
 #  more details to each entry.
+# name: The name/title to be displayed in the Model Manager UI
+# repo_id: HF repo id -- used by download routine.
+# download_exclude_filters: an array of glob patterns. This is used to exclude downloading
+#                           unnecessary files.
 g_installable_base_model_map = {
     "sd_15_square":
     {
@@ -268,7 +272,14 @@ import shutil
 import io
 import requests
 import queue
+import fnmatch
 access_token = None
+
+def does_filename_match_patterns(filename, patterns):
+    for pattern in patterns:
+        if fnmatch.fnmatch(filename, pattern):
+            return True
+    return False
 
 def is_subdirectory(child_path, parent_path):
     # Convert to absolute paths
@@ -347,6 +358,11 @@ class OpenVINOModelInstaller:
         for supported_model_id, supported_model_details in g_supported_model_map.items():
             install_id =  supported_model_details["install_id"]
 
+            # Note: This is not an error condition. It just means that we don't want the installation
+            #  of this model to be controlled by the model management UI.
+            if not install_id:
+                continue
+
             if install_id not in self.installable_model_map:
                 print("Unexpected error: install_id=", install_id, " not present in installable model map..")
                 continue
@@ -423,7 +439,7 @@ class OpenVINOModelInstaller:
 
 
 
-    def _download_hf_repo(self, repo_id, model_id, download_folder):
+    def _download_hf_repo(self, repo_id, model_id, download_folder, exclude_filters = None):
 
         retries_left = 5
         while retries_left > 0:
@@ -444,9 +460,17 @@ class OpenVINOModelInstaller:
                     file_name: str = file.get("name")
                     file_size: int = file.get("size")
                     file_checksum: int = file.get("sha256")
-                    total_file_list_size += file_size
+
                     #print(file_name)
                     relative_path = os.path.relpath(file_name, repo_id)
+
+                    if exclude_filters:
+                        if does_filename_match_patterns(relative_path, exclude_filters):
+                            print(relative_path, ": Skipped due to exclude filters")
+                            continue
+
+                    total_file_list_size += file_size
+
                     subfolder = os.path.dirname(relative_path).replace("\\", "/")
                     relative_filename = os.path.basename(relative_path)
                     url = hf_hub_url(
@@ -520,6 +544,10 @@ class OpenVINOModelInstaller:
             print("Unexpected error! 'supported_model_ids' key not found in installable_details for model_id=", model_id)
             return False
 
+        if "download_exclude_filters" not in installable_details:
+            print("Unexpected error! 'download_exclude_filters' key not found in installable_details for model_id=", model_id)
+            return False
+
         repo_id = installable_details["repo_id"]
 
         if repo_id is None:
@@ -527,7 +555,10 @@ class OpenVINOModelInstaller:
             return False
 
         download_folder = 'hf_download_folder'
-        download_success = self._download_hf_repo(repo_id, model_id, download_folder)
+
+        download_exclude_filters = installable_details["download_exclude_filters"]
+
+        download_success = self._download_hf_repo(repo_id, model_id, download_folder, download_exclude_filters)
 
         if download_success:
 
@@ -668,8 +699,8 @@ class OpenVINOModelInstaller:
             # Dequeue the thread now that it's our turn
             self.install_queue.get()
 
-            # a list of installation id's where we simply call
-            # our download function (no fancy post-processing required)
+            # a list of installation id's where we only need to call
+            # our download function (no fancy post-download processing required)
             simply_download_models = [
             "sd_15_portrait",
             "sd_15_landscape",
