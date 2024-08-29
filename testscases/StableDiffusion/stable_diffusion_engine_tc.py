@@ -213,7 +213,6 @@ def main():
         "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
         "sd_1.5_inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
         "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
-        "sd_1.5_inpainting_int8a16": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
         "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
         "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
         "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
