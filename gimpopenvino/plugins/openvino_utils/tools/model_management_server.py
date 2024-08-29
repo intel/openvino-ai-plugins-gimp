@@ -370,7 +370,7 @@ class OpenVINOModelInstaller:
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
 
 
-    # Given a model_id, is it installed? This is a very simply check right now (check for existence of directory)
+    # Given a model_id, is it installed? This is a very simple check right now (check for existence of directory)
     #  but it likely needs to be transformed into something better (i.e. reading a json from the directly, cross-checking
     #  HF commit-id, etc.)
     def is_model_installed(self, model_id):
@@ -388,9 +388,26 @@ class OpenVINOModelInstaller:
         return False
 
 
+    # This function returns 2 things:
+    # 1. The list of (individual) models that are installed. Essentially, this is used to populate the model selection drop-down list.
+    #    For each model, it will send:
+    #       - the model id. e.g. "sd_1.5_square"
+    #       - the 'full' model name. e.g. "Stable Diffusion 1.5 (Square 512x512)(FP16)"
+    #
+    # 2. The list of installable models. Essentially, this is used to populate rows for the model manager ui window.
+    #    For each installable model, it will send:
+    #       - the installable model id. e.g. "sd_15_square"
+    #       - the full name. e.g. "Stable Diffusion 1.5 (Square)"
+    #       - the state of installation ('installed', 'not_installed', or 'installing')
     def get_all_model_details(self):
 
-        model_details = []
+        # okay, first we need to create a list of models that we detect as being installed.
+        installed_models = []
+        for model_id, model_details in g_supported_model_map.items():
+            if self.is_model_installed(model_id):
+                installed_models.append( {"id": model_id, "name": model_details["name"]} )
+
+        installable_model_details = []
         for install_id, install_details in self.installable_model_map.items():
 
             # If all models in supported_model_ids are installed, then we give
@@ -421,9 +438,9 @@ class OpenVINOModelInstaller:
                 model_detail_entry["id"] = install_id
                 model_detail_entry['install_status'] = install_status
 
-                model_details.append(model_detail_entry)
+                installable_model_details.append(model_detail_entry)
 
-        return model_details
+        return installed_models, installable_model_details
 
     def _generate_file_list_from_hf_repo_path(self, repo_id_path, file_list):
         repo_list = self.hf_fs.ls(repo_id_path, detail=True)
@@ -906,21 +923,29 @@ def run_connection_routine(ov_model_installer, conn):
 
             # request to get the details and state of all supported models
             if data.decode() == "get_all_model_details":
-                model_details = ov_model_installer.get_all_model_details()
 
-                #get number of models
-                num_models = len(model_details)
+                # get the list of installed models, and installable model details.
+                installed_models, installable_model_details = ov_model_installer.get_all_model_details()
 
-                print("num_models = ", num_models)
-                conn.sendall(bytes(str(num_models), 'utf-8'))
-                #wait for ack
-                data = conn.recv(1024)
+                # Send the list of installed models
+                num_installed_models = len(installed_models)
+                print("num_installed_models = ", num_installed_models)
+                conn.sendall(bytes(str(num_installed_models), 'utf-8'))
+                data = conn.recv(1024) # <-wait for ack
+                for i in range(0, num_installed_models):
+                    for detail in ["name", "id"]:
+                        conn.sendall(bytes(installed_models[i][detail], 'utf-8'))
+                        data = conn.recv(1024) # <-wait for ack
 
-                for i in range(0, num_models):
+                # Send the installable model details
+                num_installable_models = len(installable_model_details)
+                print("num_installable_models = ", num_installable_models)
+                conn.sendall(bytes(str(num_installable_models), 'utf-8'))
+                data = conn.recv(1024) # <-wait for ack
+                for i in range(0, num_installable_models):
                     for detail in ["name", "description", "id", "install_status"]:
-                        conn.sendall(bytes(model_details[i][detail], 'utf-8'))
-                        #wait for ack
-                        data = conn.recv(1024)
+                        conn.sendall(bytes(installable_model_details[i][detail], 'utf-8'))
+                        data = conn.recv(1024) # <-wait for ack
 
                 continue
 

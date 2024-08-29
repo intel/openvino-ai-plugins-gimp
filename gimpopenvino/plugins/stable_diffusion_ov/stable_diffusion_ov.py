@@ -101,41 +101,6 @@ class SDDialogResponse(IntEnum):
 def check_files_exist(dir_path, files):
     return all(os.path.isfile(Path(dir_path) / file) for file in files)
 
-def list_models(weight_path, SD):
-    model_list = []
-    model_paths = {
-        "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
-        "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
-        "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
-        "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
-        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
-        "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
-        "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
-        "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
-        "sd_1.5_inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
-        "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
-        "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
-        "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
-        "sd_3.0_square_int8": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int8"],
-        "sd_3.0_square_int4": ["stable-diffusion-ov", "stable-diffusion-3.0", "square_int4"],
-        "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
-        "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
-        "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
-        "controlnet_scribble": ["stable-diffusion-ov", "controlnet-scribble"],
-        "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
-        "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
-        "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
-    }
-    # Default path if model_name is not in the dictionary
-    dir_path = os.path.join(weight_path, *model_paths.get(SD, ""))
-    if Path(dir_path).is_dir():
-        model_list.append(SD)
-
-    return model_list
-
-
-
-
 class SDRunner:
     def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
                   strength, seed, progress_bar, config_path_output):
@@ -359,7 +324,7 @@ class ModelManagementWindow(Gtk.Window):
 
         self.connect("delete-event", self.on_delete_event)
 
-        models = self.get_all_model_details()
+        self._installed_models, installable_model_details = self.get_all_model_details()
 
         self.poll_install_status_thread = None
         self.bStopPoll = False
@@ -381,8 +346,8 @@ class ModelManagementWindow(Gtk.Window):
         self.expanded_descriptions = []
 
         # Add each model to the window
-        if models is not None:
-            for model in models:
+        if installable_model_details is not None:
+            for model in installable_model_details:
 
                 # Model name label
                 name_label = Gtk.Label()
@@ -435,7 +400,8 @@ class ModelManagementWindow(Gtk.Window):
 
         #self.show_all()
 
-
+    def get_installed_model_list(self):
+        return self._installed_models
 
     def on_title_clicked(self, widget, event, index):
          # Toggle the visibility of the detailed description
@@ -489,7 +455,7 @@ class ModelManagementWindow(Gtk.Window):
         download_button.set_visible(True)
 
         if self._models_updated_callback:
-            self._models_updated_callback()
+            self._models_updated_callback(self._installed_models)
 
     def update_ui_install_progress(self, model_id, install_status):
 
@@ -553,9 +519,9 @@ class ModelManagementWindow(Gtk.Window):
                 # TODO: Handle failure case. How we do inform user?
 
                 # We will now get details of all models
-                all_model_details = self._all_model_details(s)
+                self._installed_models, installable_model_details = self._all_model_details(s)
 
-                for model_detail in all_model_details:
+                for model_detail in installable_model_details:
                     # if this is the model that we are interested in..
                     if model_detail["id"] == model_id:
                         install_status = model_detail["install_status"]
@@ -600,19 +566,38 @@ class ModelManagementWindow(Gtk.Window):
 
 
     def _all_model_details(self, s):
-        model_details = []
+
 
         #send cmd
         s.sendall(b"get_all_model_details")
 
-        # get number of models
+        # get number of installed models
         data = s.recv(1024)
         num_models = int(data.decode())
 
         #send ack
         s.sendall(data)
 
+        installed_models = []
         for i in range(0, num_models):
+            model_detail = {}
+            for detail in ["name", "id"]:
+                data = s.recv(1024)
+                model_detail[detail] = data.decode()
+                #send ack
+                s.sendall(data)
+
+            installed_models.append(model_detail)
+
+        # get the number of installable models
+        data = s.recv(1024)
+        num_installable_models = int(data.decode())
+
+        #send ack
+        s.sendall(data)
+
+        installable_model_details = []
+        for i in range(0, num_installable_models):
             model_detail = {}
             for detail in ["name", "description", "id", "install_status"]:
                 data = s.recv(1024)
@@ -620,11 +605,11 @@ class ModelManagementWindow(Gtk.Window):
                 #send ack
                 s.sendall(data)
 
-            model_details.append(model_detail)
+            installable_model_details.append(model_detail)
 
-        print("model details = ", model_details)
+        print("model details = ", installable_model_details)
 
-        return model_details
+        return installed_models, installable_model_details
 
     def get_all_model_details(self):
 
@@ -632,9 +617,7 @@ class ModelManagementWindow(Gtk.Window):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self._host, self._port))
 
-                model_details = self._all_model_details(s)
-
-                return model_details
+                return self._all_model_details(s)
 
         except Exception as e:
             print(f"There was a problem getting model details..")
@@ -1168,39 +1151,26 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 populate_advanced_settings()
 
 
+
+
+
         model_combo = None
-        def populate_model_combo():
+        def populate_model_combo(installed_models):
             nonlocal model_combo
             nonlocal grid
             nonlocal config
             nonlocal model_combo_changed
             nonlocal model_sensitive_combo_changed
 
-            if n_layers == 2:
-                model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
-            else:
-                model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_square") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
-                              list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
-                              list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
-                              list_models(config_path_output["weight_path"],"sd_2.1_square") +
-                              list_models(config_path_output["weight_path"],"sd_3.0_square_int4") +
-                              list_models(config_path_output["weight_path"],"sd_3.0_square_int8") +
-                              list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
-                              list_models(config_path_output["weight_path"],"controlnet_openpose") +
-                              list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
-                              list_models(config_path_output["weight_path"],"controlnet_canny_int8") +
-                              list_models(config_path_output["weight_path"],"controlnet_canny") +
-                              list_models(config_path_output["weight_path"],"controlnet_scribble") +
-                              list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
-
-            print("model_list = ", model_list)
+            model_list = []
+            for installed_model in installed_models:
+                model_id = installed_model["id"]
+                if n_layers == 2:
+                    if "inpainting" in model_id:
+                        model_list.append(model_id)
+                else:
+                    if "inpainting" not in model_id:
+                        model_list.append(model_id)
 
             model_name_enum = DeviceEnum(model_list)
 
@@ -1217,19 +1187,20 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_combo.connect("changed", model_combo_changed)
             model_combo.connect("changed", model_sensitive_combo_changed)
 
-        # do the initial population of the model_combo.
-        # Note that 'populate_model_combo' can be called again by the ModelManagerWindow,
-        #  upon installation of a model.
-        populate_model_combo()
-
         print("creating ModelManagementWindow...")
         model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
         model_management_window.hide()
         print("done creating ModelManagementWindow...")
 
+        installed_models = model_management_window.get_installed_model_list()
+
+        # do the initial population of the model_combo.
+        # Note that 'populate_model_combo' can be called again by the ModelManagerWindow,
+        #  upon installation of a model.
+        populate_model_combo(installed_models)
+
         def model_management_launch_button_clicked(widget):
             model_management_window.display()
-
 
         model_management_launch_button = Gtk.Button(label="Manage Models")
         model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
