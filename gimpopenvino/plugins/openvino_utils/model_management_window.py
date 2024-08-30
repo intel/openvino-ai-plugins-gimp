@@ -8,6 +8,48 @@ import sys
 import os
 import socket
 import subprocess
+
+class ErrorWindow(Gtk.Dialog):
+    def __init__(self, parent, summary, details):
+        Gtk.Dialog.__init__(self, title="Error", transient_for=parent, flags=0)
+        self.set_default_size(1200, 800)
+
+        # Add buttons (OK button to close the dialog)
+        self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+
+        # Create a box to contain the content
+        box = self.get_content_area()
+
+        # Add margins to the content area
+        box.set_margin_top(20)
+        box.set_margin_bottom(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+
+        # High-level summary
+        summary_label = Gtk.Label(label=summary)
+        summary_label.set_xalign(0)  # Align text to the left
+        summary_label.set_margin_bottom(10)
+        summary_label.set_markup(f"<b>{summary}</b>")  # Bold the summary text
+        box.add(summary_label)
+
+        # Detailed description using Gtk.TextView inside a Gtk.ScrolledWindow
+        details_view = Gtk.TextView()
+        details_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        details_view.set_editable(False)
+        details_view.set_cursor_visible(False)
+        text_buffer = details_view.get_buffer()
+        text_buffer.set_text(details)
+
+        # Add the TextView to a ScrolledWindow
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_vexpand(True)
+        scrolled_window.add(details_view)
+        box.add(scrolled_window)
+
+        # Show all widgets
+        self.show_all()
+
 class ModelManagementWindow(Gtk.Window):
     def __init__(self, config_path, python_path, models_updated_callback):
         Gtk.Window.__init__(self, title="Stable Diffusion Model Management")
@@ -83,7 +125,7 @@ class ModelManagementWindow(Gtk.Window):
                 elif model["install_status"] == "installed":
                     download_button = Gtk.Button(label="Installed")
                     download_button.set_sensitive(False)
-                elif model["install_status"] == "installing":
+                elif model["install_status"] == "installing" or model["install_status"] == "install_error":
                     download_button = Gtk.Button(label="Install")
                     download_button.set_sensitive(False)
 
@@ -95,7 +137,7 @@ class ModelManagementWindow(Gtk.Window):
                 self.model_ui_map[model["id"]] = { "row_index": model_row_index*2, "download_button": download_button}
 
                 # if the state of the model is installing, kick off the poll thread for it.
-                if model["install_status"] == "installing":
+                if model["install_status"] == "installing" or model["install_status"] == "install_error":
                     poll_install_status_thread = threading.Thread(target=self.poll_install_status, args=(model["id"],))
                     poll_install_status_thread.start()
 
@@ -135,18 +177,21 @@ class ModelManagementWindow(Gtk.Window):
     def stop_poll_thread(self):
         self.bStopPoll = True
 
-    def post_install_routine(self, model_id, install_status):
+    def post_install_routine(self, model_id, install_status, error_summary, error_details):
         print("post_install_routine...")
         model_ui = self.model_ui_map[model_id]
 
         download_button = model_ui["download_button"]
-        progress_bar = model_ui["progress_bar"]
-        cancel_button = model_ui["cancel_button"]
 
-        self.model_box.remove(progress_bar)
-        self.model_box.remove(cancel_button)
-        model_ui.pop("progress_bar")
-        model_ui.pop("cancel_button")
+        if "progress_bar" in model_ui:
+            progress_bar = model_ui["progress_bar"]
+            self.model_box.remove(progress_bar)
+            model_ui.pop("progress_bar")
+
+        if "cancel_button" in model_ui:
+            cancel_button = model_ui["cancel_button"]
+            self.model_box.remove(cancel_button)
+            model_ui.pop("cancel_button")
 
         model_row_index = model_ui["row_index"]
 
@@ -155,6 +200,14 @@ class ModelManagementWindow(Gtk.Window):
         if install_status == "installed":
             download_button.set_label("Installed")
             download_button.set_sensitive(False)
+        elif install_status == "install_error":
+            download_button.set_label("Install")
+            download_button.set_sensitive(True)
+
+            # Create and run the error dialog
+            dialog = ErrorWindow(self, error_summary, error_details)
+            dialog.run()
+            dialog.destroy()
         else:
             download_button.set_label("Install")
             download_button.set_sensitive(True)
@@ -232,8 +285,19 @@ class ModelManagementWindow(Gtk.Window):
                     # if this is the model that we are interested in..
                     if model_detail["id"] == model_id:
                         install_status = model_detail["install_status"]
+
+                        error_summary = "None"
+                        error_details = "None"
+
+                        if install_status == "install_error":
+                            summary, error_details = self.get_error_details(s, model_id)
+                            error_summary = "Error during Installation of " + model_detail["name"] + "!"
+                            error_summary += "\nSummary: " + summary
+                            error_summary += "\n\nDetails:"
+
+
                         # launch the post_install routine (UI updates) on the main thread
-                        GLib.idle_add(self.post_install_routine, model_id, install_status)
+                        GLib.idle_add(self.post_install_routine, model_id, install_status, error_summary, error_details)
                         break
 
         except Exception as e:
@@ -245,6 +309,28 @@ class ModelManagementWindow(Gtk.Window):
         print("poll thread exiting..")
 
 
+    def get_error_details(self, s, model_id):
+
+        #send cmd
+        s.sendall(b"error_details")
+
+        #wait for an ack
+        data = s.recv(1024)
+
+        # send the model_id
+        s.sendall(bytes(model_id, 'utf-8'))
+
+        # get the summary
+        data = s.recv(1024)
+        summary = data.decode()
+        s.sendall(data) # <- send ack
+
+        # get the details
+        data = s.recv(4096)
+        details = data.decode()
+        s.sendall(data) # <- send ack
+
+        return summary, details
 
     def get_install_status(self, s, model_id):
 

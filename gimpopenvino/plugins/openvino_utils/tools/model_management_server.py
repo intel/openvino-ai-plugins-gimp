@@ -127,6 +127,27 @@ def run_connection_routine(model_manager, conn):
 
                 continue
 
+            if data.decode() == "error_details":
+                # send ack
+                conn.sendall(data)
+
+                # Get the model-id that we are interested in.
+                data = conn.recv(1024)
+                model_id = data.decode()
+
+                summary, details = model_manager.get_error_details(model_id)
+
+                # first, send the summary
+                conn.sendall(bytes(summary, 'utf-8'))
+                data = conn.recv(1024) # <- get ack
+
+                # then, send the send the details
+                conn.sendall(bytes(details, 'utf-8'))
+                data = conn.recv(1024) # <- get ack
+
+
+                continue
+
             if data.decode() == "install_cancel":
                 # send ack
                 conn.sendall(data)
