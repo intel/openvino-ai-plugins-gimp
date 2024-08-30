@@ -156,6 +156,11 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "controlnet-referenceonly"],
     },
 
+}
+
+
+# add these to above dictionary for UI testing
+'''
     "test.1":
     {
         "name": "Test 1 Model",
@@ -169,8 +174,7 @@ g_supported_model_map = {
         "install_id": "test2",
         "install_subdir": ["stable-diffusion-ov", "test2"],
     },
-
-}
+'''
 
 
 # The thing used to populate the Model Manager UI (or model_setup.py console selections)
@@ -248,6 +252,10 @@ g_installable_base_model_map = {
         "download_exclude_filters": [],
     },
 
+}
+
+# add these to above dictionary for UI testing
+'''
     "test1":
     {
         "name": "Test Model 1",
@@ -261,7 +269,8 @@ g_installable_base_model_map = {
         "repo_id": None,
         "download_exclude_filters": [],
     }
-}
+
+'''
 
 
 access_token = None
