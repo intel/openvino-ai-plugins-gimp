@@ -16,7 +16,6 @@ from tools_utils import get_weight_path
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
 PORT = 65434  # Port to listen on (stable_diffusion_ov_server uses port 65432 &  65433)
 
-log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=sys.stdout)
 
 #TODO: Put these in a standalone py, or json config, etc. Someplace outside of model_management_server.py.
 
@@ -40,6 +39,13 @@ g_supported_model_map = {
     "sd_1.5_square_int8":
     {
         "name": "Stable Diffusion 1.5 [Square] [INT8]",
+        "install_id": "sd_15_square",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"]
+    },
+
+    "sd_1.5_square_int8a16":
+    {
+        "name": "Stable Diffusion 1.5 [Square] [INT8A16]",
         "install_id": "sd_15_square",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"]
     },
@@ -167,8 +173,8 @@ g_supported_model_map = {
 
 
 # The thing used to populate the Model Manager UI (or model_setup.py console selections)
-# Each model in g_supported_model_map define 'install_id',
-#  which is the key to use.
+# Each model in g_supported_model_map defines 'install_id', which is the key to use.
+#
 # It's called 'base' model map, since it's meant to be
 #  an initializer.. not something to use as-is. For example,
 #  OpenVINOModelInstaller makes a copy of it, and actually adds
@@ -257,7 +263,7 @@ g_installable_base_model_map = {
 }
 
 #TODO: This class should be in a separate utils file, so that it can be called from top-level model_setup.py
-from openvino.runtime import Core
+import openvino as ov
 from huggingface_hub import snapshot_download, HfFileSystem, hf_hub_url
 import concurrent.futures
 import platform
@@ -266,7 +272,14 @@ import io
 import requests
 import queue
 import fnmatch
+import logging
+logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout) 
+
 access_token = None
+# Constants
+NPU_ARCH_3720 = "3720"
+NPU_ARCH_4000 = "4000"
+NPU_THRESHOLD = 43000
 
 def does_filename_match_patterns(filename, patterns):
     for pattern in patterns:
@@ -283,18 +296,31 @@ def is_subdirectory(child_path, parent_path):
     return parent_path in child_path.parents
 
 def compile_and_export_model(core, model_path, output_path, device='NPU', config=None):
-    """
-    Compile the model and export it to the specified path.
-    """
-    print("compile_and_export_model: model_path = ", model_path)
-    model = core.compile_model(model_path, device, config=config)
-    with io.BytesIO() as model_blob:
-        model.export_model(model_blob)
-        print("exporting model_blob to ", output_path)
-        with open(output_path, 'wb') as f:
-            f.write(model_blob.getvalue())
+    try:
+        # Compile the model for the specified device
+        model = core.compile_model(model_path, device, config=config)
 
-    print("compile_and_export_model: model_path = ", model_path, " done!")
+        # Export the compiled model to a binary blob
+        with io.BytesIO() as model_blob:
+            model.export_model(model_blob)
+
+            # Write the binary blob to the output path
+            temp_output_path = str(output_path) + ".tmp"
+            with open(temp_output_path, 'wb') as f:
+                f.write(model_blob.getvalue())
+
+            # Remove the existing file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+            # Rename the temporary file to the final output path
+            os.rename(temp_output_path, output_path)
+        print(f"!!!!!!!!!!!!!!!!!!!! Model compiled and exported successfully to {output_path}")
+        logging.info(f"Model compiled and exported successfully to {output_path}")
+
+    except Exception as e:
+        logging.error(f"Failed to compile and export model: {str(e)}")
+        raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}")
 
 
 def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size):
@@ -320,19 +346,32 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
 
     return downloaded_size
 
+def get_npu_architecture(core):
+    try:
+        available_devices = core.get_available_devices()
+        if 'NPU' in available_devices:
+            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+            return NPU_ARCH_3720 if NPU_ARCH_3720 in architecture else NPU_ARCH_4000
+    except Exception as e:
+        logging.error(f"Error retrieving NPU architecture: {str(e)}")
+        return None
+
+def get_npu_config(core, architecture):
+    try:
+        if architecture == NPU_ARCH_4000:
+            gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
+            return 6 if gops_value > NPU_THRESHOLD else None
+    except Exception as e:
+        logging.error(f"Error retrieving NPU configuration: {str(e)}")
+        return None
 
 class OpenVINOModelInstaller:
     def __init__(self):
-        print("OpenVINOModelInstaller..")
-        self._core = Core()
-        self._os_type = platform.system().lower()
-        self._available_devices = self._core.get_available_devices()
-        self._npu_arch = None
+        self._core = ov.Core()
+        self._npu_arch = get_npu_architecture(self._core)
+        self._npu_config = get_npu_config(self._core, self._npu_arch)
         self._weight_path = get_weight_path()
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
-        self._npu_arch = None
-        if 'NPU' in self._available_devices:
-            self._npu_arch = "3720" if "3720" in self._core.get_property('NPU', 'DEVICE_ARCHITECTURE') else "4000"
 
         self.hf_fs = HfFileSystem()
         self.model_install_status = {}
@@ -621,7 +660,7 @@ class OpenVINOModelInstaller:
 
                 # if it already exists, delete it first
                 if os.path.isdir(full_install_path):
-                    shutil.rmtree(SD_path_INT8)
+                    shutil.rmtree(full_install_path)
 
                 # okay, copy it!
                 # (the ignore_patterns were added to pull logic of 'download_quantized_models' into here. See below)
@@ -645,7 +684,7 @@ class OpenVINOModelInstaller:
         # download method.
         download_folder = 'hf_download_folder'
         if os.path.isdir(download_folder):
-                shutil.rmtree(download_folder, ignore_errors=True)
+            shutil.rmtree(download_folder, ignore_errors=True)
 
         return True
 
@@ -752,7 +791,8 @@ class OpenVINOModelInstaller:
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
-
+        npu_config = self._npu_config
+        
         download_success = self._download_model(model_id)
 
         if npu_arch is not None:
@@ -761,25 +801,28 @@ class OpenVINOModelInstaller:
                 self.model_install_status[model_id]["percent"] = 0.0
                 text_future = None
                 unet_int8_future = None
+                unet_int8a16_future = None
                 unet_future = None
                 vae_de_future = None
                 vae_en_future = None
 
                 if npu_arch == "3720":
                     # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
-                    models_to_compile = [ "unet_int8", "text_encoder"]
+                    models_to_compile = [ "unet_int8a16", "unet_int8", "text_encoder"]
                     shared_models = ["text_encoder.blob"]
                     sd15_futures = {
                         "text_encoder" : text_future,
                         "unet_int8" : unet_int8_future,
+                        "unet_int8a16" : unet_int8a16_future
                     }
                 else:
                     # also modified the model order for less checking in the future object when it gets result
-                    models_to_compile = [ "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
+                    models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
                     shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
                     sd15_futures = {
                         "text_encoder" : text_future,
                         "unet_bs1" : unet_future,
+                        "unet_int8a16" : unet_int8a16_future,
                         "unet_int8" : unet_int8_future,
                         "vae_encoder" : vae_en_future,
                         "vae_decoder" : vae_de_future
@@ -788,16 +831,20 @@ class OpenVINOModelInstaller:
                 try:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                         for model_name in models_to_compile:
-                            model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
-                            output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-                            if "unet_int8" in model_name:
+                            config = None
+                            logging.info(f"Creating NPU model for {model_name}")
+
+                            if "unet_int8" in model_name or "unet_bs1" in model_name:
+                                config = { "NPU_DPU_GROUPS" : npu_config, "NPU_MAX_TILES": npu_config } if npu_config is not None else None
+
+                            if "unet_int8" not in model_name:
+                                model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
+                                output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
+                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16, config=config)
+                            else:
                                 model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                                 output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
-                                print(f"Creating NPU model for {model_name}")
-                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8)
-                            else:
-                                print(f"Creating NPU model for {model_name}")
-                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16)
+                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8, config=config)
 
 
                         num_futures = len(sd15_futures)
@@ -814,31 +861,33 @@ class OpenVINOModelInstaller:
                     return
 
                 # Copy shared models to INT8 directory
-                print("copying shared models... install_location=", install_location)
                 for blob_name in shared_models:
-                    print("shutil.copy(", os.path.join(install_location, model_fp16, blob_name),",",os.path.join(install_location, model_int8, blob_name))
                     shutil.copy(
                         os.path.join(install_location, model_fp16, blob_name),
                         os.path.join(install_location, model_int8, blob_name)
                     )
-                #:::::::::::::: START REMOVE ME ::::::::::::::
-                # Temporary workaround to force the config for Lunar Lake -
-                # REMOVE ME before publishing to external open source.
-                config_data = { 	"power modes supported": "yes",
-                                        "best performance" : ["GPU","GPU","GPU","GPU"],
-                                                "balanced" : ["NPU","NPU","GPU","GPU"],
-                                   "best power efficiency" : ["NPU","NPU","NPU","NPU"]
-                                }
-                # Specify the file name
-                file_name = "config.json"
 
-                # Write the data to a JSON file
-                with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
-                    json.dump(config_data, json_file, indent=4)
-                # Write the data to a JSON file
-                with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
-                    json.dump(config_data, json_file, indent=4)
-                #:::::::::::::: END REMOVE ME ::::::::::::::
+                if npu_arch != "3720":
+                    config_fp_16 = { 	"power modes supported": "yes",
+                                            "best performance" : ["GPU","GPU","GPU","GPU"],
+                                                    "balanced" : ["NPU","NPU","GPU","GPU"],
+                                       "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                    }
+                    config_int8 = { 	"power modes supported": "yes",
+                                            "best performance" : ["NPU","NPU","GPU","GPU"],
+                                                    "balanced" : ["GPU","NPU","NPU","GPU"],
+                                       "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                    }
+
+                    # Specify the file name
+                    file_name = "config.json"
+
+                    # Write the data to a JSON file
+                    with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                        json.dump(config_fp_16, json_file, indent=4)
+                    # Write the data to a JSON file
+                    with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                        json.dump(config_int8, json_file, indent=4)
 
 
     def dl_sd_15_LCM(self, model_id):
@@ -896,6 +945,20 @@ class OpenVINOModelInstaller:
                             self.model_install_status[model_id]["percent"] += perc_increment
                 except:
                     print("Compilation failed.")
+
+                # Write out config file. GPU used for VAE in all cases.
+                config = { 	"power modes supported": "yes",
+                                "best performance" : ["GPU","GPU","GPU"],
+                                        "balanced" : ["GPU","NPU","GPU"],
+                           "best power efficiency" : ["NPU","NPU","GPU"]
+                    }
+
+                # Specify the file name
+                file_name = "config.json"
+
+                # Write the data to a JSON file
+                with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
+                    json.dump(config, json_file, indent=4)
 
 
 
