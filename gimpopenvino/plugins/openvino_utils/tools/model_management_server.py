@@ -177,7 +177,7 @@ g_supported_model_map = {
 #
 # It's called 'base' model map, since it's meant to be
 #  an initializer.. not something to use as-is. For example,
-#  OpenVINOModelInstaller makes a copy of it, and actually adds
+#  ModelManager makes a copy of it, and actually adds
 #  more details to each entry.
 # name: The name/title to be displayed in the Model Manager UI
 # repo_id: HF repo id -- used by download routine.
@@ -365,7 +365,7 @@ def get_npu_config(core, architecture):
         logging.error(f"Error retrieving NPU configuration: {str(e)}")
         return None
 
-class OpenVINOModelInstaller:
+class ModelManager:
     def __init__(self):
         self._core = ov.Core()
         self._npu_arch = get_npu_architecture(self._core)
@@ -963,7 +963,7 @@ class OpenVINOModelInstaller:
 
 
 
-def run_connection_routine(ov_model_installer, conn):
+def run_connection_routine(model_manager, conn):
     with conn:
         while True:
             data = conn.recv(1024)
@@ -981,7 +981,7 @@ def run_connection_routine(ov_model_installer, conn):
             if data.decode() == "get_all_model_details":
 
                 # get the list of installed models, and installable model details.
-                installed_models, installable_model_details = ov_model_installer.get_all_model_details()
+                installed_models, installable_model_details = model_manager.get_all_model_details()
 
                 # Send the list of installed models
                 num_installed_models = len(installed_models)
@@ -1017,25 +1017,23 @@ def run_connection_routine(ov_model_installer, conn):
 
                print("Model Management Server: model_id=", model_id)
 
-               if model_id not in ov_model_installer.model_install_status:
+               if model_id not in model_manager.model_install_status:
 
-                   # add it to the dictionary here (instead of in ov_model_installer.install_model).
+                   # add it to the dictionary here (instead of in model_manager.install_model).
                    # This will guarantee that it is present in the dictionary before sending the ack,
                    #  and avoiding a potential race condition where the GIMP UI side asks for the status
                    #  before the thread spawns.
-                   ov_model_installer.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0}
+                   model_manager.model_install_status[model_id] = {"status": "Preparing to install..", "percent": 0.0}
 
                    #Run the install on another thread. This allows the server to service other requests
                    # while the install is taking place.
-                   install_thread = threading.Thread(target=ov_model_installer.install_model, args=(model_id,))
+                   install_thread = threading.Thread(target=model_manager.install_model, args=(model_id,))
                    install_thread.start()
                else:
                    print(model_id, "is already currently installing!")
 
                #send ack
                conn.sendall(data)
-
-               #ov_model_installer.install_model(model_id)
 
                continue
 
@@ -1047,7 +1045,7 @@ def run_connection_routine(ov_model_installer, conn):
 
                 # make a copy of this so that the number of entries doesn't change while we're
                 #  in this routine.
-                model_install_status = ov_model_installer.model_install_status.copy()
+                model_install_status = model_manager.model_install_status.copy()
 
                 # Get the model-id that we are interested in.
                 data = conn.recv(1024)
@@ -1085,7 +1083,7 @@ def run_connection_routine(ov_model_installer, conn):
                 #send ack
                 conn.sendall(data)
 
-                ov_model_installer.cancel_install(model_id)
+                model_manager.cancel_install(model_id)
 
                 continue
 
@@ -1106,7 +1104,7 @@ def run():
     # go there.
     os.chdir(tmp_working_dir)
 
-    ov_model_installer = OpenVINOModelInstaller()
+    model_manager = ModelManager()
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
@@ -1117,12 +1115,8 @@ def run():
             print("new connection established..")
 
             #Run this connection on a dedicated thread. This allows multiple connections to be present at once.
-            conn_thread = threading.Thread(target=run_connection_routine, args=(ov_model_installer, conn))
+            conn_thread = threading.Thread(target=run_connection_routine, args=(model_manager, conn))
             conn_thread.start()
-            #run_connection_routine(ov_model_installer, conn)
-
-
-
 
     print("model management server exiting...")
 
