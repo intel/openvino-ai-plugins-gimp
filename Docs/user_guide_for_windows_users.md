@@ -105,11 +105,8 @@ Please download [gimp-2.99.16-setup.exe](https://download.gimp.org/gimp/v2.99/wi
     cd C:\Users\Public\
     mkdir GIMP
     cd GIMP
-<<<<<<< HEAD
-    git clone --branch v2.99-R3 https://github.com/intel/openvino-ai-plugins-gimp.git
-=======
-    git clone --branch v2.99-R2 https://github.com/intel/openvino-ai-plugins-gimp.git
->>>>>>> main
+
+    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
     ```
     > __Notes__:
     > This is an example that will create a `GIMP` folder in `C:\Users\Public\`, and then download the package to `C:\Users\Public\GIMP`, you still can define where to place this package by yourself.
