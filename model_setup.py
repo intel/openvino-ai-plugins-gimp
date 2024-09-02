@@ -1,94 +1,286 @@
 import platform
-import distro
 import json
-import subprocess
-import re
 from huggingface_hub import snapshot_download
 import os
 import sys
 import shutil
 from pathlib import Path
-from glob import glob
-from openvino.runtime import Core
-
-
-mode_config_filename =  os.path.join(os.path.dirname(__file__), "model_setup_config.json") 
-mode_config = None
-with open(mode_config_filename) as f:
-    mode_config = json.load(f)
+import openvino as ov
+import io
+import logging
+import concurrent.futures
+logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout) 
     
-other_models = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+base_model_dir = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+install_location = os.path.join(base_model_dir, "stable-diffusion-ov")
 src_dir = os.path.join(os.path.dirname(__file__), "weights")
-test_path = os.path.join(other_models, "superresolution-ov")
+test_path = os.path.join(install_location, "superresolution-ov")
 
-access_token  = None
-
-core = Core()
-cpu_type = core.get_property('CPU','full_device_name'.upper())
-os_type = platform.system().lower()
-npu_driver_version = None
-npu_arch = None
-npu_devid_selection= None
-linux_kernel_version = None
-
+access_token = None
 # Constants
-MIN_UBUNTU_VERSION = [22, 4]
-LINUX_NPU_COMMAND = "dpkg -l | grep NPU  | awk '{print $3}'"
-LINUX_KERNEL_COMMAND = "uname -r"
-WINDOWS_NPU_COMMAND_TEMPLATE = "get-WmiObject Win32_PnPSignedDriver | Where-Object {{$_.DeviceID -like '{npu_devid}*'}} | Select-Object -ExpandProperty DriverVersion"
+NPU_ARCH_3720 = "3720"
+NPU_ARCH_4000 = "4000"
+NPU_THRESHOLD = 43000
 
-def get_windows_npu_info(npu_arch, npu_devid_selection):
-    npu_devid = npu_devid_selection['windows'][npu_arch]
-    command = WINDOWS_NPU_COMMAND_TEMPLATE.format(npu_devid=npu_devid)
-    return subprocess.check_output(['powershell.exe', command], shell=True, universal_newlines=True).rstrip().split(".")
-
-def get_linux_npu_info():
-    linux_distro = distro.id().lower()
-    os_version = list(map(int, distro.version().split('.')))
-    
-    if linux_distro != "ubuntu" or os_version < MIN_UBUNTU_VERSION:
-        raise ValueError(f"Unsupported Linux Distro: {linux_distro} and OS Version: {os_version}; Minimum Ubuntu OS version required: {MIN_UBUNTU_VERSION}")
-
-    npu_driver_version = subprocess.check_output(LINUX_NPU_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip().split("\n")
-    kernel_version = subprocess.check_output(LINUX_KERNEL_COMMAND, shell=True, stderr=subprocess.STDOUT, universal_newlines=True).rstrip()
-
-    npu_driver_version = re.findall(r"\d\.\d\.\d", npu_driver_version[0])[0]
-    linux_kernel_version = re.findall(r"\d\.\d", kernel_version)[0]
-
-    return npu_driver_version, linux_kernel_version
-
-def get_npu_info(core, os_type, npu_arch, npu_devid_selection):
+# Initialize OpenVINO Core
+core = ov.Core()
+os_type = platform.system().lower()
+available_devices = core.get_available_devices()
+        
+def get_npu_architecture(core):
     try:
-        if os_type == "windows":
-            return get_windows_npu_info(npu_arch, npu_devid_selection), None
-        elif os_type == "linux":
-            return get_linux_npu_info()
-        else:
-            raise ValueError(f"Unsupported OS type {os_type}")
+        if 'NPU' in available_devices:
+            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+            return NPU_ARCH_3720 if NPU_ARCH_3720 in architecture else NPU_ARCH_4000
     except Exception as e:
-        print(f"Error getting NPU info: {e}")
-        return None, None
+        logging.error(f"Error retrieving NPU architecture: {str(e)}")
+        return None
 
-if "ultra" in cpu_type.lower(): # bypass this test for RVP
-    npu_arch = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-    npu_devid_selection = mode_config['npu_devid_selection']
-    npu_driver_version, linux_kernel_version = get_npu_info(core, os_type, npu_arch, npu_devid_selection)
+def get_npu_config(core, architecture):
+    try:
+        if architecture == NPU_ARCH_4000:
+            gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
+            return 6 if gops_value > NPU_THRESHOLD else None
+    except Exception as e:
+        logging.error(f"Error retrieving NPU configuration: {str(e)}")
+        return None
 
-for folder in os.scandir(src_dir):
-    model = os.path.basename(folder)
-    model_path = os.path.join(other_models, model)
-    if not os.path.isdir(model_path):
-        print("Copying {} to {}".format(model, other_models))
-        shutil.copytree(Path(folder), model_path)
+npu_arch = get_npu_architecture(core)
+npu_config = get_npu_config(core, npu_arch)
 
-print("Setup done for superresolution, semantic-segmentation, style-transfer, in-painting") 
-print("**** OPENVINO STABLE DIFFUSION 1.4 MODEL SETUP ****")
-choice = input("Do you want to download openvino stable-diffusion-1.4 model? Enter Y/N: ")
 
-install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+def load_model(self, model, model_name, device):
+    print(f"Loading {model_name} to {device}")
+    start_t = time.time()
+    cmmodel =  core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+    print(f"Model Load completed in {time.time() - start_t} seconds")
 
-if choice == "Y" or choice == "y":
-    SD_path = os.path.join(install_location, "stable-diffusion-ov", "stable-diffusion-1.4")
+def install_base_models():
+    for folder in os.scandir(src_dir):
+        model = os.path.basename(folder)
+        model_path = os.path.join(base_model_dir, model)
+        if not os.path.isdir(model_path):
+            print("Copying {} to {}".format(model, base_model_dir))
+            shutil.copytree(Path(folder), model_path)
+            
+    print("Setup done for superresolution and semantic-segmentation") 
+                
+def download_quantized_models(repo_id, model_fp16, model_int8):
+    download_flag = True
+    SD_path_FP16 = os.path.join(install_location, model_fp16)
+    SD_path_INT8 = os.path.join(install_location, model_int8)
+               
+    if os.path.isdir(SD_path_FP16):
+            choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
+            if choice == "Y" or choice == "y":
+                shutil.rmtree(SD_path_FP16)
+            else:
+                download_flag = False
+                print(f"{repo_id} download skipped")
+                return download_flag
+                
+    if  download_flag:               
+        while True:
+            try:  
+                download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+                break
+            except Exception as e:
+                print("Error retry:" + str(e))
+ 
+        FP16_model = os.path.join(download_folder, "FP16")
+        # on some systems, the FP16 subfolder is not created resulting in a installation crash 
+        if not os.path.isdir(FP16_model):
+            os.mkdir(FP16_model)
+        shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
+        shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)       
+
+        if model_int8:            
+            if os.path.isdir(SD_path_INT8):
+                    shutil.rmtree(SD_path_INT8)
+
+            INT8_model = os.path.join(download_folder, "INT8")
+            shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
+            shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
+            
+            delete_folder=os.path.join(download_folder, "..", "..", "..")
+            shutil.rmtree(delete_folder, ignore_errors=True)
+
+    return download_flag
+
+def download_model(repo_id, model_1, model_2):
+    download_flag = True
+    
+    sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
+
+    if os.path.isdir(sd_model_1):
+        choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
+        if choice == "Y" or choice == "y":
+            shutil.rmtree(sd_model_1)
+        else:
+            download_flag = False
+            print(f"{repo_id} download skipped")
+            return download_flag
+                           
+    if download_flag:
+        while True:
+            try:  
+               download_folder = snapshot_download(repo_id=repo_id, token=access_token)
+               break
+            except Exception as e:
+                print("Error retry:" + str(e))
+        
+        if repo_id == "Intel/sd-1.5-lcm-openvino" or repo_id == "Intel/sd-reference-only" :
+            download_model_1 = download_folder
+        else:
+            download_model_1 = os.path.join(download_folder, model_1) 
+        shutil.copytree(download_model_1, sd_model_1)  
+         
+        if model_2:
+            sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
+            if os.path.isdir(sd_model_2):
+                    shutil.rmtree(sd_model_2)
+            download_model_2 = os.path.join(download_folder, model_2)
+            shutil.copytree(download_model_2, sd_model_2)
+
+        delete_folder=os.path.join(download_folder, "../../..")
+        shutil.rmtree(delete_folder, ignore_errors=True)
+    
+    return download_flag
+
+def compile_and_export_model(core, model_path, output_path, device='NPU', config=None):
+    try:
+        # Compile the model for the specified device
+        model = core.compile_model(model_path, device, config=config)
+        
+        # Export the compiled model to a binary blob
+        with io.BytesIO() as model_blob:
+            model.export_model(model_blob)
+            
+            # Write the binary blob to the output path
+            temp_output_path = str(output_path) + ".tmp"
+            with open(temp_output_path, 'wb') as f:
+                f.write(model_blob.getvalue())
+            
+            # Remove the existing file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+            # Rename the temporary file to the final output path
+            os.rename(temp_output_path, output_path)
+        
+        logging.info(f"Model compiled and exported successfully to {output_path}")
+    
+    except Exception as e:
+        logging.error(f"Failed to compile and export model: {str(e)}")
+        raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}")
+
+def dl_sd_15_square():
+    print("Downloading Intel/sd-1.5-square-quantized Models")
+    repo_id = "Intel/sd-1.5-square-quantized"
+    model_fp16 = os.path.join("stable-diffusion-1.5", "square")
+    model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
+
+    compile_models = download_quantized_models(repo_id, model_fp16, model_int8)
+    
+    if npu_arch is not None:
+        if not compile_models:
+            user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
+            if user_input == "y":
+                compile_models = True
+    
+        if compile_models:
+            text_future = None
+            unet_int8_future = None
+            unet_int8a16_future = None
+            unet_future = None
+            vae_de_future = None        
+            vae_en_future = None        
+            
+            if npu_arch == "3720":
+                # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
+                models_to_compile = [ "unet_int8a16", "unet_int8", "text_encoder"]
+                shared_models = ["text_encoder.blob"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet_int8" : unet_int8_future,
+                    "unet_int8a16" : unet_int8a16_future
+                }
+            else:
+                # also modified the model order for less checking in the future object when it gets result
+                models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder", "vae_encoder" , "vae_decoder" ]
+                shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet_bs1" : unet_future,
+                    "unet_int8a16" : unet_int8a16_future, 
+                    "unet_int8" : unet_int8_future,
+                    "vae_encoder" : vae_en_future,
+                    "vae_decoder" : vae_de_future
+                }
+    
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    for model_name in models_to_compile:
+                        config = None
+                        logging.info(f"Creating NPU model for {model_name}")
+
+                        if "unet_int8" in model_name or "unet_bs1" in model_name:
+                            config = { "NPU_DPU_GROUPS" : npu_config, "NPU_MAX_TILES": npu_config } if npu_config is not None else None
+                        
+                        if "unet_int8" not in model_name:
+                            model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
+                            output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16, config=config)
+                        else:    
+                            model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
+                            output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
+                            sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_int8, output_path_int8, config=config)
+                        
+                if npu_arch == "3720":                  
+                    sd15_futures["unet_int8"].result()
+                    sd15_futures["unet_int8a16"].result()
+                    sd15_futures["text_encoder"].result()
+                else:
+                    sd15_futures["unet_int8"].result()
+                    sd15_futures["unet_bs1"].result()
+                    sd15_futures["unet_int8a16"].result()
+                    sd15_futures["vae_decoder"].result()
+                    sd15_futures["vae_encoder"].result()
+                    sd15_futures["text_encoder"].result()
+            except:
+                print("Compilation failed.")    
+                
+            # Copy shared models to INT8 directory
+            for blob_name in shared_models:
+                shutil.copy(
+                    os.path.join(install_location, model_fp16, blob_name),
+                    os.path.join(install_location, model_int8, blob_name)
+                )
+            
+            if npu_arch != "3720":
+                config_fp_16 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["GPU","GPU","GPU","GPU"],
+                                      	        "balanced" : ["NPU","NPU","GPU","GPU"],
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                }
+                config_int8 = { 	"power modes supported": "yes", 	
+                                        "best performance" : ["NPU","NPU","GPU","GPU"],
+                                      	        "balanced" : ["GPU","NPU","NPU","GPU"],
+                                   "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                }
+                
+                # Specify the file name
+                file_name = "config.json"
+
+                # Write the data to a JSON file
+                with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                    json.dump(config_fp_16, json_file, indent=4)
+                # Write the data to a JSON file
+                with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                    json.dump(config_int8, json_file, indent=4)
+            
+def dl_sd_14_square():
+    SD_path = os.path.join(install_location, "stable-diffusion-1.4")
     if os.path.isdir(SD_path):
          shutil.rmtree(SD_path)
 
@@ -103,137 +295,6 @@ if choice == "Y" or choice == "y":
     shutil.copytree(download_folder, SD_path)
     delete_folder = os.path.join(download_folder, "..", "..", "..")
     shutil.rmtree(delete_folder, ignore_errors=True)
-
-install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights", "stable-diffusion-ov")
-
-def get_revsion(model_name=None):
-    revision = None
-    if model_name is not None:
-        # Get the revision selection configuration
-        revision_config = mode_config['revision_selection'] 
-        try: 
-            if os_type == "windows":
-                if model_name in revision_config:
-                    if int(npu_driver_version[3]) < 2016:
-                        revision = revision_config[model_name]['windows']['<2016'] + "-" + str(npu_arch)
-                    else: 
-                        revision = revision_config[model_name]['windows']['default'] + "-" + str(npu_arch)
-                else:
-                    revision = revision_config['default']
-            elif os_type == "linux":
-                if model_name in revision_config:
-                    revision = revision_config[model_name]['linux'][linux_kernel_version][npu_driver_version]
-                    if revision and "main" not in revision:
-                        revision += "-" + str(npu_arch)     
-                else:
-                    revision = revision_config['default']                 
-        except KeyError:
-            raise ValueError(f"Configuration mismatch! {os_type} & npu driver : {npu_driver_version} versions")
-    return revision
-                
-def download_quantized_models(repo_id, model_fp16, model_int8):
-    download_flag = True
-    SD_path_FP16 = os.path.join(install_location, model_fp16)
-    if os.path.isdir(SD_path_FP16):
-            choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
-            if choice == "Y" or choice == "y":
-                download_flag = True
-                shutil.rmtree(SD_path_FP16)
-            else:
-                download_flag = False
-                print("%s download skipped",repo_id)
-                
-    if  download_flag:               
-        revision = None
-        if npu_driver_version is not None:
-           revision = get_revsion(repo_id)
-        while True:
-            try:  
-                download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
-                break
-            except Exception as e:
-                print("Error retry:" + str(e))
- 
-        FP16_model = os.path.join(download_folder, "FP16")
-        # on some systems, the FP16 subfolder is not created resulting in a installation crash 
-        if not os.path.isdir(FP16_model):
-            os.mkdir(FP16_model)
-        shutil.copytree(download_folder, SD_path_FP16, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-        shutil.copytree(FP16_model, SD_path_FP16, dirs_exist_ok=True)        
-
-        if model_int8:
-            SD_path_INT8 = os.path.join(install_location, model_int8)           
-            
-            if os.path.isdir(SD_path_INT8):
-                    shutil.rmtree(SD_path_INT8)
-
-            INT8_model = os.path.join(download_folder, "INT8")
-            shutil.copytree(download_folder, SD_path_INT8, ignore=shutil.ignore_patterns('FP16', 'INT8'))  
-            shutil.copytree(INT8_model, SD_path_INT8, dirs_exist_ok=True)
-
-
-            delete_folder=os.path.join(download_folder, "..", "..", "..")
-            shutil.rmtree(delete_folder, ignore_errors=True)
-    
-def download_model(repo_id, model_1, model_2):
-    download_flag = True
-    
-    if "sd-2.1" in repo_id:
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-2.1", model_1)    
-    else:        
-        sd_model_1 = os.path.join(install_location, "stable-diffusion-1.5", model_1)
-
-    if os.path.isdir(sd_model_1):
-        choice = input(f"{repo_id} model folder exist. Do you wish to re-download this model? Enter Y/N: ")
-        if choice == "Y" or choice == "y":
-            download_flag = True
-            shutil.rmtree(sd_model_1)
-        else:
-            download_flag = False
-            print("%s download skipped",repo_id)
-                           
-    if download_flag:
-        revision = None
-        if npu_driver_version is not None: 
-            revision = get_revsion(repo_id)
-        while True:
-            try:  
-               download_folder = snapshot_download(repo_id=repo_id, token=access_token, revision=revision)
-               break
-            except Exception as e:
-                print("Error retry:" + str(e))
-        if repo_id == "Intel/sd-1.5-lcm-openvino":
-            download_model_1 = download_folder
-        else:
-            download_model_1 = os.path.join(download_folder, model_1) 
-        shutil.copytree(download_model_1, sd_model_1)  
-         
-        if model_2:
-            if "sd-2.1" in repo_id:
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-2.1", model_2)
-            else: 
-                sd_model_2 = os.path.join(install_location, "stable-diffusion-1.5", model_2)
-            if os.path.isdir(sd_model_2):
-                    shutil.rmtree(sd_model_2)
-            download_model_2 = os.path.join(download_folder, model_2)
-            shutil.copytree(download_model_2, sd_model_2)
-
-        delete_folder=os.path.join(download_folder, "../../..")
-        shutil.rmtree(delete_folder, ignore_errors=True)
-    
-def dl_sd_15_square():
-    print("Downloading Intel/sd-1.5-square-quantized Models")
-    repo_id = "Intel/sd-1.5-square-quantized"
-    model_fp16 = os.path.join("stable-diffusion-1.5", "square")
-    model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
-    download_quantized_models(repo_id, model_fp16, model_int8) 
-
-def dl_sd_21_square():
-    print("Downloading Intel/sd-2.1-square-quantized Models")
-    repo_id = "Intel/sd-2.1-square-quantized"
-    model_1 = "square"
-    model_2 = "square_base"
-    download_model(repo_id, model_1, model_2)
 
 def dl_sd_15_portrait():
     print("Downloading Intel/sd-1.5-portrait-quantized Models")
@@ -276,19 +337,79 @@ def dl_sd_15_scribble():
     model_fp16 = "controlnet-scribble"
     model_int8 = "controlnet-scribble-int8"
     download_quantized_models(repo_id, model_fp16, model_int8)
+
 def dl_sd_15_LCM():
     print("Downloading Intel/sd-1.5-lcm-openvino")
     repo_id = "Intel/sd-1.5-lcm-openvino"
     model_1 = "square_lcm"
     model_2 = None
-    download_model(repo_id, model_1, model_2)
+    compile_models = download_model(repo_id, model_1, model_2)
+    
+    if npu_arch is not None:
+        if not compile_models:
+            user_input = input("Do you want to reconfigure models for NPU? Enter Y/N: ").strip().lower()
+            if user_input == "y":
+                compile_models = True
+    
+        if compile_models:  
+            text_future = None
+            unet_future = None
+            vae_de_future = None
+            
+            if npu_arch == "3720":
+                models_to_compile = [ "unet", "text_encoder"]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet" : unet_future,
+                }
+            else:
+                models_to_compile = [ "unet" , "vae_decoder", "text_encoder" ]
+                sd15_futures = {
+                    "text_encoder" : text_future,
+                    "unet" : unet_future,
+                    "vae_decoder" : vae_de_future
+                }
+    
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    for model_name in models_to_compile:
+                        model_path = os.path.join(install_location, "stable-diffusion-1.5", model_1, model_name + ".xml")
+                        output_path = os.path.join(install_location,"stable-diffusion-1.5", model_1, model_name + ".blob")
+                        print(f"Creating NPU model for {model_name}")
+                        sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path, output_path)
+                 
+                if npu_arch == "3720":                  
+                    sd15_futures["text_encoder"].result()
+                    sd15_futures["unet"].result()
+                else:
+                    sd15_futures["text_encoder"].result()
+                    sd15_futures["unet"].result()
+                    sd15_futures["vae_decoder"].result()
+            except:
+                print("Compilation failed.")    
 
+
+            # Write out config file. GPU used for VAE in all cases. 
+            config = { 	"power modes supported": "yes", 	
+                            "best performance" : ["GPU","GPU","GPU"],
+                                    "balanced" : ["GPU","NPU","GPU"],
+                       "best power efficiency" : ["NPU","NPU","GPU"]
+                }
+            
+            # Specify the file name
+            file_name = "config.json"
+
+            # Write the data to a JSON file
+            with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
+                json.dump(config, json_file, indent=4)
+            
+    
 def dl_sd_15_Referenceonly():
     print("Downloading Intel/sd-reference-only")
     repo_id = "Intel/sd-reference-only"
     model_fp16 = "controlnet-referenceonly"
     model_int8 = None
-    download_quantized_models(repo_id, model_fp16, model_int8)
+    download_model(repo_id, model_fp16, model_int8)
 
 def dl_all():
     dl_sd_15_square()
@@ -300,40 +421,31 @@ def dl_all():
     dl_sd_15_scribble()
     dl_sd_15_LCM()
     dl_sd_15_Referenceonly()
-    #dl_sd_21_square()
+    print("All models downloaded")
+    exit()
+    
 
 def show_menu():
     """
     Display the menu options for downloading models.
     """
     print("=========Choose SD models to download=========")
-    print("1 - SD-1.5 Square (512x512)")
-    print("2 - SD-1.5 Portrait")
-    print("3 - SD-1.5 Landscape")
-    print("4 - SD-1.5 Inpainting (512x512 output image)")
-    print("5 - SD-1.5 Controlnet-Openpose")
-    print("6 - SD-1.5 Controlnet-CannyEdge")
-    print("7 - SD-1.5 Controlnet-Scribble")
-    print("8 - SD-1.5 LCM")
-    print("9 - SD-1.5 Controlnet-ReferenceOnly")
-    # print("10 - SD-2.1 Square (768x768)")
+    print("1  - SD-1.5 Square (512x512)")
+    print("2  - SD-1.5 Portrait")
+    print("3  - SD-1.5 Landscape")
+    print("4  - SD-1.5 Inpainting (512x512 output image)")
+    print("5  - SD-1.5 Controlnet-Openpose")
+    print("6  - SD-1.5 Controlnet-CannyEdge")
+    print("7  - SD-1.5 Controlnet-Scribble")
+    print("8  - SD-1.5 LCM")
+    print("9  - SD-1.5 Controlnet-ReferenceOnly")
+    print("10 - SD 1.4 Square")
     print("12 - All the above models")
-    print("0 - Exit SD Model setup")
+    print("0  - Exit SD Model setup")
 
 def main():
-    while True:
-        show_menu()
-        choice = input("Enter the number for the model you want to download: ")
-
-        if choice == "0":
-            print("Exiting SD Model setup...")
-            break
-        elif choice == "12":
-            dl_all()
-            print("Completed downloading all models. Exiting SD Model setup...")
-            break
-        else:
-            download_functions = {
+    install_base_models()
+    download_functions = {
                 "1": dl_sd_15_square,
                 "2": dl_sd_15_portrait,
                 "3": dl_sd_15_landscape,
@@ -343,13 +455,24 @@ def main():
                 "7": dl_sd_15_scribble,
                 "8": dl_sd_15_LCM,
                 "9": dl_sd_15_Referenceonly,
-                # "10": dl_sd_21_square,
+                "10" : dl_sd_14_square,
+                "12" : dl_all,
+                "0": exit,
             }
-            func = download_functions.get(choice)
+    
+    while True:
+        show_menu()
+        choice = input("Enter the number for the model you want to download.\nSpecify multiple options using spaces: ")
+
+        choices = choice.split(" ")
+        for ch in choices:
+            func = download_functions.get(ch.strip())
+            if ch == "0":
+                print("Exiting Model setup...")
             if func:
                 func()
             else:
-                print("Invalid choice")
+                print(f"Invalid choice: {ch.strip()}")
 
 if __name__ == "__main__":
     main()

@@ -53,8 +53,7 @@
    chmod +x openvino-ai-plugins-gimp/install.sh
    ./openvino-ai-plugins-gimp/install.sh
    ```
-   At the end of plugin setup, you will be prompted to setup the AI models used with OpenVINO™. Before proceeding, make note of the plugin directory and add that to the plugin path for GIMP before proceeding with model download.
-   Start the GIMP application (`gimp-2.99`), and add the gimpenv3 path that was printed when running the above step to the list of plugin folders  [Edit-> Preferences-> Folders-> Plugins].  
+   At the end of plugin setup, you will be prompted to setup the AI models used with OpenVINO™. 
 
    Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.
 
