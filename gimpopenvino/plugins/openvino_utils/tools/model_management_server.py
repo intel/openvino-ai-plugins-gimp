@@ -11,6 +11,7 @@ import threading
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
+
 from tools_utils import get_weight_path
 from model_manager import ModelManager
 
@@ -40,7 +41,6 @@ def run_connection_routine(model_manager, conn):
 
                 # Send the list of installed models
                 num_installed_models = len(installed_models)
-                print("num_installed_models = ", num_installed_models)
                 conn.sendall(bytes(str(num_installed_models), 'utf-8'))
                 data = conn.recv(1024) # <-wait for ack
                 for i in range(0, num_installed_models):
@@ -50,7 +50,6 @@ def run_connection_routine(model_manager, conn):
 
                 # Send the installable model details
                 num_installable_models = len(installable_model_details)
-                print("num_installable_models = ", num_installable_models)
                 conn.sendall(bytes(str(num_installable_models), 'utf-8'))
                 data = conn.recv(1024) # <-wait for ack
                 for i in range(0, num_installable_models):
@@ -62,15 +61,12 @@ def run_connection_routine(model_manager, conn):
 
             # request to install a model.
             if data.decode() == "install_model":
-               print("Model Management Server: install_model cmd received. Getting model name..")
                #send ack
                conn.sendall(data)
 
                #get model id.
                #TODO: Need a timeout here.
                model_id = conn.recv(1024).decode()
-
-               print("Model Management Server: model_id=", model_id)
 
                if model_id not in model_manager.model_install_status:
 
@@ -166,7 +162,6 @@ def run_connection_routine(model_manager, conn):
             print("Warning! Unsupported command sent: ", data.decode())
 
 def run():
-    print("model management server starting...")
     weight_path = get_weight_path()
 
     #Move to a temporary working directory in a known place.
@@ -180,21 +175,17 @@ def run():
     # go there.
     os.chdir(tmp_working_dir)
 
-    model_manager = ModelManager()
+    model_manager = ModelManager(weight_path)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen()
         while True:
-            print("awaiting new connection..")
             conn, addr = s.accept()
-            print("new connection established..")
 
             #Run this connection on a dedicated thread. This allows multiple connections to be present at once.
             conn_thread = threading.Thread(target=run_connection_routine, args=(model_manager, conn))
             conn_thread.start()
-
-    print("model management server exiting...")
 
 
 
@@ -211,7 +202,6 @@ def start():
 
     if gimp_proc:
         psutil.wait_procs([proc])
-        print("model management server exiting..!")
         os._exit(0)
 
     run_thread.join()

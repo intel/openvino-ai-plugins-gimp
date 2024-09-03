@@ -64,7 +64,6 @@ class ModelManagementWindow(Gtk.Window):
         server = "model_management_server.py"
         server_path = os.path.join(config_path, server)
 
-        print("checking if server is running..")
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
             _process = subprocess.Popen([python_path, server_path], close_fds=True)
@@ -178,7 +177,6 @@ class ModelManagementWindow(Gtk.Window):
         self.bStopPoll = True
 
     def post_install_routine(self, model_id, install_status, error_summary, error_details):
-        print("post_install_routine...")
         model_ui = self.model_ui_map[model_id]
 
         download_button = model_ui["download_button"]
@@ -246,9 +244,6 @@ class ModelManagementWindow(Gtk.Window):
 
             model_ui["progress_bar"] = progress_bar
             model_ui["cancel_button"] = cancel_button
-
-
-
         else:
             progress_bar = model_ui["progress_bar"]
 
@@ -276,7 +271,6 @@ class ModelManagementWindow(Gtk.Window):
                     install_status = self.get_install_status(s, model_id)
 
                 # If we're here, the model installation is complete (or perhaps it failed)
-                # TODO: Handle failure case. How we do inform user?
 
                 # We will now get details of all models
                 self._installed_models, installable_model_details = self._all_model_details(s)
@@ -306,7 +300,6 @@ class ModelManagementWindow(Gtk.Window):
             import traceback
             traceback.print_exc()
 
-        print("poll thread exiting..")
 
 
     def get_error_details(self, s, model_id):
@@ -359,8 +352,6 @@ class ModelManagementWindow(Gtk.Window):
 
 
     def _all_model_details(self, s):
-
-
         #send cmd
         s.sendall(b"get_all_model_details")
 
@@ -399,8 +390,6 @@ class ModelManagementWindow(Gtk.Window):
                 s.sendall(data)
 
             installable_model_details.append(model_detail)
-
-        print("model details = ", installable_model_details)
 
         return installed_models, installable_model_details
 
@@ -471,14 +460,12 @@ class ModelManagementWindow(Gtk.Window):
             print(e)
 
     def on_delete_event(self, widget, event):
-        print("on_delete_event called..")
         # Hide the window instead of destroying it
         self.hide()
         # Returning True prevents the window from being destroyed
         return True
 
     def is_server_running(self):
-        start_time = time.time()
         ret = False
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -489,10 +476,6 @@ class ModelManagementWindow(Gtk.Window):
                 if data.decode() == "ping":
                     ret = True
         except Exception as e:
-            print(f"There was a problem pinging the model server ...")
-            print(e)
             ret = False
-        end_time =time.time()
-        print("is_server_running took ", end_time - start_time, "seconds")
         return ret
 

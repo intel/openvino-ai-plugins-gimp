@@ -16,11 +16,6 @@ import threading
 from pathlib import Path
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
-from tools_utils import get_weight_path
-
-
 # This dictionary is used to populate the drop-down model selection list.
 # It's a map from model-id -> model_details.
 # 'install_id' is the key used for the 'installable model map'
@@ -365,11 +360,11 @@ def get_npu_config(core, architecture):
         return None
 
 class ModelManager:
-    def __init__(self):
+    def __init__(self, weight_path):
         self._core = ov.Core()
         self._npu_arch = get_npu_architecture(self._core)
         self._npu_config = get_npu_config(self._core, self._npu_arch)
-        self._weight_path = get_weight_path()
+        self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
 
         self.hf_api = HfApi()
@@ -587,9 +582,9 @@ class ModelManager:
                         )
                     download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
                     download_list.append( download_list_item )
-                    print(download_list_item)
+                    #print(download_list_item)
 
-                print("total_file_list_size = ", total_file_list_size)
+                #print("total_file_list_size = ", total_file_list_size)
 
 
                 # define a callback. returns True if download is cancelled.
@@ -618,9 +613,7 @@ class ModelManager:
                    subfolder=os.path.join(download_folder, download_list_item["subfolder"])
                    os.makedirs(subfolder,  exist_ok=True)
 
-                   print("Downloading", download_list_item["url"], " to ", local_filename)
-
-
+                   #print("Downloading", download_list_item["url"], " to ", local_filename)
                    downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
 
                    if "cancelled" in self.model_install_status[model_id]:
@@ -849,29 +842,31 @@ class ModelManager:
                     print("Warning! unknown model_id=", model_id)
 
 
-                try:
-                    # If there was not an error in installation, write some installation info to the install directory.
-                    if model_id not in self.model_install_error_condition:
-                        for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
-                            install_subdir = g_supported_model_map[supported_model]["install_subdir"]
-                            full_install_path = os.path.join(self._weight_path, *install_subdir)
+                # if the installation was not cancelled..
+                if "cancelled" not in self.model_install_status[model_id]:
+                    try:
+                        # If there was not an error in installation, write some installation info to the install directory.
+                        if model_id not in self.model_install_error_condition:
+                            for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
+                                install_subdir = g_supported_model_map[supported_model]["install_subdir"]
+                                full_install_path = os.path.join(self._weight_path, *install_subdir)
 
-                            if is_subdirectory(full_install_path, self._weight_path):
-                                # If the install info dictionary is non-empty, write the info.
-                                if self.model_install_status[model_id]["install_info"]:
-                                    file_name = "install_info.json"
-                                    with open(os.path.join(full_install_path, file_name), 'w') as json_file:
-                                        json.dump(self.model_install_status[model_id]["install_info"], json_file, indent=4)
-                except Exception as e:
-                    # print it:
-                    traceback.print_exc()
+                                if is_subdirectory(full_install_path, self._weight_path):
+                                    # If the install info dictionary is non-empty, write the info.
+                                    if self.model_install_status[model_id]["install_info"]:
+                                        file_name = "install_info.json"
+                                        with open(os.path.join(full_install_path, file_name), 'w') as json_file:
+                                            json.dump(self.model_install_status[model_id]["install_info"], json_file, indent=4)
+                    except Exception as e:
+                        # print it:
+                        traceback.print_exc()
 
-                    # .. but also capture it as a string
-                    tb_str = traceback.format_exc()
+                        # .. but also capture it as a string
+                        tb_str = traceback.format_exc()
 
-                    self.model_install_error_condition[model_id] = {}
-                    self.model_install_error_condition[model_id]["summary"] = "Post Install Routine Failed"
-                    self.model_install_error_condition[model_id]["details"] = tb_str
+                        self.model_install_error_condition[model_id] = {}
+                        self.model_install_error_condition[model_id]["summary"] = "Post Install Routine Failed"
+                        self.model_install_error_condition[model_id]["details"] = tb_str
 
 
                 # Did an error occur? If so, delete the installation folder(s) that may be partially complete.

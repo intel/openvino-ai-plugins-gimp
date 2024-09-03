@@ -791,10 +791,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_combo.connect("changed", model_combo_changed)
             model_combo.connect("changed", model_sensitive_combo_changed)
 
-        print("creating ModelManagementWindow...")
         model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
         model_management_window.hide()
-        print("done creating ModelManagementWindow...")
 
         installed_models = model_management_window.get_installed_model_list()
 
