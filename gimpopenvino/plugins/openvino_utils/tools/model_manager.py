@@ -68,28 +68,28 @@ g_supported_model_map = {
     "sd_1.5_portrait":
     {
         "name": "Stable Diffusion 1.5 [Portrait 360x640] [INT8]",
-        "install_id": "sd_15_portrait",
+        "install_id": None,
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"]
     },
 
     "sd_1.5_portrait_512x768":
     {
         "name": "Stable Diffusion 1.5 [Portrait 512x768] [INT8]",
-        "install_id": "sd_15_portrait",
+        "install_id": None,
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
     },
 
     "sd_1.5_landscape":
     {
         "name": "Stable Diffusion 1.5 [Landscape 640x360] [INT8]",
-        "install_id": "sd_15_landscape",
+        "install_id": None,
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
     },
 
     "sd_1.5_landscape_768x512":
     {
         "name": "Stable Diffusion 1.5 [Landscape 768x512] [INT8]",
-        "install_id": "sd_15_landscape",
+        "install_id": None,
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
     },
 
@@ -475,6 +475,12 @@ class ModelManager:
             if install_id in self.model_install_status:
                 install_status = "installing"
             else:
+
+                # If this install_id doesn't have any supported model id's,
+                #  don't populate the model UI with this option.
+                if len(install_details["supported_model_ids"]) == 0:
+                    continue
+
                 all_are_installed = True
 
                 if install_id in self.model_install_error_condition:
