@@ -432,17 +432,32 @@ class ModelManager:
     #  HF commit-id, etc.)
     def is_model_installed(self, model_id):
 
-        if model_id not in g_supported_model_map:
-            return False
+        try:
+            if model_id not in g_supported_model_map:
+                return False
 
-        install_subdir = g_supported_model_map[model_id]["install_subdir"]
+            install_subdir = g_supported_model_map[model_id]["install_subdir"]
 
-        model_check_path = os.path.join(self._weight_path, *install_subdir)
+            full_install_path = os.path.join(self._weight_path, *install_subdir)
 
-        if os.path.isdir(model_check_path):
+            if not os.path.isdir(full_install_path):
+                return False
+
+            # sd_1.5_square_int8a16 is a newer model that has same install directory as sd_1.5_square / sd_1.5_square_int8
+            #  For this model, we add a specific check for one of the files to make sure this model has actually been installed.
+            if model_id == "sd_1.5_square_int8a16":
+                required_bin_path = os.path.join(full_install_path, "unet_int8a16.bin")
+
+                if not os.path.isfile(required_bin_path):
+                    print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
+                    return False
+
             return True
 
-        return False
+        except Exception as e:
+            print(f"Exception in is_model_installed(.., {model_id}")
+            traceback.print_exc()
+            return False
 
 
     # This function returns 2 things:
