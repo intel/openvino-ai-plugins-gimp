@@ -3,7 +3,7 @@ import json
 import sys
 import traceback
 import openvino as ov
-from huggingface_hub import snapshot_download, HfFileSystem, hf_hub_url
+from huggingface_hub import snapshot_download, HfApi, HfFileSystem, hf_hub_url
 import concurrent.futures
 import platform
 import shutil
@@ -372,6 +372,7 @@ class ModelManager:
         self._weight_path = get_weight_path()
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
 
+        self.hf_api = HfApi()
         self.hf_fs = HfFileSystem()
 
         # This is a map from model_install_id -> install progress details.
@@ -536,6 +537,15 @@ class ModelManager:
 
                 self.model_install_status[model_id]["status"] = "Downloading..."
                 self.model_install_status[model_id]["percent"] = 0.0
+
+                # get the commit-id for the huggingface repo that we will be downloading files from.
+                repo_info = self.hf_api.repo_info(repo_id)
+                commit_id = repo_info.sha
+
+                # save the HF repo information to the install_info for this model_id. This information will
+                #  get written into a json file at the end of the install procedure.
+                self.model_install_status[model_id]["install_info"]["hf_repo_id"] = repo_id
+                self.model_install_status[model_id]["install_info"]["hf_commit_id"] = commit_id
 
                 self._generate_file_list_from_hf_repo_path(repo_id, file_list)
                 download_list = []
@@ -781,9 +791,9 @@ class ModelManager:
         print("install_model: model_id=", model_id)
         try:
             with self.model_install_status_lock:
-                # set the status to 'Queued'. This is what will display in the UI
-                # until it's this model's turn to get installed.
-                self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0}
+                # Populate the initial install status dictionary, and set the status to 'Queued'.
+                # This is what will display in the UI until it's this model's turn to get installed.
+                self.model_install_status[model_id] = {"status": "Queued", "percent": 0.0, "install_info": {}}
 
             # Put this thread into the quueue
             self.install_queue.put(threading.current_thread())
@@ -824,11 +834,36 @@ class ModelManager:
                     print("Warning! unknown model_id=", model_id)
 
 
+                try:
+                    # If there was not an error in installation, write some installation info to the install directory.
+                    if model_id not in self.model_install_error_condition:
+                        for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
+                            install_subdir = g_supported_model_map[supported_model]["install_subdir"]
+                            full_install_path = os.path.join(self._weight_path, *install_subdir)
+
+                            if is_subdirectory(full_install_path, self._weight_path):
+                                # If the install info dictionary is non-empty, write the info.
+                                if self.model_install_status[model_id]["install_info"]:
+                                    file_name = "install_info.json"
+                                    with open(os.path.join(full_install_path, file_name), 'w') as json_file:
+                                        json.dump(self.model_install_status[model_id]["install_info"], json_file, indent=4)
+                except Exception as e:
+                    # print it:
+                    traceback.print_exc()
+
+                    # .. but also capture it as a string
+                    tb_str = traceback.format_exc()
+
+                    self.model_install_error_condition[model_id] = {}
+                    self.model_install_error_condition[model_id]["summary"] = "Post Install Routine Failed"
+                    self.model_install_error_condition[model_id]["details"] = tb_str
+
+
                 # Did an error occur? If so, delete the installation folder(s) that may be partially complete.
                 if model_id in self.model_install_error_condition:
                     if model_id in self.installable_model_map:
                         if "supported_model_ids" in self.installable_model_map[model_id]:
-                            for supported_model in g_supported_model_map:
+                            for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
                                 if "install_subdir" in g_supported_model_map[supported_model]:
                                     install_subdir = g_supported_model_map[supported_model]["install_subdir"]
                                     if len(install_subdir) >= 2:
@@ -839,6 +874,7 @@ class ModelManager:
                                         if os.path.isdir(full_install_path):
                                             print("Removing partially installed directory:", full_install_path)
                                             shutil.rmtree(full_install_path, ignore_errors=True)
+
 
 
 
