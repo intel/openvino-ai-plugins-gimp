@@ -14,6 +14,7 @@ import fnmatch
 import logging
 import threading
 from pathlib import Path
+from tqdm import tqdm
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
 # This dictionary is used to populate the drop-down model selection list.
@@ -367,6 +368,8 @@ class ModelManager:
         self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
 
+        self.show_hf_download_tqdm = False
+
         self.hf_api = HfApi()
         self.hf_fs = HfFileSystem()
 
@@ -587,6 +590,13 @@ class ModelManager:
                 #print("total_file_list_size = ", total_file_list_size)
 
 
+                if self.show_hf_download_tqdm is True:
+                    bar_format = '{desc}: |{bar}| {percentage:3.0f}% [elapsed: {elapsed}, remaining: {remaining}]'
+                    total_bytes_to_download_gb = total_file_list_size / 1073741824.0
+                    total_bytes_to_download_gb = f"{total_bytes_to_download_gb:.2f}"
+                    progress_bar = tqdm(total = 1000, desc=f'Downloading Repo ({repo_id}, {total_bytes_to_download_gb} GiB)', bar_format=bar_format)
+
+
                 # define a callback. returns True if download is cancelled.
                 def bytes_downloaded_callback(total_bytes_downloaded, total_bytes_to_download):
                     total_bytes_to_download_gb = total_bytes_to_download / 1073741824.0
@@ -597,6 +607,10 @@ class ModelManager:
                     if total_bytes_to_download > 0:
                         self.model_install_status[model_id]["status"] = status
                         self.model_install_status[model_id]["percent"] = (total_bytes_downloaded / total_bytes_to_download) * 100.0
+
+                        if self.show_hf_download_tqdm is True:
+                           progress_bar.n = self.model_install_status[model_id]["percent"] * 10
+                           progress_bar.refresh()
 
                         if "cancelled" in self.model_install_status[model_id]:
                             return True
