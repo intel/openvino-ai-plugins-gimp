@@ -34,7 +34,7 @@ setup(
         "gdown",
         'enum; python_version <= "2.7"',
         "requests",
-        "opencv-python<=4.3",
+        "opencv-python", #<=4.3",
         "scikit-image",
         "timm==0.4.5",
         "transformers>=4.37.0",
