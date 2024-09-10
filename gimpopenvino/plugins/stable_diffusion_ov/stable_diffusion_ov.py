@@ -157,7 +157,9 @@ class SDRunner:
         plugin_path = config_path_output["plugin_path"]
 
         Gimp.context_push()
-        image.undo_group_start()
+
+        if image:
+            image.undo_group_start()
 
         #save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
@@ -202,7 +204,8 @@ class SDRunner:
         except:
             print(f"ERROR : {sd_option_cache} not found")
 
-        image.undo_group_end()
+        if image:
+            image.undo_group_end()
         Gimp.context_pop()
 
         if data_output["inference_status"] == "success":
@@ -232,7 +235,8 @@ class SDRunner:
             image_new.insert_layer(copy, None, -1)
 
             Gimp.displays_flush()
-            image.undo_group_end()
+            if image:
+                image.undo_group_end()
             Gimp.context_pop()
 
 
@@ -334,22 +338,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
            if 'GNA' not in device:
                 supported_devices.append(device)
 
-        list_layers = []
-
-        try:
-            list_layers = image.get_layers()
-        except:
-            list_layers = image.list_layers()
-
-
-        if list_layers[0].get_mask() == None:
-            n_layers = 1
-            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+        if not image:
+            n_layers = 0
         else:
-            n_layers = 2
-            mask = list_layers[0].get_mask()
-            save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
-            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+            list_layers = []
+
+            try:
+                list_layers = image.get_layers()
+            except:
+                list_layers = image.list_layers()
+
+
+            if list_layers[0].get_mask() == None:
+                n_layers = 1
+                save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+            else:
+                n_layers = 2
+                mask = list_layers[0].get_mask()
+                save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+                save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
 
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
@@ -624,7 +631,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
 
         initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image",
-                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))
+                                    _("_Use Initial Image (Default: Selected layer in Canvas)"))
 
 
         def populate_init_image_section():
@@ -637,8 +644,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(spin, 1, 9, 1, 1)
             spin.show()
 
-        if n_layers == 1:
+        if n_layers == 0 or n_layers == 1:
             grid.attach(initialImage_checkbox, 3, 1, 1, 1)
+            if n_layers == 0:
+                initialImage_checkbox.set_sensitive(False)
             initialImage_checkbox.show()
             grid.attach(invisible_label1,1, 8, 1, 1)
             grid.attach(invisible_label2,1, 9, 1, 1)
@@ -1048,6 +1057,8 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "power_mode")
 
             procedure.add_argument_from_property(self, "use_initial_image")
+
+            procedure.set_sensitivity_mask (Gimp.ProcedureSensitivityMask.ALWAYS)
 
 
 
