@@ -382,12 +382,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
+        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
-
+        
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
         )
@@ -403,10 +403,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.add(grid)
         grid.show()
 
-
-
         # Model Name parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
+        label = Gtk.Button(label="Model")
         grid.attach(label, 0, 0, 1, 1)
         label.show()
 
@@ -792,7 +790,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_combo.connect("changed", model_sensitive_combo_changed)
 
         model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
-        model_management_window.hide()
 
         installed_models = model_management_window.get_installed_model_list()
 
@@ -804,11 +801,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         def model_management_launch_button_clicked(widget):
             model_management_window.display()
 
-        model_management_launch_button = Gtk.Button(label="Manage Models")
-        model_management_launch_button.connect("clicked", model_management_launch_button_clicked)
-        grid.attach_next_to(model_management_launch_button, initialImage_checkbox,  Gtk.PositionType.BOTTOM, 1, 1)
-        model_management_launch_button.show()
-
+        label.connect("clicked", model_management_launch_button_clicked)
 
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
         adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
@@ -977,7 +970,7 @@ class StableDiffusion(Gimp.PlugIn):
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'sd_1.4', 'sd_1.5'",
+            "Current Model. Click on the Model button to the left to install new models.",
             "sd_1.4",
             GObject.ParamFlags.READWRITE,
         ),
