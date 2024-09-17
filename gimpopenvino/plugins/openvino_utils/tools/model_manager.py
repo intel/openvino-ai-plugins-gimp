@@ -440,20 +440,44 @@ class ModelManager:
 
         return summary, details
 
-    # Given a model_id, is it installed? This is a very simple check right now (check for existence of directory)
-    #  but it likely needs to be transformed into something better (i.e. reading a json from the directly, cross-checking
-    #  HF commit-id, etc.)
-    def is_model_installed(self, model_id):
-
+    # Given a model_id, read install_info.json from the installed directory (if it exists).
+    # Returns the dictionary of info if the file exists.
+    # Otherwise, returns None
+    def get_installed_info(self, model_id):
         try:
             if model_id not in g_supported_model_map:
-                return False
+                return None
 
             install_subdir = g_supported_model_map[model_id]["install_subdir"]
 
             full_install_path = os.path.join(self._weight_path, *install_subdir)
 
             if not os.path.isdir(full_install_path):
+                return None
+
+            json_path = os.path.join(full_install_path, "install_info.json")
+
+            if not os.path.isfile(json_path):
+                return None
+
+            with open(json_path, "r") as file:
+                installed_info = json.load(file)
+
+            return installed_info
+
+        except Exception as e:
+            print(f"Exception in get_installed_info(.., {model_id})")
+            traceback.print_exc()
+            return None
+
+    # Given a model_id, is it installed? This is a fairly simple check right now.
+    # Basically, if the install directory exists, and install_info.json exists within
+    # it, then we consider the model to be installed.
+    def is_model_installed(self, model_id):
+        try:
+            installed_info = self.get_installed_info(model_id)
+
+            if installed_info is None:
                 return False
 
             # sd_1.5_square_int8a16 is a newer model that has same install directory as sd_1.5_square / sd_1.5_square_int8
