@@ -41,10 +41,6 @@ for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov )
 
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    
-REM Prompt the user to continue setting up models
-
-echo **** OpenVINO MODEL SETUP STARTED ****
-gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
 
 exit /b
 
