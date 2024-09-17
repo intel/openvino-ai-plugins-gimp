@@ -124,6 +124,9 @@ class ModelManagementWindow(Gtk.Window):
                 elif model["install_status"] == "installed":
                     download_button = Gtk.Button(label="Installed")
                     download_button.set_sensitive(False)
+                elif model["install_status"] == "installed_updates_available":
+                    download_button = Gtk.Button(label="Update")
+                    download_button.set_sensitive(True)
                 elif model["install_status"] == "installing" or model["install_status"] == "install_error":
                     download_button = Gtk.Button(label="Install")
                     download_button.set_sensitive(False)
@@ -198,6 +201,9 @@ class ModelManagementWindow(Gtk.Window):
         if install_status == "installed":
             download_button.set_label("Installed")
             download_button.set_sensitive(False)
+        elif install_status == "installed_updates_available":
+            download_button.set_label("Update")
+            download_button.set_sensitive(True)
         elif install_status == "install_error":
             download_button.set_label("Install")
             download_button.set_sensitive(True)

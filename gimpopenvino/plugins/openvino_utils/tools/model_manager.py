@@ -496,6 +496,40 @@ class ModelManager:
             traceback.print_exc()
             return False
 
+    # Given a model_id, is there an update available? This is what is used to determine whether installted models
+    #  show up as a greyed-out 'Installed' button, or as a clickable 'Update' button.
+    # Right now we only return True if we detect that a driver update has occurred since the model was installed.
+    def is_model_update_available(self, model_id):
+        try:
+
+            # For platforms without NPUs, no updates are necessary (for now).
+            if self._npu_driver_version is None:
+                return False
+
+            installed_info = self.get_installed_info(model_id)
+
+            if installed_info is None:
+                return False
+
+            # Some models do not support NPU, and so they don't have this info.
+            if "npu_blob_driver_version" not in installed_info:
+                return False
+
+            installed_npu_driver_version = str(installed_info["npu_blob_driver_version"])
+            current_system_npu_driver_version = str(self._npu_driver_version)
+
+            # If these NPU driver versions do not match, then it means that the driver has been updated since these blobs were installed.
+            if installed_npu_driver_version != current_system_npu_driver_version:
+                print(f"is_model_update_available: model_id={model_id}, returning True because NPU driver update detected {installed_npu_driver_version} -> {current_system_npu_driver_version}")
+                return True
+
+            return False
+
+        except Exception as e:
+            print(f"Exception in is_model_update_available(.., {model_id}")
+            traceback.print_exc()
+            return False
+
 
     # This function returns 2 things:
     # 1. The list of (individual) models that are installed. Essentially, this is used to populate the model selection drop-down list.
@@ -546,6 +580,18 @@ class ModelManager:
 
                     if all_are_installed:
                         install_status = "installed"
+
+                        any_updates_available = False
+
+                        #Now, check if there are any updates available..
+                        for model_id in install_details["supported_model_ids"]:
+                            if self.is_model_update_available(model_id) is True:
+                                any_updates_available = True
+                                break
+
+                        if any_updates_available is True:
+                            install_status = "installed_updates_available"
+
                     else:
                         install_status = "not_installed"
 
@@ -881,12 +927,39 @@ class ModelManager:
                 "sd_15_scribble",
                 "sd_15_Referenceonly"]
 
+                only_npu_recompilation = False
+
+                #iterate through all models for this install_id, and determine whether
+                # they are all installed.
+                all_are_installed = True
+                install_details = self.installable_model_map[model_id]
+                for ind_model_id in install_details["supported_model_ids"]:
+                        if self.is_model_installed(ind_model_id) is False:
+                            all_are_installed = False
+                            break
+
+                # If all models are already installed, then this must be a request to 'update',
+                #  which means NPU Recompilation.
+                if all_are_installed:
+                    print(f"{model_id}: Recompiling NPU models")
+                    only_npu_recompilation = True
+
+                    #Initialize the install_info with the existing one,
+                    # since in this mode we won't be downloading anything.. we
+                    # want to preserve HF commit-id, etc.
+                    installed_info = self.get_installed_info(install_details["supported_model_ids"][0])
+                    self.model_install_status[model_id]["install_info"] = installed_info
+
+
                 if model_id in simply_download_models:
-                    self._download_model(model_id)
+                    if only_npu_recompilation is False:
+                        self._download_model(model_id)
+                    else:
+                        print("only_npu_recompilation is unexpectedly set to True for a 'download-only' model.. skipping")
                 elif  model_id == "sd_15_square":
-                    self.dl_sd_15_square(model_id)
+                    self.dl_sd_15_square(model_id, only_npu_recompilation)
                 elif model_id == "sd_15_LCM":
-                    self.dl_sd_15_LCM(model_id)
+                    self.dl_sd_15_LCM(model_id, only_npu_recompilation)
                 elif (model_id == "test1"):
                     self.install_test(model_id)
                 elif (model_id == "test2"):
@@ -921,26 +994,6 @@ class ModelManager:
                         self.model_install_error_condition[model_id]["summary"] = "Post Install Routine Failed"
                         self.model_install_error_condition[model_id]["details"] = tb_str
 
-
-                # Did an error occur? If so, delete the installation folder(s) that may be partially complete.
-                if model_id in self.model_install_error_condition:
-                    if model_id in self.installable_model_map:
-                        if "supported_model_ids" in self.installable_model_map[model_id]:
-                            for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
-                                if "install_subdir" in g_supported_model_map[supported_model]:
-                                    install_subdir = g_supported_model_map[supported_model]["install_subdir"]
-                                    if len(install_subdir) >= 2:
-                                        full_install_path = os.path.join(self._weight_path, *install_subdir)
-
-                                    if is_subdirectory(full_install_path, self._weight_path):
-                                        # delete the installation folder, if it exists.
-                                        if os.path.isdir(full_install_path):
-                                            print("Removing partially installed directory:", full_install_path)
-                                            shutil.rmtree(full_install_path, ignore_errors=True)
-
-
-
-
                 # Notify the next thread in the queue
                 self.install_lock.notify_all()
 
@@ -964,7 +1017,7 @@ class ModelManager:
 
         print("install_model: model_id=", model_id, " done!")
 
-    def dl_sd_15_square(self, model_id):
+    def dl_sd_15_square(self, model_id, only_npu_recompilation=False):
         print("Downloading Intel/sd-1.5-square-quantized Models")
         repo_id = "Intel/sd-1.5-square-quantized"
         model_fp16 = os.path.join("stable-diffusion-1.5", "square")
@@ -974,7 +1027,11 @@ class ModelManager:
         npu_arch = self._npu_arch
         npu_config = self._npu_config
 
-        download_success = self._download_model(model_id)
+        download_success = True
+
+        # If we are only recompiling the NPU models, don't download.
+        if only_npu_recompilation is False:
+            download_success = self._download_model(model_id)
 
         if npu_arch is not None:
             if download_success:
@@ -1082,7 +1139,7 @@ class ModelManager:
                     self.model_install_error_condition[model_id]["details"] = tb_str
 
 
-    def dl_sd_15_LCM(self, model_id):
+    def dl_sd_15_LCM(self, model_id, only_npu_recompilation=False):
         print("Downloading Intel/sd-1.5-lcm-openvino")
         repo_id = "Intel/sd-1.5-lcm-openvino"
         model_1 = "square_lcm"
@@ -1092,7 +1149,11 @@ class ModelManager:
         core = self._core
         npu_arch = self._npu_arch
 
-        download_success = self._download_model(model_id)
+        download_success = True
+
+        # If we are only recompiling the NPU models, don't download.
+        if only_npu_recompilation is False:
+            download_success = self._download_model(model_id)
 
         if npu_arch is not None:
             if download_success:
