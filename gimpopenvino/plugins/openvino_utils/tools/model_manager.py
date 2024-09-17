@@ -351,6 +351,20 @@ def get_npu_architecture(core):
         logging.error(f"Error retrieving NPU architecture: {str(e)}")
         return None
 
+
+def get_npu_driver_version(core):
+    try:
+        available_devices = core.get_available_devices()
+        if 'NPU' in available_devices:
+            driver_version = str(core.get_property('NPU', 'NPU_DRIVER_VERSION'))
+            return driver_version
+    except Exception as e:
+        logging.error(f"Error retrieving NPU driver version: {str(e)}")
+        return None
+
+    return None
+
+
 def get_npu_config(core, architecture):
     try:
         if architecture == NPU_ARCH_4000:
@@ -365,6 +379,7 @@ class ModelManager:
         self._core = ov.Core()
         self._npu_arch = get_npu_architecture(self._core)
         self._npu_config = get_npu_config(self._core, self._npu_arch)
+        self._npu_driver_version = get_npu_driver_version(self._core)
         self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
 
@@ -1006,6 +1021,9 @@ class ModelManager:
                             os.path.join(install_location, model_int8, blob_name)
                         )
 
+                    # Record the npu_driver version that we used to create the blobs.
+                    self.model_install_status[model_id]["install_info"]["npu_blob_driver_version"] = self._npu_driver_version
+
                     if npu_arch != "3720":
                         config_fp_16 = { 	"power modes supported": "yes",
                                                 "best performance" : ["GPU","GPU","GPU","GPU"],
@@ -1091,6 +1109,8 @@ class ModelManager:
                             model_future.result()
                             self.model_install_status[model_id]["percent"] += perc_increment
 
+                    # Save the npu_driver version that we used to create the blobs.
+                    self.model_install_status[model_id]["install_info"]["npu_blob_driver_version"] = self._npu_driver_version
 
                     # Write out config file. GPU used for VAE in all cases.
                     config = { 	"power modes supported": "yes",
