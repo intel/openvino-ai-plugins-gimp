@@ -76,8 +76,8 @@ def main():
                 if ch in user_choice_to_model_id:
                     install_details = user_choice_to_model_id[ch]
                     model_manager.install_model(install_details["id"])
-            else:
-                print(f"Invalid choice: {ch.strip()}")
+                else:
+                    print(f"Invalid choice: {ch.strip()}")
     except Exception as e:
         traceback.print_exc()
         return
