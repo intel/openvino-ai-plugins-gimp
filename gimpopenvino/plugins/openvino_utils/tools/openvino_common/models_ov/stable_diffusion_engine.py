@@ -473,7 +473,13 @@ class StableDiffusionEngine(DiffusionPipeline):
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
 
-        self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
+        batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
+
+        # if 'int8' is in model, then we are using unet_int8a16 model, and for this we will always use batch size 1.
+        if "int8" in model:
+            batch_size = 1
+
+        self.batch_size = batch_size
         try_enable_npu_turbo(device, self.core)
 
         try:

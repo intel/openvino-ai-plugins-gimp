@@ -394,7 +394,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
-        
+
         vbox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10
         )
@@ -735,6 +735,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
+            # default this to True, and some below conditions will set it to False.
+            initialImage_checkbox.set_sensitive(True)
 
             if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp:
                 initialImage_checkbox.hide()
@@ -742,9 +744,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 initialImage_checkbox.show()
 
             if "controlnet" in config.get_property("model_name"):
-
                 initialImage_checkbox.set_active(True)
+
+                #don't allow user to uncheck this for controlnet.
+                initialImage_checkbox.set_sensitive(False)
             else:
+                initialImage_checkbox.set_active(False)
+
+            if n_layers == 0:
+                initialImage_checkbox.set_sensitive(False)
                 initialImage_checkbox.set_active(False)
 
             if adv_checkbox.get_active():
@@ -776,12 +784,24 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             model_list = []
             for installed_model in installed_models:
                 model_id = installed_model["id"]
-                if n_layers == 2:
-                    if "inpainting" in model_id:
-                        model_list.append(installed_model)
-                else:
-                    if "inpainting" not in model_id:
-                        model_list.append(installed_model)
+
+                append_model = True
+
+                # Don't add inpainting models to drop-down list if n_layers != 2
+                if n_layers != 2 and "inpainting" in model_id:
+                    append_model = False
+
+                # only allow inpainting models into the drop-down if n_layers==2
+                if n_layers == 2 and "inpainting" not in model_id:
+                    append_model = False
+
+                # only allow controlnet models into the drop-down if n_layers==1
+                if n_layers != 1 and "controlnet" in model_id:
+                    append_model = False
+
+                if append_model is True:
+                    model_list.append(installed_model)
+
 
             model_name_enum = ModelsEnum(model_list)
 
@@ -797,6 +817,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
             model_combo.connect("changed", model_combo_changed)
             model_combo.connect("changed", model_sensitive_combo_changed)
+
+            # trigger a call to this, as it includes some important logic.
+            model_sensitive_combo_changed(model_combo)
 
         model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
 
