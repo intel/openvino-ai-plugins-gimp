@@ -896,7 +896,7 @@ class ModelManager:
 
 
     def install_model(self, model_id):
-        print("install_model: model_id=", model_id)
+        #print("install_model: model_id=", model_id)
         try:
             with self.model_install_status_lock:
                 # Populate the initial install status dictionary, and set the status to 'Queued'.
