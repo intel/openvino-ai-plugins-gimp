@@ -27,17 +27,9 @@ fi
 echo "**** openvino-ai-plugins-gimp Setup started ****"
 # Install virtualenv if not already installed
 python3 -m pip install virtualenv | grep -v "already satisfied"
-if [[ $? -ne 0 ]]; then
-    echo "Error installing virtualenv. Exiting..."
-    exit 1
-fi
 
 # Create a virtual environment
 python3 -m virtualenv gimpenv3
-if [[ $? -ne 0 ]]; then
-    echo "Error creating virtualenv. Exiting..."
-    exit 1
-fi
 
 # Activate the virtual environment
 source gimpenv3/bin/activate
@@ -45,16 +37,9 @@ source gimpenv3/bin/activate
 # Upgrade pip and install required packages
 pip3 install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip3 install "$script_dir/."
-if [[ $? -ne 0 ]]; then
-    echo "Error installing required packages. Exiting..."
-    exit 1
-fi
+
 # Run Python script to complete the installation
 python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
-if [[ $? -ne 0 ]]; then
-    echo "Error trying to create model directories. Exiting..."
-    exit 1
-fi
 
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment

@@ -35,17 +35,9 @@ echo **** openvino-ai-plugins-gimp Setup started ****
 
 REM Install virtualenv if not already installed
 python -m pip install virtualenv | find /V "already satisfied"
-if %ERRORLEVEL% NEQ 0 (
-    echo Error installing virtualenv. Exiting...
-    exit /b 1
-)
 
 REM Create a virtual environment
 python -m virtualenv gimpenv3
-if %ERRORLEVEL% NEQ 0 (
-    echo Error creating virtualenv. Exiting...
-    exit /b 1
-)
 
 call "gimpenv3\Scripts\activate"
 
@@ -55,10 +47,7 @@ pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
 python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
-if %ERRORLEVEL% NEQ 0 (
-    echo Error trying to create model directories. Exiting...
-    exit /b 1
-)
+
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
 rem cls

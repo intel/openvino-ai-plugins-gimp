@@ -28,19 +28,9 @@ Write-Host "**** openvino-ai-plugins-gimp Setup started ****"
 
 # Install virtualenv if not already installed
 $virtualenv_install = python -m pip install virtualenv
-if (-not $virtualenv_install -match "already satisfied") {
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Error installing virtualenv. Exiting..."
-        exit 1
-    }
-}
 
 # Create a virtual environment
 python -m virtualenv gimpenv3
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error creating virtualenv. Exiting..."
-    exit 1
-}
 
 # Activate the virtual environment
 & gimpenv3\Scripts\Activate.ps1
@@ -49,17 +39,9 @@ if ($LASTEXITCODE -ne 0) {
 pip install wmi
 pip install -r "$script_dir\requirements.txt"
 pip install "$script_dir\."
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error installing required packages. Exiting..."
-    exit 1
-}
 
 # Run Python script to complete the installation
 python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Error trying to create model directories. Exiting..."
-    exit 1
-}
 
 Write-Host "**** openvino-ai-plugins-gimp Setup Ended ****"
 
