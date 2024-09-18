@@ -960,7 +960,12 @@ class ModelManager:
                 # If all models are already installed, then this must be a request to 'update',
                 #  which means NPU Recompilation.
                 if all_are_installed:
-                    print(f"{model_id}: Recompiling NPU models")
+                    if self._npu_arch is not None:
+                        print(f"{model_id}: Recompiling NPU models") 
+                    else:
+                        print(f"{model_id}: Model is already installed. Skipping download. ") 
+
+                    # we still need to set this to avoid re-downloading everything. 
                     only_npu_recompilation = True
 
                     #Initialize the install_info with the existing one,
@@ -1034,10 +1039,9 @@ class ModelManager:
                 self.model_install_error_condition[model_id]["summary"] = "General Install Routine Failed"
                 self.model_install_error_condition[model_id]["details"] = tb_str
 
-        print("install_model: model_id=", model_id, " done!")
+        print("Done!")
 
     def dl_sd_15_square(self, model_id, only_npu_recompilation=False):
-        print("Downloading Intel/sd-1.5-square-quantized Models")
         repo_id = "Intel/sd-1.5-square-quantized"
         model_fp16 = os.path.join("stable-diffusion-1.5", "square")
         model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
@@ -1050,8 +1054,9 @@ class ModelManager:
 
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
+            print("Downloading Intel/sd-1.5-square-quantized Models")
             download_success = self._download_model(model_id)
-
+        
         if npu_arch is not None:
             if download_success:
                 try:
@@ -1159,7 +1164,6 @@ class ModelManager:
 
 
     def dl_sd_15_LCM(self, model_id, only_npu_recompilation=False):
-        print("Downloading Intel/sd-1.5-lcm-openvino")
         repo_id = "Intel/sd-1.5-lcm-openvino"
         model_1 = "square_lcm"
         model_2 = None
@@ -1172,6 +1176,7 @@ class ModelManager:
 
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
+            print("Downloading Intel/sd-1.5-lcm-openvino")
             download_success = self._download_model(model_id)
 
         if npu_arch is not None:
