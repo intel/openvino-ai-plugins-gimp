@@ -190,6 +190,7 @@ g_installable_base_model_map = {
         "name": "Stable Diffusion 1.5 Square",
         "repo_id": "Intel/sd-1.5-square-quantized",
         "download_exclude_filters": ["*.blob"],
+        "npu_compilation_routine": True,
     },
 
     "sd_15_LCM":
@@ -197,6 +198,7 @@ g_installable_base_model_map = {
         "name": "Stable Diffusion 1.5 LCM",
         "repo_id": "Intel/sd-1.5-lcm-openvino",
         "download_exclude_filters": [],
+        "npu_compilation_routine": True,
     },
 
     "sd_15_portrait":
@@ -512,9 +514,25 @@ class ModelManager:
             if installed_info is None:
                 return False
 
-            # Some models do not support NPU, and so they don't have this info.
-            if "npu_blob_driver_version" not in installed_info:
+
+            install_id = g_supported_model_map[model_id]["install_id"]
+
+            if install_id is None:
                 return False
+
+            installable_map_entry = self.installable_model_map[install_id]
+
+            # If this install routine has no NPU compilation routine, return False
+            if "npu_compilation_routine" not in installable_map_entry:
+                return False
+
+            if installable_map_entry["npu_compilation_routine"] is not True:
+                return False
+
+            # Kind of a weird case -- the model was installed, but somehow the NPU compilation routine was skipped.
+            # In this case, return True to give user the ability to click 'Update'
+            if "npu_blob_driver_version" not in installed_info:
+                return True
 
             installed_npu_driver_version = str(installed_info["npu_blob_driver_version"])
             current_system_npu_driver_version = str(self._npu_driver_version)
