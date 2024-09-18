@@ -97,8 +97,7 @@ def try_enable_npu_turbo(device, core):
                 print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
             else:
                 print_npu_turbo_art()
-        else:
-            print(f"Skipping NPU_TURBO for device {device}")
+        
     elif "linux" in platform.system().lower():
         if os.path.isfile('/sys/module/intel_vpu/parameters/test_mode'):
             with open('/sys/module/intel_vpu/version', 'r') as f:
