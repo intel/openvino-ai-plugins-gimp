@@ -483,8 +483,9 @@ class ModelManager:
             # sd_1.5_square_int8a16 is a newer model that has same install directory as sd_1.5_square / sd_1.5_square_int8
             #  For this model, we add a specific check for one of the files to make sure this model has actually been installed.
             if model_id == "sd_1.5_square_int8a16":
+                install_subdir = g_supported_model_map[model_id]["install_subdir"]
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
                 required_bin_path = os.path.join(full_install_path, "unet_int8a16.bin")
-
                 if not os.path.isfile(required_bin_path):
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
