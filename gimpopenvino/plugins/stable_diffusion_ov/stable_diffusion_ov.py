@@ -756,11 +756,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 initialImage_checkbox.set_active(False)
 
             if adv_checkbox.get_active():
-                if "int8" in model_name:
+                if power_modes_supported(model_name):
                     device_power_mode_tmp = config.get_property("power_mode")
-
                 else:
-                    device_power_mode_tmp = None
+                    device_power_mode_tmp = device_power_mode
 
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
