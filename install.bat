@@ -1,4 +1,19 @@
 @echo off
+set MODEL_SETUP=0
+if "%1" NEQ "" (
+    if /I "%1"=="-i" ( 
+        set MODEL_SETUP=1 
+    ) else (
+        if /I "%1"=="--install_models" (
+            set MODEL_SETUP=1 
+        ) else (
+            echo Invalid option: %1
+            echo Use -i or --install_models to run model setup.
+            exit /b
+        )
+    )
+)
+
 REM Get the directory of the currently executing script
 set script_dir=%~dp0
 
@@ -23,6 +38,7 @@ python -m pip install virtualenv | find /V "already satisfied"
 
 REM Create a virtual environment
 python -m virtualenv gimpenv3
+
 call "gimpenv3\Scripts\activate"
 
 REM Install required packages
@@ -30,7 +46,8 @@ pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
+python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=\"%script_dir%\weights\")"
+
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
 rem cls
@@ -41,10 +58,10 @@ for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov )
 
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    
-REM Prompt the user to continue setting up models
 
-echo **** OpenVINO MODEL SETUP STARTED ****
-gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
+if %MODEL_SETUP% EQU 1 (
+    echo **** OpenVINO MODEL SETUP STARTED ****
+    gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
+)
 
 exit /b
-

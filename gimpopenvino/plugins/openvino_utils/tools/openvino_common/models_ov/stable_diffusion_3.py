@@ -294,44 +294,13 @@ class StableDiffusionThreeEngine(DiffusionPipeline):
         print(f"Models compilation - path is {model}")
         self.core = Core()
         
-
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        #     futures = {
-        #         "transformer"    : executor.submit(self.load_model(os.path.join(model,    "transformer"), device[0])),
-        #         "vae_decoder"    : executor.submit(self.load_model(os.path.join(model,    "vae_decoder"), device[0])),
-        #         "text_encoder"   : executor.submit(self.load_model(os.path.join(model,   "text_encoder"), device[0], config=ov_config)),
-        #         "text_encoder_2" : executor.submit(self.load_model(os.path.join(model, "text_encoder_2"), device[0], config=ov_config)),
-        #         #"tokenizer"      : executor.submit(AutoTokenizer.from_pretrained(model,    "tokenizer")), 
-        #         #"tokenizer_2"    : executor.submit(AutoTokenizer.from_pretrained(model,  "tokenizer_2"))
-        #         #"tokenizer_3"    : executor.submit(AutoTokenizer.from_pretrained(model, "tokenizer_3"), 
-        #         #"text_encoder_3" : executor.submit(self.load_model(os.path.join(model, "text_encoder_3"), device[0], config=ov_config)),
-                
-        #     }
-
-
         use_flash_lora = True
 
         self.scheduler = (
             FlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model, "scheduler")) if not use_flash_lora else FlashFlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model,"scheduler"))
         )        
                 
-        #     
-        # self.register_modules(
-        #     vae = futures["vae_decoder"].result(),
-        #     text_encoder = futures["text_encoder"].result(),
-        #     text_encoder_2 = futures["text_encoder_2"].result(),
-        #     tokenizer = AutoTokenizer.from_pretrained(os.path.join(model,"tokenizer")),
-        #     tokenizer_2 = AutoTokenizer.from_pretrained(os.path.join(model,"tokenizer_2")),
-        #     transformer = futures["transformer"].result()
-        # )
         
-        #self.text_encoder_3 = futures["text_encoder_3"].result()
-        #self.tokenizer      = futures["tokenizer"].result()
-        #self.tokenizer_2    = futures["tokenizer_2"].result()
-        #self.tokenizer_3    = futures["tokenizer_3"].result()
-
-
-
         self.register_modules(
             vae = self.load_model(os.path.join(model,    "vae_decoder"), device[0], ov_config),
             text_encoder = self.load_model(os.path.join(model,   "text_encoder"), device[0], ov_config),

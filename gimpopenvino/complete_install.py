@@ -13,10 +13,21 @@ import uuid
 import gimpopenvino
 import platform
 import subprocess
+import shutil
+from pathlib import Path
 from openvino.runtime import Core
 
+def install_base_models(base_model_dir, repo_weights_dir):
+    for folder in os.scandir(repo_weights_dir):
+        model = os.path.basename(folder)
+        model_path = os.path.join(base_model_dir, model)
+        if not os.path.isdir(model_path):
+            print("Copying {} to {}".format(model, base_model_dir))
+            shutil.copytree(Path(folder), model_path)
 
-def setup_python_weights(install_location=None):
+    print("Setup done for base models")
+
+def setup_python_weights(install_location=None, repo_weights_dir=None):
     if not install_location:
         install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
         
@@ -29,6 +40,9 @@ def setup_python_weights(install_location=None):
     weight_path = os.path.join(install_location, "weights")
     if not os.path.isdir(weight_path):
         os.mkdir(weight_path)
+
+    if repo_weights_dir:
+        install_base_models(weight_path, repo_weights_dir)
 
     step = 1
     print("\n##########\n")
