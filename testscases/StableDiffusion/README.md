@@ -25,10 +25,10 @@ openvino-ai-plugins-gimp\install.bat --install_models
 
   ![](../../Docs/figs/standalone2.png) 
 
-  3b. Already installed but needs recompiling  <br/>
-  If you have already downloaded the models, it will show as Installed. If you need to recompile just choose it again and it will trigger recompilation of model. <br/>
-  
-  ![](figs/standalone1.png) 
+    3b. Already installed but needs recompiling  <br/>
+    If you have already downloaded the models, it will show as Installed. If you need to recompile just choose it again and it will trigger recompilation of model. <br/>
+
+  ![](../../Docs/figs/standalone1.png) 
 
 Activate the environment. 
   ```
