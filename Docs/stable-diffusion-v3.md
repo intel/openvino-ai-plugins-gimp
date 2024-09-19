@@ -22,7 +22,7 @@ After copying, create a file called  `install_info.json` inside the stable-diffu
 ```
 {
     "hf_repo_id": "none",
-    "hf_commit_id": "none",
+    "hf_commit_id": "none"
 }
 ```
 
