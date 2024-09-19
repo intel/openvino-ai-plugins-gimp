@@ -16,16 +16,16 @@ openvino-ai-plugins-gimp\install.bat --install_models
 ```
 3. As install.bat completes, you will be asked to download the models with a few prompts. There are now two options: 
 
-    Download the models for the first time, follow 3a. 
+    Download the models for the first time, follow A. 
 
-    Recompile already downloaded models, follow 3b. 
+    Recompile already downloaded models, follow B. 
     
-    3a.  Downloading for the first time <br/>
+    A.  Downloading for the first time <br/>
     Download "1", Stable Diffusion 1.5 Square as an instance.  <br/>
 
     ![](../../Docs/figs/standalone2.png) 
 
-    3b. Already installed but needs recompiling.  <br/>
+    B. Already installed but needs recompiling.  <br/>
     If you have already downloaded the models, it will show as Installed. If you need to recompile just choose it again <br/>
 
     ![](../../Docs/figs/standalone1.png) 
