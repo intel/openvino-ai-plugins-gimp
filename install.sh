@@ -39,7 +39,7 @@ pip3 install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip3 install "$script_dir/."
 
 # Run Python script to complete the installation
-python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
+python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=\"${script_dir}/weights\")"
 
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment

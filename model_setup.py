@@ -8,25 +8,10 @@ sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "gimp
 from model_manager import ModelManager
 
 base_model_dir = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
-install_location = os.path.join(base_model_dir, "stable-diffusion-ov")
-src_dir = os.path.join(os.path.dirname(__file__), "weights")
-test_path = os.path.join(install_location, "superresolution-ov")
-
-def install_base_models():
-    for folder in os.scandir(src_dir):
-        model = os.path.basename(folder)
-        model_path = os.path.join(base_model_dir, model)
-        if not os.path.isdir(model_path):
-            print("Copying {} to {}".format(model, base_model_dir))
-            shutil.copytree(Path(folder), model_path)
-
-    print("Setup done for superresolution and semantic-segmentation")
 
 def main():
 
     try:
-        install_base_models()
-
         weight_path = base_model_dir
 
         #Move to a temporary working directory in a known place.

@@ -46,7 +46,7 @@ pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights()"
+python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=\"%script_dir%\weights\")"
 
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
