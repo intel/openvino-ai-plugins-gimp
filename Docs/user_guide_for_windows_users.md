@@ -130,17 +130,21 @@ With previous section, the GIMP AI plugins with OpenVINO™ Backend is installed
 
 You can now simply open Gimp from the start menu as you would any normal Windows application.
 
-## Download & Install Stable Diffusion Model
+## Download & Install Stable Diffusion Models
 - Once GIMP application is started, Click "__Layer__" \> "__OpenVINO-AI-Plugins__" \> "__Stable diffusion__".
 - Once Stable Diffusion Plugin UI opens up, click on Model Button on the top left corner as show in the below picture:
+
     ![](figs/stable-diffusion_model1.png)
 - This now opens the Stable Diffusion Model Management window from where you can install the required models by clicking on "Install" button next to the model name. 
+
     ![](figs/stable-diffusion_model2.png)  
 
- - Download "__1__", Stable Diffusion 1.5 Square as an instance. 
+ - Download Stable Diffusion 1.5 Square as an instance. 
+
     ![](figs/stable-diffusion_model3.png)
  
  - Once installation process is completed, you will see the "Install" button is updated to "Installed" and you will find the models in the drop 
+ 
     ![](figs/stable-diffusion_model4.png)
     
     >**Notes:**
