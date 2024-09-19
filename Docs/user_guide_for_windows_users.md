@@ -182,10 +182,3 @@ Please follow below steps to execute Stable-Diffusion - Stable Diffusion 1.5 INT
     >   - Balanced
     > - If you wish to generate more images in single run, please modify the Number of Images section.
 
-### Detail of Power Mode
-
-| Power mode | Execution detail |
-|----------:|:----------------|
-| Best Performance | Text Device:   GPU<br>Unet Device:   GPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU | 
-| Best Power Efficiency | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   NPU<br>VAE Device:  GPU |
-| Balanced | Text Device:   NPU<br>Unet Device:   NPU<br>Unet-Neg Device:   GPU<br>VAE Device:  GPU |
