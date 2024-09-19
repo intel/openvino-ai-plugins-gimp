@@ -18,7 +18,13 @@ For example, using robocopy to copy the files on the command line:
 ```
 robocopy openvino_notebooks\notebooks\stable-diffusion-v3\stable-diffusion-3\ %userprofile%\openvino-ai-plugins-gimp\weights\stable-diffusion-ov\stable-diffusion-3.0\. /mir
 ```
-After copying, create a file called  `isntall_info.json` inside the stable-diffusion-3.0 directory. This will ensure that the GIMP plugin will recognize this as a valid model. 
+After copying, create a file called  `install_info.json` inside the stable-diffusion-3.0 directory. This will ensure that the GIMP plugin will recognize this as a valid model. It should contain the following text:
+```
+{
+    "hf_repo_id": "none",
+    "hf_commit_id": "none",
+}
+```
 
 Verify that the copied files and directory structure looks as follows:
 
