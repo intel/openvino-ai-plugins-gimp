@@ -96,25 +96,11 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
     },
 
-    "sd_1.5_inpainting_int8":
-    {
-        "name": "Stable Diffusion 1.5 [Inpainting] [INT8]",
-        "install_id": "sd_15_inpainting",
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
-    },
-
     "controlnet_openpose":
     {
         "name": "Stable Diffusion 1.5 [Controlnet OpenPose] [FP16]",
         "install_id": "sd_15_openpose",
         "install_subdir": ["stable-diffusion-ov", "controlnet-openpose"],
-    },
-
-    "controlnet_openpose_int8":
-    {
-        "name": "Stable Diffusion 1.5 [Controlnet OpenPose] [INT8]",
-        "install_id": "sd_15_openpose",
-        "install_subdir": ["stable-diffusion-ov", "controlnet-openpose-int8"],
     },
 
     "controlnet_canny":
@@ -124,25 +110,11 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "controlnet-canny"],
     },
 
-    "controlnet_canny_int8":
-    {
-        "name": "Stable Diffusion 1.5 [Controlnet Canny] [INT8]",
-        "install_id": "sd_15_canny",
-        "install_subdir": ["stable-diffusion-ov", "controlnet-canny-int8"],
-    },
-
     "controlnet_scribble":
     {
         "name": "Stable Diffusion 1.5 [Controlnet Scribble] [FP16]",
         "install_id": "sd_15_scribble",
         "install_subdir": ["stable-diffusion-ov", "controlnet-scribble"],
-    },
-
-    "controlnet_scribble_int8":
-    {
-        "name": "Stable Diffusion 1.5 [Controlnet Scribble] [INT8]",
-        "install_id": "sd_15_scribble",
-        "install_subdir": ["stable-diffusion-ov", "controlnet-scribble-int8"],
     },
 
     "controlnet_referenceonly":
@@ -197,7 +169,7 @@ g_installable_base_model_map = {
     {
         "name": "Stable Diffusion 1.5 LCM",
         "repo_id": "Intel/sd-1.5-lcm-openvino",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "unet_dynamic*"],
         "npu_compilation_routine": True,
     },
 
@@ -205,49 +177,49 @@ g_installable_base_model_map = {
     {
         "name": "Stable Diffusion 1.5 Portrait",
         "repo_id": "Intel/sd-1.5-portrait-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob"],
     },
 
     "sd_15_landscape":
     {
         "name": "Stable Diffusion 1.5 Landscape",
         "repo_id": "Intel/sd-1.5-landscape-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob"],
     },
 
     "sd_15_inpainting":
     {
         "name": "Stable Diffusion 1.5 Inpainting",
         "repo_id": "Intel/sd-1.5-inpainting-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "INT8*"],
     },
 
     "sd_15_openpose":
     {
         "name": "Stable Diffusion 1.5 Controlnet: OpenPose",
         "repo_id": "Intel/sd-1.5-controlnet-openpose-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "INT8*"],
     },
 
     "sd_15_canny":
     {
         "name": "Stable Diffusion 1.5 Controlnet: Canny",
         "repo_id": "Intel/sd-1.5-controlnet-canny-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "INT8*"],
     },
 
     "sd_15_scribble":
     {
         "name": "Stable Diffusion 1.5 Controlnet: Scribble",
         "repo_id": "Intel/sd-1.5-controlnet-scribble-quantized",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "INT8*"],
     },
 
     "sd_15_Referenceonly":
     {
         "name": "Stable Diffusion 1.5 Controlnet: Reference-Only",
         "repo_id": "Intel/sd-reference-only",
-        "download_exclude_filters": [],
+        "download_exclude_filters": ["*.blob", "INT8*"],
     },
 
 }
@@ -677,7 +649,7 @@ class ModelManager:
 
                     if exclude_filters:
                         if does_filename_match_patterns(relative_path, exclude_filters):
-                            print(relative_path, ": Skipped due to exclude filters")
+                            #print(relative_path, ": Skipped due to exclude filters")
                             continue
 
                     total_file_list_size += file_size
