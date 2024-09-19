@@ -143,8 +143,8 @@ You can now simply open Gimp from the start menu as you would any normal Windows
 
     ![](figs/stable-diffusion_model3.png)
  
- - Once installation process is completed, you will see the "Install" button is updated to "Installed" and you will find the models in the drop 
- 
+ - Once installation process is completed, you will see the "Install" button is updated to "Installed" and you will find the models in the drop-down list
+
     ![](figs/stable-diffusion_model4.png)
     
     >**Notes:**
