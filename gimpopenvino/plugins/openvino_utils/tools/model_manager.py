@@ -49,7 +49,7 @@ g_supported_model_map = {
 
     "sd_1.5_square_lcm":
     {
-        "name": "Stable Diffusion 1.5 LCM [Square] [INT8]",
+        "name": "Stable Diffusion 1.5 LCM [Square] [FP16]",
         "install_id": "sd_15_LCM",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
     },
