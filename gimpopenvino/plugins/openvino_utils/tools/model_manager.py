@@ -614,14 +614,14 @@ class ModelManager:
                     else:
                         install_status = "not_installed"
 
-                #TODO: this will get refactored.
-                model_detail_entry = {}
-                model_detail_entry["name"] = install_details["name"]
-                model_detail_entry["description"] = "Some unused description"
-                model_detail_entry["id"] = install_id
-                model_detail_entry['install_status'] = install_status
+            #TODO: this will get refactored.
+            model_detail_entry = {}
+            model_detail_entry["name"] = install_details["name"]
+            model_detail_entry["description"] = "Some unused description"
+            model_detail_entry["id"] = install_id
+            model_detail_entry['install_status'] = install_status
 
-                installable_model_details.append(model_detail_entry)
+            installable_model_details.append(model_detail_entry)
 
         return installed_models, installable_model_details
 
