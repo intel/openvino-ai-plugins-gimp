@@ -1041,14 +1041,16 @@ class ModelManager:
                     vae_de_future = None
                     vae_en_future = None
 
-                    if npu_arch == "3720":
+                    if npu_arch == NPU_ARCH_3720:
                         # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
-                        models_to_compile = [ "unet_int8a16", "unet_int8", "text_encoder"]
+                        models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder"]
                         shared_models = ["text_encoder.blob"]
                         sd15_futures = {
                             "text_encoder" : text_future,
                             "unet_int8" : unet_int8_future,
-                            "unet_int8a16" : unet_int8a16_future
+                            "unet_int8a16" : unet_int8a16_future,
+                            "unet_bs1" : unet_future,
+                            
                         }
                     else:
                         # also modified the model order for less checking in the future object when it gets result
@@ -1101,27 +1103,26 @@ class ModelManager:
                     # Record the npu_driver version that we used to create the blobs.
                     self.model_install_status[model_id]["install_info"]["npu_blob_driver_version"] = self._npu_driver_version
 
-                    if npu_arch != "3720":
-                        config_fp_16 = { 	"power modes supported": "yes",
-                                                "best performance" : ["GPU","GPU","GPU","GPU"],
-                                                        "balanced" : ["NPU","NPU","GPU","GPU"],
-                                           "best power efficiency" : ["NPU","NPU","NPU","GPU"]
-                        }
-                        config_int8 = { 	"power modes supported": "yes",
-                                                "best performance" : ["NPU","NPU","GPU","GPU"],
-                                                        "balanced" : ["GPU","NPU","NPU","GPU"],
-                                           "best power efficiency" : ["NPU","NPU","NPU","GPU"]
-                        }
+                    config_fp_16 = { 	"power modes supported": "yes",
+                                            "best performance" : ["GPU","GPU","GPU","GPU"],
+                                                    "balanced" : ["NPU","NPU","GPU","GPU"],
+                                       "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                    }
+                    config_int8 = { 	"power modes supported": "yes",
+                                            "best performance" : ["NPU","NPU","GPU","GPU"],
+                                                    "balanced" : ["GPU","NPU","NPU","GPU"],
+                                       "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                    }
 
-                        # Specify the file name
-                        file_name = "config.json"
+                    # Specify the file name
+                    file_name = "config.json"
 
-                        # Write the data to a JSON file
-                        with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
-                            json.dump(config_fp_16, json_file, indent=4)
-                        # Write the data to a JSON file
-                        with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
-                            json.dump(config_int8, json_file, indent=4)
+                    # Write the data to a JSON file
+                    with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+                        json.dump(config_fp_16, json_file, indent=4)
+                    # Write the data to a JSON file
+                    with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+                        json.dump(config_int8, json_file, indent=4)
 
                 except Exception as e:
                     # print it:
@@ -1160,7 +1161,7 @@ class ModelManager:
                     unet_future = None
                     vae_de_future = None
 
-                    if npu_arch == "3720":
+                    if npu_arch == NPU_ARCH_3720:
                         models_to_compile = [ "unet", "text_encoder"]
                         sd15_futures = {
                             "text_encoder" : text_future,
