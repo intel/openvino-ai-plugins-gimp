@@ -68,8 +68,16 @@ class ModelManagementWindow(Gtk.Window):
         if( self.is_server_running() is False ):
             _process = subprocess.Popen([python_path, server_path], close_fds=True)
 
-        # Connect the delete-event signal to a custom handler
+        # make sure that the server is running before we proceed...
+        connect_retries = 5
+        while self.is_server_running() is False:
+           time.sleep(1)
+           connect_retries = connect_retries - 1
 
+           if connect_retries<=0:
+               raise RuntimeError("Error in Model Management Server startup...")
+
+        # Connect the delete-event signal to a custom handler
         self.connect("delete-event", self.on_delete_event)
 
         self._installed_models, installable_model_details = self.get_all_model_details()
