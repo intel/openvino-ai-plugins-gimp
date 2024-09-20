@@ -7,7 +7,7 @@ with open(os.path.join(here, "README.md"), "r", encoding="utf8") as fh:
 
 setup(
     name="gimpopenvino",  # Required
-    version="0.0.1",  # Required
+    version="2.99.3",  # Required
     description="OpenVINO™ AI Plugins for GIMP",  # Optional
     long_description=long_description,  # Optional
     long_description_content_type="text/markdown",  # Optional (see note above)
@@ -15,7 +15,6 @@ setup(
     author="Arisha Kumar",  # Optional
     author_email="",  # Optional
     classifiers=[  # Optional
-        "Development Status :: 3 - Alpha",
         # Indicate who your project is intended for
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
@@ -34,7 +33,7 @@ setup(
         "gdown",
         'enum; python_version <= "2.7"',
         "requests",
-        "opencv-python",
+        "opencv-python>=4.8.1.78",
         "scikit-image",
         "timm==0.4.5",
         "transformers>=4.37.0",
