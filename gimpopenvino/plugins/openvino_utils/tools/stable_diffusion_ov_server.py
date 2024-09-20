@@ -130,7 +130,28 @@ def run(model_name, available_devices, power_mode):
     engine = initialize_engine(model_name, model_path, device_list)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
+        # Enable address reuse to avoid 'Address already in use' errors
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        retries = 15
+        while( retries > 0):
+            try:
+                s.bind((HOST, PORT))
+                break
+            except Exception as e:
+                traceback.print_exc()
+                retries = retries - 1
+                print("Error in server binding. Retries left = ", retries)
+
+                if retries > 0:
+                   print("Waiting 5 seconds until next retry")
+                   time.sleep(5)
+                else:
+                   print("Error in stable diffusion server binding. Out of retries.")
+
+                   # Trigger exit of this server
+                   s.close()  # Explicitly close the socket
+                   os._exit(1)
+
         s.listen()
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s2.connect((HOST, 65433))
@@ -144,6 +165,7 @@ def run(model_name, available_devices, power_mode):
                     data = conn.recv(1024)
 
                     if data.decode() == "kill":
+                        s.close()  # Explicitly close the socket
                         os._exit(0)
                     if data.decode() == "ping":
                         conn.sendall(data)

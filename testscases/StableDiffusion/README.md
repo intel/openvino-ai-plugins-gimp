@@ -1,14 +1,36 @@
 # Running Stable Diffusion without Installing GIMP
  
 For these instructions, we assume that you have cloned this repo inside `%userprofile%\GIMP` directory and that the virtual environment for GIMP is in `%userprofile%\GIMP\gimpenv3`.
-## Activate Virtual Environment
+## Install and Model Setup
+
 The following commands can be run in a new command window.
-Navigate to  %userprofile%\GIMP
+1. Navigate to  %userprofile%\GIMP
   ```
   cd  %userprofile%\GIMP
   ```
- 
-Activate the environment. 
+  
+2. Run install.bat from %userprofile%\GIMP directory.  
+
+```
+openvino-ai-plugins-gimp\install.bat --install_models
+```
+3. As install.bat completes, you will be asked to download the models with a few prompts. There are now two options: 
+
+    Download the models for the first time, follow A. 
+
+    Recompile already downloaded models, follow B. 
+    
+    A.  Downloading for the first time <br/>
+    Download "1", Stable Diffusion 1.5 Square as an instance.  <br/>
+
+    ![](../../Docs/figs/standalone2.png) 
+
+    B. Already installed but needs recompiling.  <br/>
+    If you have already downloaded the models, it will show as Installed. If you need to recompile just choose it again <br/>
+
+    ![](../../Docs/figs/standalone1.png) 
+
+4. Activate the environment. 
   ```
   gimpenv3\Scripts\activate 
   ```
@@ -18,7 +40,7 @@ These commands should be run in the same window where you have activated the env
 ### Basic Options
 Run the python stable diffusion engine with the -h option to see the possible options.
 ```
-python GIMP-ML-OV\testscases\StableDiffusion\stable_diffusion_engine_tc.py -h
+python openvino-ai-plugins-gimp\testscases\StableDiffusion\stable_diffusion_engine_tc.py -h
 ``` 
 You should see the following output:
 ![image](https://github.com/intel-sandbox/GIMP-ML-OV/assets/22227580/3ebb70d7-9e01-4494-8c55-89fa8f2c27d5)
@@ -26,7 +48,7 @@ You should see the following output:
 ### Example 1: Defaults 
 Default options for INT8 on NPU
 ```
-python GIMP-ML-OV\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency"
+python openvino-ai-plugins-gimp\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency"
 ```
 ![image](https://github.com/intel-sandbox/GIMP-ML-OV/assets/22227580/72f730e5-775a-43d5-b197-4aa5cc235531)
 
@@ -35,21 +57,21 @@ In the output above, you should see the iterations per second. This is an instan
 ### Example 2: Overriding the devlces
 Command line options allow you to over ride the devices in config.json without having to modify the config. For example, moving the VAE to GPU in the power efficiency mode:
 ```
-python GIMP-ML-OV\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU
+python openvino-ai-plugins-gimp\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU
 ```
 ![image](https://github.com/intel-sandbox/GIMP-ML-OV/assets/22227580/b053f7e7-9403-4c5e-84ff-6a1aa55f1c22)
 
 ### Example 3: Generating multiple images.
 In general, the first inference is slower. The recommendation is to generate multiple images in a row. The script will output the average image generation time.
 ```
-python GIMP-ML-OV\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU -n 5
+python openvino-ai-plugins-gimp\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU -n 5
 ```
 ![image](https://github.com/intel-sandbox/GIMP-ML-OV/assets/22227580/a1128323-c327-4c03-9f10-49676fbda811)
 
 ### Example 4: Saving images to check accuracy
 Use the -si option to save images in the directory that the script is run from. 
 ```
-python GIMP-ML-OV\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU -n 5 -si
+python openvino-ai-plugins-gimp\testscases\StableDiffusion\stable_diffusion_engine_tc.py -m sd_1.5_square_int8 -pm "best power efficiency" -vd GPU -n 5 -si
 ```
 ![image](https://github.com/intel-sandbox/GIMP-ML-OV/assets/22227580/6ce2140c-2fff-4364-825f-816672acd14e)
 

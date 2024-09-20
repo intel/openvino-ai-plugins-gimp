@@ -30,11 +30,10 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 # OpenVINO™ Image Generator Plugin with Stable Diffusion
 #### Power Mode is enabled for int8 SD models and systems that has a "NPU" only 
 #### A. Prompt to Image
-1. Create or choose a layer
+1. You can start with a blank canvas or create/choose a layer
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins
-3. Choose the desired model and device from the drop down list.
-   - note that the [Latent Consistency Model](https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7) is now supported. Choose `sd_1.5_square_lcm`
-4. Click on "Load Models" to compile & load the model on the selected device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference"
+3. Choose the desired Model and Power Mode from the drop down list.
+4. Click on "Load Models" to compile & load the model on the device. Wait for it to complete. Please note that you need to perform this step only if you change the model or device or both. For any subsequent runs just click "Run Inference"
 5. Enter prompt and other parameters
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
@@ -81,13 +80,7 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
 
-![](gifs/stable-diffusion.png)
-
-_With Advanced Setting_
-
-![](gifs/stable-diffusion1.png)
-
-_With Power Mode in Advanced Setting for SD int8 based models_
+_With Advanced Setting and Power Mode_
 
 ![](gifs/stable-diffusion2.png)
 
