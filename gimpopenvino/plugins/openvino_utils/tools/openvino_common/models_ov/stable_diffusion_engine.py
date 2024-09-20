@@ -97,8 +97,7 @@ def try_enable_npu_turbo(device, core):
                 print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
             else:
                 print_npu_turbo_art()
-        else:
-            print(f"Skipping NPU_TURBO for device {device}")
+        
     elif "linux" in platform.system().lower():
         if os.path.isfile('/sys/module/intel_vpu/parameters/test_mode'):
             with open('/sys/module/intel_vpu/version', 'r') as f:
@@ -473,14 +472,21 @@ class StableDiffusionEngine(DiffusionPipeline):
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
 
-        self.batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
+        batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
+
+        # if 'int8' is in model, then we are using unet_int8a16 model, and for this we will always use batch size 1.
+        if "int8" in model:
+            batch_size = 1
+
+        self.batch_size = batch_size
         try_enable_npu_turbo(device, self.core)
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
         except Exception as e:
             print("Local tokenizer not found. Attempting to download...")
-            self.tokenizer = self.download_tokenizer(tokenizer, model)
+            self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
+            self.tokenizer.save_pretrained(model)
     
         print("Loading models... ")
 

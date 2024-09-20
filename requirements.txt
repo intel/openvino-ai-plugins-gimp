@@ -9,7 +9,7 @@ ftfy==6.2.3
 git+https://github.com/initml/diffusers.git@clement/feature/flash_sd3 
 huggingface_hub
 numpy==1.26.4
-openvino==2024.3.0
+openvino==2024.4.0
 peft==0.12.0
 pillow==10.4.0
 protobuf==5.27.3

@@ -30,6 +30,7 @@ PORT = 65432  # The port used by the server
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
+from model_management_window import ModelManagementWindow
 
 _ = gettext.gettext
 image_paths = {
@@ -68,6 +69,22 @@ class StringEnum:
         return tree_model
 
 
+class ModelsEnum:
+    def __init__(self, model_list):
+        self.keys = []
+        self.values = []
+        for model in model_list:
+            self.keys.append(model["id"])
+            self.values.append(model["name"])
+
+    def get_tree_model(self):
+        """Get a tree model that can be used in GTK widgets."""
+        tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
+        for i in range(len(self.keys)):
+            tree_model.append([self.keys[i], self.values[i]])
+        return tree_model
+
+
 class DeviceEnum:
     def __init__(self, supported_devices):
         self.keys = []
@@ -87,7 +104,7 @@ class DeviceEnum:
     def get_tree_model_no_npu(self):
         """Get a tree model that can be used in GTK widgets."""
         tree_model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
-       
+
         for i in range(len(self.keys)):
             if self.keys[i] != "NPU":
                 tree_model.append([self.keys[i], self.values[i]])
@@ -101,41 +118,6 @@ class SDDialogResponse(IntEnum):
 def check_files_exist(dir_path, files):
     return all(os.path.isfile(Path(dir_path) / file) for file in files)
 
-def list_models(weight_path, SD):
-    model_list = []    
-    model_paths = {
-        "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
-        "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
-        "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
-        "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
-        "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],        
-        "sd_1.5_square_int8a16" : ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],        
-        "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
-        "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
-        "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
-        "sd_1.5_inpainting": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
-        "sd_1.5_inpainting_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting_int8"],
-        "sd_2.1_square_base": ["stable-diffusion-ov", "stable-diffusion-2.1", "square_base"],
-        "sd_2.1_square": ["stable-diffusion-ov", "stable-diffusion-2.1", "square"],
-        "sd_3.0_square": ["stable-diffusion-ov", "stable-diffusion-3.0"],
-        "controlnet_referenceonly": ["stable-diffusion-ov", "controlnet-referenceonly"],
-        "controlnet_openpose": ["stable-diffusion-ov", "controlnet-openpose"],
-        "controlnet_canny": ["stable-diffusion-ov", "controlnet-canny"],
-        "controlnet_scribble": ["stable-diffusion-ov", "controlnet-scribble"],
-        "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
-        "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
-        "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
-    }
-    # Default path if model_name is not in the dictionary
-    dir_path = os.path.join(weight_path, *model_paths.get(SD, ""))
-    if Path(dir_path).is_dir():
-        model_list.append(SD)
-    
-    return model_list
-
-
-
-    
 class SDRunner:
     def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
                   strength, seed, progress_bar, config_path_output):
@@ -175,7 +157,9 @@ class SDRunner:
         plugin_path = config_path_output["plugin_path"]
 
         Gimp.context_push()
-        image.undo_group_start()
+
+        if image:
+            image.undo_group_start()
 
         #save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
 
@@ -220,7 +204,8 @@ class SDRunner:
         except:
             print(f"ERROR : {sd_option_cache} not found")
 
-        image.undo_group_end()
+        if image:
+            image.undo_group_end()
         Gimp.context_pop()
 
         if data_output["inference_status"] == "success":
@@ -250,9 +235,10 @@ class SDRunner:
             image_new.insert_layer(copy, None, -1)
 
             Gimp.displays_flush()
-            image.undo_group_end()
+            if image:
+                image.undo_group_end()
             Gimp.context_pop()
-           
+
 
             # Remove temporary layers that were saved
             my_dir = os.path.join(weight_path, "..")
@@ -270,7 +256,7 @@ class SDRunner:
                 "error",
                 image_paths
             )
-           
+
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def is_server_running():
@@ -279,6 +265,7 @@ def is_server_running():
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.1) # <- set connection timeout to 100 ms (default is a few seconds)
             s.connect((HOST, PORT))
             s.sendall(b"ping")
             data = s.recv(1024)
@@ -328,6 +315,7 @@ def async_sd_run_func(runner, dialog,num_images):
 def on_toggled(widget, dialog):
     dialog.response(800)
 
+
 #
 # This is what brings up the UI
 #
@@ -344,61 +332,38 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         python_path = config_path_output["python_path"]
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(config_path, client)
-        
+
         supported_devices = []
         for device in config_path_output["supported_devices"]:
            if 'GNA' not in device:
                 supported_devices.append(device)
-        
-        list_layers = []
 
-        try:
-            list_layers = image.get_layers()
-        except:
-            list_layers = image.list_layers()
-     
-        
-        if list_layers[0].get_mask() == None:
-            n_layers = 1
-            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+        if not image:
+            n_layers = 0
         else:
-            n_layers = 2
-            mask = list_layers[0].get_mask()
-            save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
-            save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+            list_layers = []
 
-        if n_layers == 2:
-            model_list = (list_models(config_path_output["weight_path"],"sd_1.5_inpainting") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_inpainting_int8"))
-        else:
-            model_list = (list_models(config_path_output["weight_path"],"sd_1.4") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square_lcm") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_portrait") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_square_int8a16") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_landscape") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_portrait_512x768") +
-                          list_models(config_path_output["weight_path"],"sd_1.5_landscape_768x512") +
-                          list_models(config_path_output["weight_path"],"sd_2.1_square_base") +
-                          list_models(config_path_output["weight_path"],"sd_2.1_square") +
-                          list_models(config_path_output["weight_path"],"sd_3.0_square") +
-                          list_models(config_path_output["weight_path"],"controlnet_referenceonly") +
-                          list_models(config_path_output["weight_path"],"controlnet_openpose") + 
-                          list_models(config_path_output["weight_path"],"controlnet_openpose_int8") +
-                          list_models(config_path_output["weight_path"],"controlnet_canny_int8") + 
-                          list_models(config_path_output["weight_path"],"controlnet_canny") + 
-                          list_models(config_path_output["weight_path"],"controlnet_scribble") + 
-                          list_models(config_path_output["weight_path"],"controlnet_scribble_int8"))
+            try:
+                list_layers = image.get_layers()
+            except:
+                list_layers = image.list_layers()
 
-        model_name_enum = DeviceEnum(model_list)  
-        
+
+            if list_layers[0].get_mask() == None:
+                n_layers = 1
+                save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png"))
+            else:
+                n_layers = 2
+                mask = list_layers[0].get_mask()
+                save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+                save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
         else:
             supported_modes = ["Best performance"]
-        device_name_enum = DeviceEnum(supported_modes)        
-        
+        device_name_enum = DeviceEnum(supported_modes)
+
         config = procedure.create_config()
         config.begin_run(image, run_mode, args)
 
@@ -412,7 +377,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         try:
             with open(sd_option_cache, "r") as file:
                 sd_option_cache_data = json.load(file)
-               
+
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
@@ -421,9 +386,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
+
+
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
+        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
         run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
         run_button.set_sensitive(False)
@@ -442,47 +409,42 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.set_row_spacing(10)
         vbox.add(grid)
         grid.show()
-        
+
         # Model Name parameter
-        label = Gtk.Label.new_with_mnemonic(_("_Model Name"))
+        label = Gtk.Button(label="Model")
         grid.attach(label, 0, 0, 1, 1)
         label.show()
-        model_combo = GimpUi.prop_string_combo_box_new(
-            config, "model_name", model_name_enum.get_tree_model(), 0, 1
-        )
-        grid.attach(model_combo, 1, 0, 1, 1)
-        model_combo.show()
 
         #number of images
         num_images_label = Gtk.Label.new_with_mnemonic(_("_Number of Images"))
         num_images_spin = GimpUi.prop_spin_button_new(
             config, "num_images", step_increment=1, page_increment=0.1, digits=0
-        ) 
+        )
 
         # num_infer_steps parameter
         steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-               
+
         steps_spin = GimpUi.prop_spin_button_new(
             config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
 
         # guidance_scale parameter
         gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
-        
+
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
-        
-        
+
+
 
         # seed
         seed = Gtk.Entry.new()
-        
+
         seed.set_width_chars(40)
         seed.set_placeholder_text(_("If left blank, random seed will be set.."))
 
         seed.set_buffer(Gtk.EntryBuffer.new(sd_option_cache_data["seed"], -1))
-        
+
 
         seed_text = _("Seed")
         seed_label = Gtk.Label(label=seed_text)
@@ -492,7 +454,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         adv_power_mode_combo = GimpUi.prop_string_combo_box_new(
             config, "power_mode", device_name_enum.get_tree_model(), 0, 1
         )
-        
+
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
                                                   _("_Advanced Settings                                                       "))
@@ -510,25 +472,25 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         grid.attach(invisible_label5,0, 4, 1, 1)
         grid.attach(invisible_label6,0, 5, 1, 1)
         grid.attach(invisible_label7,0, 6, 1, 1)
-        grid.attach(invisible_label8,0, 7, 1, 1)    
-    
+        grid.attach(invisible_label8,0, 7, 1, 1)
+
         invisible_label4.show()
         invisible_label5.show()
         invisible_label6.show()
-        invisible_label7.show()  
-        invisible_label8.show()           
+        invisible_label7.show()
+        invisible_label8.show()
 
         def power_modes_supported(model_name):
             if "sd_1.5_square" in model_name or "int8" in model_name:
                 return True
             return False
-        
+
         def remove_all_advanced_widgets():
             grid.remove(gscale_label)
             gscale_label.hide()
             grid.remove(gscale_spin)
             gscale_spin.hide()
-           
+
             grid.remove(steps_label)
             steps_label.hide()
             grid.remove(steps_spin)
@@ -537,8 +499,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.remove(num_images_label)
             num_images_label.hide()
             grid.remove(num_images_spin)
-            num_images_spin.hide()            
-            
+            num_images_spin.hide()
+
 
             grid.remove(seed)
             seed.hide()
@@ -549,19 +511,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.remove(adv_power_mode_label)
             adv_power_mode_label.hide()
             grid.remove(adv_power_mode_combo)
-            adv_power_mode_combo.hide()       
+            adv_power_mode_combo.hide()
 
             invisible_label4.show()
             invisible_label5.show()
             invisible_label6.show()
             invisible_label7.show()
-            invisible_label8.show() 
+            invisible_label8.show()
 
         def populate_advanced_settings():
 
             grid.attach(num_images_label, 0, 3, 1, 1)
-            grid.attach(num_images_spin, 1, 3, 1, 1)              
-           
+            grid.attach(num_images_spin, 1, 3, 1, 1)
+
             grid.attach(steps_label, 0, 4, 1, 1)
             grid.attach(steps_spin, 1, 4, 1, 1)
             grid.attach(gscale_label, 0, 5, 1, 1)
@@ -569,7 +531,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
             model_name = config.get_property("model_name")
-            
+
             if power_modes_supported(model_name):
                 grid.attach(adv_power_mode_label, 0, 7, 1, 1)
                 grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
@@ -585,18 +547,18 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             seed_label.show()
             seed.show()
             num_images_label.show()
-            num_images_spin.show()               
-        
+            num_images_spin.show()
+
             invisible_label4.hide()
             invisible_label5.hide()
-            invisible_label6.hide()   
+            invisible_label6.hide()
             invisible_label7.hide()
-            invisible_label8.hide()           
+            invisible_label8.hide()
 
 
         if adv_checkbox.get_active():
             populate_advanced_settings()
-     
+
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -609,13 +571,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         prompt_text_label = _("Enter text to generate image")
         prompt_label = Gtk.Label(label=prompt_text_label)
         grid.attach(prompt_label, 0, 1, 1, 1)
-       
+
         prompt_label.show()
 
         negative_prompt_text_label = _("Negative Prompt")
         negative_prompt_label = Gtk.Label(label=negative_prompt_text_label)
         grid.attach(negative_prompt_label, 0, 2, 1, 1)
-  
+
         negative_prompt_label.show()
 
         # Negative Prompt text
@@ -636,19 +598,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             file_chooser_dialog.hide()
 
         file_chooser_button = Gtk.Button.new_with_mnemonic(label=_("_Init Image from File (Optional)"))
-    
+
         file_chooser_button.connect("clicked", choose_file)
 
         file_entry = Gtk.Entry.new()
-        
-      
+
+
         file_entry.set_width_chars(40)
         file_entry.set_placeholder_text(_("Choose path..."))
         initial_image = sd_option_cache_data["initial_image"]
         if initial_image is not None:
-          
-            file_entry.set_text(initial_image) 
-    
+
+            file_entry.set_text(initial_image)
+
 
         file_chooser_dialog = Gtk.FileChooserDialog(
             use_header_bar=use_header_bar,
@@ -657,19 +619,19 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         )
         file_chooser_dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         file_chooser_dialog.add_button("_OK", Gtk.ResponseType.OK)
-        
+
         # Initial_image strength parameter
         strength_label = Gtk.Label.new_with_mnemonic(_("_Strength of Initial Image"))
         invisible_label1 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label2 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label3 = Gtk.Label.new_with_mnemonic(_("_"))
-        
+
         spin = GimpUi.prop_spin_button_new(
             config, "strength", step_increment=0.1, page_increment=0.1, digits=1
         )
 
-        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image", 
-                                    _("_Use Inital Image (Default: Selected layer in Canvas)"))   
+        initialImage_checkbox = GimpUi.prop_check_button_new(config, "use_initial_image",
+                                    _("_Use Initial Image (Default: Selected layer in Canvas)"))
 
 
         def populate_init_image_section():
@@ -681,19 +643,21 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             strength_label.show()
             grid.attach(spin, 1, 9, 1, 1)
             spin.show()
-            
-        if n_layers == 1:
+
+        if n_layers == 0 or n_layers == 1:
             grid.attach(initialImage_checkbox, 3, 1, 1, 1)
+            if n_layers == 0:
+                initialImage_checkbox.set_sensitive(False)
             initialImage_checkbox.show()
             grid.attach(invisible_label1,1, 8, 1, 1)
             grid.attach(invisible_label2,1, 9, 1, 1)
             #grid.attach(invisible_label3,0, 10, 1, 1)
             invisible_label1.show()
             invisible_label2.show()
-            #invisible_label3.show()            
+            #invisible_label3.show()
             if initialImage_checkbox.get_active():
-                populate_init_image_section()     
-        
+                populate_init_image_section()
+
         def initImage_toggled(widget):
             if initialImage_checkbox.get_active():
                 invisible_label1.hide()
@@ -710,12 +674,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 #grid.attach(invisible_label3,0, 10, 1, 1)
                 invisible_label1.show()
                 invisible_label2.show()
-                #invisible_label3.show()            
+                #invisible_label3.show()
 
-        initialImage_checkbox.connect("toggled", initImage_toggled)    
+        initialImage_checkbox.connect("toggled", initImage_toggled)
+
 
         # status label
-        sd_run_label = Gtk.Label(label="Running Stable Diffusion...") 
+        sd_run_label = Gtk.Label(label="Running Stable Diffusion...")
         grid.attach(sd_run_label, 1, 12, 1, 1)
 
         # spinner
@@ -745,15 +710,15 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         if model_name == "sd_1.5_square_lcm":
             negative_prompt_label.hide()
             negative_prompt_text.hide()
-            initialImage_checkbox.hide()               
-        
+            initialImage_checkbox.hide()
+
         if "sd_3.0" in model_name:
-            initialImage_checkbox.hide()               
+            initialImage_checkbox.hide()
 
         if is_server_running():
             run_button.set_sensitive(True)
-            if adv_checkbox.get_active() and power_modes_supported(model_name): 
-                device_power_mode = config.get_property("power_mode")           
+            if adv_checkbox.get_active() and power_modes_supported(model_name):
+                device_power_mode = config.get_property("power_mode")
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -765,31 +730,37 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             # LCM model has no negative prompt
             if model_name_tmp == "sd_1.5_square_lcm":
                 negative_prompt_text.hide()
-                negative_prompt_label.hide()    
-                
+                negative_prompt_label.hide()
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
-                
+
+            # default this to True, and some below conditions will set it to False.
+            initialImage_checkbox.set_sensitive(True)
 
             if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp:
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
-                
+
             if "controlnet" in config.get_property("model_name"):
-                
                 initialImage_checkbox.set_active(True)
+
+                #don't allow user to uncheck this for controlnet.
+                initialImage_checkbox.set_sensitive(False)
             else:
                 initialImage_checkbox.set_active(False)
 
+            if n_layers == 0:
+                initialImage_checkbox.set_sensitive(False)
+                initialImage_checkbox.set_active(False)
+
             if adv_checkbox.get_active():
-                if "int8" in model_name:
+                if power_modes_supported(model_name):
                     device_power_mode_tmp = config.get_property("power_mode")
-                
                 else:
-                    device_power_mode_tmp = None
-    
+                    device_power_mode_tmp = device_power_mode
+
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
                 run_button.set_sensitive(True)
@@ -800,35 +771,94 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             remove_all_advanced_widgets()
             if adv_checkbox.get_active():
                 populate_advanced_settings()
-      
 
-        model_combo.connect("changed", model_combo_changed)
-        model_combo.connect("changed", model_sensitive_combo_changed)
+        model_combo = None
+        def populate_model_combo(installed_models):
+            nonlocal model_combo
+            nonlocal grid
+            nonlocal config
+            nonlocal model_combo_changed
+            nonlocal model_sensitive_combo_changed
+
+            model_list = []
+            for installed_model in installed_models:
+                model_id = installed_model["id"]
+
+                append_model = True
+
+                # Don't add inpainting models to drop-down list if n_layers != 2
+                if n_layers != 2 and "inpainting" in model_id:
+                    append_model = False
+
+                # only allow inpainting models into the drop-down if n_layers==2
+                if n_layers == 2 and "inpainting" not in model_id:
+                    append_model = False
+
+                # only allow controlnet models into the drop-down if n_layers==1
+                if n_layers != 1 and "controlnet" in model_id:
+                    append_model = False
+
+                if append_model is True:
+                    model_list.append(installed_model)
+
+
+            model_name_enum = ModelsEnum(model_list)
+
+            if model_combo is not None:
+                model_combo.hide()
+                grid.remove(model_combo)
+
+            model_combo = GimpUi.prop_string_combo_box_new(
+                config, "model_name", model_name_enum.get_tree_model(), 0, 1
+            )
+            grid.attach(model_combo, 1, 0, 1, 1)
+            model_combo.show()
+
+            model_combo.connect("changed", model_combo_changed)
+            model_combo.connect("changed", model_sensitive_combo_changed)
+
+            # trigger a call to this, as it includes some important logic.
+            model_sensitive_combo_changed(model_combo)
+
+        model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
+
+        installed_models = model_management_window.get_installed_model_list()
+
+        # do the initial population of the model_combo.
+        # Note that 'populate_model_combo' can be called again by the ModelManagerWindow,
+        #  upon installation of a model.
+        populate_model_combo(installed_models)
+
+        def model_management_launch_button_clicked(widget):
+            model_management_window.display()
+
+        label.connect("clicked", model_management_launch_button_clicked)
+
         adv_checkbox.connect("toggled", model_sensitive_combo_changed)
         adv_power_mode_combo.connect("changed", model_sensitive_combo_changed)
- 
+
         # Wait for user to click
         dialog.show()
-     
+
         import threading
         run_inference_thread = None
         run_load_model_thread = None
 
         runner = None
-        
+
         while True:
-            response = dialog.run()                           
-                
+            response = dialog.run()
+
             if response == Gtk.ResponseType.OK:
 
                 model_combo.set_sensitive(False)
-          
+
                 #adv_checkbox.set_sensitive(False)
                 prompt = prompt_text.get_text()
                 negative_prompt = negative_prompt_text.get_text()
-                                  
+
                 if adv_checkbox.get_active():
-                    num_images = config.get_property("num_images") 
+                    num_images = config.get_property("num_images")
                     num_infer_steps = config.get_property("num_infer_steps")
                     guidance_scale = config.get_property("guidance_scale")
                     strength = config.get_property("strength")
@@ -854,7 +884,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                         initial_image = os.path.join(config_path_output["weight_path"], "..", "layer_init_image.png")
                 else:
                     initial_image = None
-                      
+
 
                 runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
                 strength, seed, progress_bar, config_path_output)
@@ -871,7 +901,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 continue
             elif response == Gtk.ResponseType.APPLY:
                 model_combo.set_sensitive(False)
- 
+
                 #grey-out load & run buttons, show label & start spinner
                 load_model_button.set_sensitive(False)
                 run_button.set_sensitive(False)
@@ -884,12 +914,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
                 if power_modes_supported(model_name):
                     if adv_checkbox.get_active():
-                        device_power_mode = config.get_property("power_mode")     
+                        device_power_mode = config.get_property("power_mode")
                     else:
-                        device_power_mode = "Best performance" 
+                        device_power_mode = "Best performance"
 
                 server = "stable_diffusion_ov_server.py"
-                server_path = os.path.join(config_path, server)  
+                server_path = os.path.join(config_path, server)
 
                 run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()
@@ -912,7 +942,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 run_button.set_sensitive(True)
                 load_model_button.set_sensitive(True)
                 model_combo.set_sensitive(True)
-           
+
             elif response == SDDialogResponse.RunInferenceComplete:
                 print("run inference complete.")
                 if run_inference_thread:
@@ -920,6 +950,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     result = runner.result
                     if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
                         config.end_run(Gimp.PDBStatusType.SUCCESS)
+
+                    #if the model managemer is installing something, we have a thread polling for updates.
+                    # Force stop the poll thread (the install will still continue in background), so that the SD
+                    # dialog is allowed to close.
+                    model_management_window.stop_poll_thread()
+
                     return result
             elif response == SDDialogResponse.ProgressUpdate:
                 progress_string=""
@@ -936,9 +972,11 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 remove_all_advanced_widgets()
                 if adv_checkbox.get_active():
                     populate_advanced_settings()
-             
+
 
             else:
+                model_management_window.stop_poll_thread()
+
 #                dialog.destroy()
                 return procedure.new_return_values(
                     Gimp.PDBStatusType.CANCEL, GLib.Error()
@@ -950,7 +988,7 @@ class StableDiffusion(Gimp.PlugIn):
     __gproperties__ = {
         "num_images": (
         int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
-        GObject.ParamFlags.READWRITE,),        
+        GObject.ParamFlags.READWRITE,),
         "num_infer_steps": (
         int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:20)", 1, 50, 20,
         GObject.ParamFlags.READWRITE,),
@@ -963,10 +1001,10 @@ class StableDiffusion(Gimp.PlugIn):
         "model_name": (
             str,
             _("Model Name"),
-            "Model Name: 'sd_1.4', 'sd_1.5'",
+            "Current Model. Click on the Model button to the left to install new models.",
             "sd_1.4",
             GObject.ParamFlags.READWRITE,
-        ),    
+        ),
 
         "advanced_setting": (
             bool,
@@ -982,15 +1020,15 @@ class StableDiffusion(Gimp.PlugIn):
             "Power Mode: 'Balanced', 'Best performance'",
             "Best performance",
             GObject.ParamFlags.READWRITE,
-        ),        
-        
+        ),
+
         "use_initial_image": (
             bool,
             _("_Use Initial Image (Default: Open Image in Canvas"),
             "Use Initial Image (Default: Open Image in Canvas",
             False,
             GObject.ParamFlags.READWRITE,
-        ),        
+        ),
 
 
         # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
@@ -1036,11 +1074,13 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_argument_from_property(self, "guidance_scale")
             procedure.add_argument_from_property(self, "strength")
             procedure.add_argument_from_property(self, "model_name")
- 
+
             procedure.add_argument_from_property(self, "advanced_setting")
             procedure.add_argument_from_property(self, "power_mode")
-           
+
             procedure.add_argument_from_property(self, "use_initial_image")
+
+            procedure.set_sensitivity_mask (Gimp.ProcedureSensitivityMask.ALWAYS)
 
 
 
