@@ -281,7 +281,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                init_image=Image.open(init_image),
+                image=Image.open(init_image),
                 scheduler=scheduler,
                 num_inference_steps=num_infer_steps,
                 guidance_scale=guidance_scale,
