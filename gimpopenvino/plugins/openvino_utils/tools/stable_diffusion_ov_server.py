@@ -368,7 +368,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
         image = "sd_cache.png"
 
-        if "controlnet" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3.0" in model_name:
+        if ("controlnet" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3.0" in model_name) and "referenceonly" not in model_name:
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size
         else:
