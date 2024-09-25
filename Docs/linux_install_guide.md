@@ -48,16 +48,11 @@
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    ```
 
-2. Run install script, and download models. The following steps will create the virtual environment "gimpenv3", install all required packages and will also walk you through models setup.
+2. Run install script, and download models. The following steps will create the virtual environment "gimpenv3" and install all required packages.
    ```sh
    chmod +x openvino-ai-plugins-gimp/install.sh
    ./openvino-ai-plugins-gimp/install.sh
    ```
-   At the end of plugin setup, you will be prompted to setup the AI models used with OpenVINO™. 
-
-   Choose the models that you would like to setup, keeping in mind that choosing to download all of them may take time and considerable disk space.
-
-   *You can re-run "run install script" step later again to install & setup models that you may have missed.*
 
 # Verify Installation
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
