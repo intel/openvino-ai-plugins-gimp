@@ -1,4 +1,4 @@
-# OpenVINO™ AI Plugins for GIMP
+# OpenVINO™ AI Plugins for GIMP [![Mentioned in Awesome OpenVINO](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/openvinotoolkit/awesome-openvino)
 
 <br>Dedicated for GIMP 3, Python 3 and OpenVINO™.<br> :star: :star: :star: :star: are welcome.<br>
 
