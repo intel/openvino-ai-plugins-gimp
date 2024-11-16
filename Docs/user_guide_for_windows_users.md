@@ -148,14 +148,14 @@ You can now simply open Gimp from the start menu as you would any normal Windows
     ![](figs/stable-diffusion_model4.png)
     
     >**Notes:**
-    > - The downloaded models include FP16 and INT8 precision
+    > - The downloaded models include INT8, INT8A16, and FP16 precision
     > - Weights is saved at `C:\Users\<user_name>\openvino-ai-plugins-gimp\weights`.
 
 
 
-## Execute Stable-Diffusion – Stable Diffusion 1.5 INT8
+## Execute Stable-Diffusion – Stable Diffusion 1.5 INT8A16
 
-Please follow below steps to execute Stable-Diffusion - Stable Diffusion 1.5 INT8. For other features, please refer to [OpenVINO™ Image Generator Plugin with Stable Diffusion](https://github.com/intel/openvino-ai-plugins-gimp/tree/main?tab=readme-ov-file#openvino-image-generator-plugin-with-stable-diffusion) section.
+Please follow below steps to execute Stable-Diffusion - Stable Diffusion 1.5 INT8A16. For other features, please refer to [OpenVINO™ Image Generator Plugin with Stable Diffusion](https://github.com/intel/openvino-ai-plugins-gimp/tree/main?tab=readme-ov-file#openvino-image-generator-plugin-with-stable-diffusion) section.
 
 - Following previous section to launch GIMP
 
