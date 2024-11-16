@@ -177,8 +177,11 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         if "NPU" in device:
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
                 return self.core.import_model(f.read(), device)
-        return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
-    
+        elif "GPU" in device: 
+            return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device, {'GPU_QUEUE_THROTTLE': 'LOW'})
+        else:
+            return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+        
     def set_dimensions(self):
         latent_shape = self.unet.input("latent_model_input").shape
         if latent_shape[1] == 4:
