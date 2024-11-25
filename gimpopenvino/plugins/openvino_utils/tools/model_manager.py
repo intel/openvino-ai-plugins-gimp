@@ -320,7 +320,12 @@ def get_npu_architecture(core):
         available_devices = core.get_available_devices()
         if 'NPU' in available_devices:
             architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-            return NPU_ARCH_3720 if NPU_ARCH_3720 in architecture else NPU_ARCH_4000
+            if NPU_ARCH_3720 in architecture:
+                return NPU_ARCH_3720
+            elif NPU_ARCH_4000 in architecture:
+                return NPU_ARCH_4000
+            return None
+
     except Exception as e:
         logging.error(f"Error retrieving NPU architecture: {str(e)}")
         return None
