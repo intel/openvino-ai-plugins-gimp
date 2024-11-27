@@ -90,34 +90,13 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 def try_enable_npu_turbo(device, core):
     try:
         import platform
-        if "windows" in platform.system().lower():
-            if "NPU" in device and "3720" not in core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
-                try:
-                    core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-                except:
-                    print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
-                else:
-                    print_npu_turbo_art()
-        elif "linux" in platform.system().lower():
-            #TODO: Double check this logic. Do we need core.set_property() somewhere in here?
-            if os.path.isfile('/sys/module/intel_vpu/parameters/test_mode'):
-                with open('/sys/module/intel_vpu/version', 'r') as f:
-                    version = f.readline().split()[0]
-                    if tuple(map(int, version.split('.'))) < tuple(map(int, '1.9.0'.split('.'))):
-                        print(f"The driver intel_vpu-1.9.0 (or later) needs to be loaded for NPU Turbo (currently {version}). Skipping...")
-                    else:
-                        with open('/sys/module/intel_vpu/parameters/test_mode', 'r') as tm_file:
-                            test_mode = int(tm_file.readline().split()[0])
-                            if test_mode == 512:
-                                print_npu_turbo_art()
-                            else:
-                                print("The driver >=intel_vpu-1.9.0 was must be loaded with "
-                                      "\"modprobe intel_vpu test_mode=512\" to enable NPU_TURBO "
-                                      f"(currently test_mode={test_mode}). Skipping...")
+        if "NPU" in device and "3720" not in core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+            try:
+                core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
+            except:
+                print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
             else:
-                print(f"The driver >=intel_vpu-1.9.0 must be loaded with  \"modprobe intel_vpu test_mode=512\" to enable NPU_TURBO. Skipping...")
-        else:
-            print(f"This platform ({platform.system()}) does not support NPU Turbo")
+                print_npu_turbo_art()
     except Exception as e:
         print(f"try_enable_npu_turbo: Caught exception:\n{e}")
 
