@@ -586,7 +586,11 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
 
 
 if __name__ == "__main__":
-    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
+    weight_path = (
+        os.path.join(os.environ.get("GIMP_OPENVINO_MODELS_PATH"), "weights")
+        if os.environ.get("GIMP_OPENVINO_MODELS_PATH") is not None
+        else os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
+    )
     
     model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
     device_name = ["GPU", "GPU" , "GPU","GPU"]

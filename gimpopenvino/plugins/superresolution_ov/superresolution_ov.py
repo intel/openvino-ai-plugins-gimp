@@ -170,8 +170,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
     model_name = args.index(2)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
-        config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
+        config_path = (
+            os.environ.get("GIMP_OPENVINO_CONFIG_PATH")
+            if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
+            else os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
+            )
         )
 
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
