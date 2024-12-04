@@ -13,7 +13,7 @@ base_model_dir = (
 config_path_dir = (
     os.path.join(os.environ.get("GIMP_OPENVINO_CONFIG_PATH"))
     if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
-    else os.path.join(os.path.dirname(gimpopenvino.__file__), "plugins","openvino_utils", "tools") 
+    else os.path.join(os.path.dirname(__file__)) 
 )
 
 def get_weight_path():
