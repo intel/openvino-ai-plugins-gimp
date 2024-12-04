@@ -62,7 +62,11 @@ def setup_python_weights(install_location=None, repo_weights_dir=None):
         "weight_path" : weight_path,
         "supported_devices": supported_devices
         }
-    govconfig = os.path.join(plugin_loc, "plugins","openvino_utils", "tools", "gimp_openvino_config.json")    
+    govconfig = (
+        os.path.join(os.environ.get("GIMP_OPENVINO_CONFIG_PATH"), "gimp_openvino_config.json")
+        if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
+        else os.path.join(plugin_loc, "plugins","openvino_utils", "tools", "gimp_openvino_config.json")
+    )
     with open(govconfig, "w+") as file:
         json.dump(py_dict,file)
 
