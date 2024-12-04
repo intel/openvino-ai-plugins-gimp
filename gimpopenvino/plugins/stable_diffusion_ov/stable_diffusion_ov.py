@@ -31,6 +31,7 @@ PORT = 65432  # The port used by the server
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 from model_management_window import ModelManagementWindow
+from tools.tools_utils import base_model_dir, config_path_dir
 
 _ = gettext.gettext
 image_paths = {
@@ -322,21 +323,18 @@ def on_toggled(widget, dialog):
 def run(procedure, run_mode, image, n_drawables, layer, args, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
-        config_path = (
-            os.environ.get("GIMP_OPENVINO_CONFIG_PATH")
-            if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
-            else os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
-            )
-        )
-
-        with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
+        with open(os.path.join(config_path_dir, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
 
         python_path = config_path_output["python_path"]
         client = "test-client.py"
-        config_path_output["plugin_path"] = os.path.join(config_path, client)
-
+        config_path_output["plugin_path"] = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "..", 
+            "openvino_utils", 
+            "tools", 
+            client)
+        
         supported_devices = []
         for device in config_path_output["supported_devices"]:
            if 'GNA' not in device:
@@ -824,7 +822,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
             # trigger a call to this, as it includes some important logic.
             model_sensitive_combo_changed(model_combo)
 
-        model_management_window = ModelManagementWindow(config_path, python_path, populate_model_combo)
+        model_management_window = ModelManagementWindow(config_path_dir, python_path, populate_model_combo)
 
         installed_models = model_management_window.get_installed_model_list()
 
@@ -923,7 +921,12 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                         device_power_mode = "Best performance"
 
                 server = "stable_diffusion_ov_server.py"
-                server_path = os.path.join(config_path, server)
+                server_path = os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), 
+                    "..",
+                    "openvino_utils",
+                    "tools", 
+                    server)
 
                 run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
                 run_load_model_thread.start()

@@ -7,16 +7,11 @@ from pathlib import Path
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "gimpopenvino", "plugins", "openvino_utils", "tools")])
 from model_manager import ModelManager
 
-base_model_dir = (
-    os.path.join(os.environ.get("GIMP_OPENVINO_MODELS_PATH"), "weights")
-    if os.environ.get("GIMP_OPENVINO_MODELS_PATH") is not None
-    else os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp", "weights")
-)
+from gimpopenvino.complete_install import base_model_dir
 
 def main():
-
     try:
-        weight_path = base_model_dir
+        weight_path = os.path.join(base_model_dir,"weights")
 
         #Move to a temporary working directory in a known place.
         # This is where we'll be downloading stuff to, etc.
