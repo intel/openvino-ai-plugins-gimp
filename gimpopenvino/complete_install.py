@@ -16,6 +16,8 @@ import subprocess
 import shutil
 from pathlib import Path
 from openvino.runtime import Core
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import base_model_dir, config_path_dir
+
 
 def install_base_models(base_model_dir, repo_weights_dir):
     for folder in os.scandir(repo_weights_dir):
@@ -37,7 +39,7 @@ def setup_python_weights(install_location=None, repo_weights_dir=None):
     if os.name == "nt":  # windows
         python_string += ".exe"
     python_path = os.path.join(os.path.dirname(sys.executable), python_string)
-    weight_path = os.path.join(install_location, "weights")
+    weight_path = os.path.join(base_model_dir, "weights")
     if not os.path.isdir(weight_path):
         os.mkdir(weight_path)
 
@@ -62,11 +64,8 @@ def setup_python_weights(install_location=None, repo_weights_dir=None):
         "weight_path" : weight_path,
         "supported_devices": supported_devices
         }
-    govconfig = (
-        os.path.join(os.environ.get("GIMP_OPENVINO_CONFIG_PATH"), "gimp_openvino_config.json")
-        if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
-        else os.path.join(plugin_loc, "plugins","openvino_utils", "tools", "gimp_openvino_config.json")
-    )
+    govconfig = os.path.join(config_path_dir, "gimp_openvino_config.json")
+
     with open(govconfig, "w+") as file:
         json.dump(py_dict,file)
 

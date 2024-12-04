@@ -21,6 +21,8 @@ gi.require_version("Gtk", "3.0")
 
 _ = gettext.gettext
 
+from tools.tools_utils import base_model_dir, config_path_dir
+
 image_paths = {
     "logo": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "plugin_logo.png"
@@ -170,19 +172,16 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
     model_name = args.index(2)
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
-        config_path = (
-            os.environ.get("GIMP_OPENVINO_CONFIG_PATH")
-            if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
-            else os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
-            )
-        )
-
-        with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
+        with open(os.path.join(config_path_dir, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
         python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution_ov.py")
+        config_path_output["plugin_path"] = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "..", 
+            "openvino_utils", 
+            "tools", 
+            "superresolution_ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 

@@ -4,8 +4,20 @@
 import os
 import json
 
+base_model_dir = (
+    os.path.join(os.environ.get("GIMP_OPENVINO_MODELS_PATH"))
+    if os.environ.get("GIMP_OPENVINO_MODELS_PATH") is not None
+    else os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
+)
+
+config_path_dir = (
+    os.path.join(os.environ.get("GIMP_OPENVINO_CONFIG_PATH"))
+    if os.environ.get("GIMP_OPENVINO_CONFIG_PATH") is not None
+    else os.path.join(os.path.dirname(gimpopenvino.__file__), "plugins","openvino_utils", "tools") 
+)
+
 def get_weight_path():
-    config_path = os.path.dirname(os.path.realpath(__file__))
+    config_path = config_path_dir
     #data={}
     with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
         data = json.load(file)
