@@ -35,10 +35,7 @@ def setup_python_weights(install_location=None, repo_weights_dir=None):
         
     if not os.path.isdir(install_location):
         os.mkdir(install_location)
-    python_string = "python"
-    if os.name == "nt":  # windows
-        python_string += ".exe"
-    python_path = os.path.join(os.path.dirname(sys.executable), python_string)
+    python_path = sys.executable
     weight_path = os.path.join(base_model_dir, "weights")
     if not os.path.isdir(weight_path):
         os.mkdir(weight_path)
