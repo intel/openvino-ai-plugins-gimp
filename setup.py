@@ -29,7 +29,6 @@ setup(
         "numpy",
         'future; python_version <= "2.7"',
         "scipy",
-        "typing",
         "gdown",
         'enum; python_version <= "2.7"',
         "requests",
