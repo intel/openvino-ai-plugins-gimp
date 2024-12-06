@@ -319,7 +319,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                     if result == Gimp.PDBStatusType.SUCCESS and config is not None:
                         config.end_run(Gimp.PDBStatusType.SUCCESS)
 
-                    print(f"GARTH DEBUG -result = {result}")
                     return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
