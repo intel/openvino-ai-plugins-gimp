@@ -24,7 +24,7 @@ setup(
     keywords="sample, setuptools, development",  # Optional
     packages=find_packages(),
     python_requires=">=2.7",
-    include_package_data=True,  
+    include_package_data=True,
     install_requires=[
         "numpy",
         'future; python_version <= "2.7"',
@@ -41,7 +41,19 @@ setup(
         "openvino",
         "psutil",
         "matplotlib"
-        
-        
-    ]
+    ],
+    data_files=[
+        (
+            "gimp-plugins/semseg_ov",
+            ["gimpopenvino/plugins/semseg_ov/semseg_ov.py"]),
+        (
+            "gimp-plugins/stable_diffusion_ov",
+            ["gimpopenvino/plugins/stable_diffusion_ov/stable_diffusion_ov.py"],
+        ),
+        (
+            "gimp-plugins/superresolution_ov",
+            ["gimpopenvino/plugins/superresolution_ov/superresolution_ov.py"],
+        ),
+    ],
+
 )
