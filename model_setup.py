@@ -4,8 +4,7 @@ import traceback
 import shutil
 from pathlib import Path
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "gimpopenvino", "plugins", "openvino_utils", "tools")])
-from model_manager import ModelManager
+from gimpopenvino.plugins.openvino_utils.tools.model_manager import ModelManager
 
 from gimpopenvino.complete_install import base_model_dir
 
