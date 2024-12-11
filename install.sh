@@ -49,7 +49,7 @@ deactivate
 echo "Installing plugin in $HOME/.config/GIMP/2.99/plug-ins"
 for d in openvino_utils semseg_ov stable_diffusion_ov superresolution_ov; do
     mkdir -p "$HOME/.config/GIMP/2.99/plug-ins/$d"
-    rsync -a "$script_dir/gimpopenvino/plugins/$d" "$HOME/.config/GIMP/2.99/plug-ins/."
+    rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$HOME/.config/GIMP/2.99/plug-ins/."
 done
 echo "*** openvino-ai-plugins-gimp Installed ***"
 
