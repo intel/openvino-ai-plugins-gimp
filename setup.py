@@ -24,12 +24,11 @@ setup(
     keywords="sample, setuptools, development",  # Optional
     packages=find_packages(),
     python_requires=">=2.7",
-    include_package_data=True,  
+    include_package_data=True,
     install_requires=[
         "numpy",
         'future; python_version <= "2.7"',
         "scipy",
-        "typing",
         "gdown",
         'enum; python_version <= "2.7"',
         "requests",
@@ -42,7 +41,5 @@ setup(
         "openvino",
         "psutil",
         "matplotlib"
-        
-        
-    ]
+    ],
 )
