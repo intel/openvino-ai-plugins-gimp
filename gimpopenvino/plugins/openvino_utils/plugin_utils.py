@@ -47,28 +47,44 @@ def show_dialog(message, title, icon="logo", image_paths=None):
 
 def save_image(image, drawable, file_path):
     interlace, compression = 0, 2
-    Gimp.get_pdb().run_procedure(
-        "file-png-save",
-        [
-            GObject.Value(Gimp.RunMode, Gimp.RunMode.NONINTERACTIVE),
-            GObject.Value(Gimp.Image, image),
-            GObject.Value(GObject.TYPE_INT, 1),
-            GObject.Value(
-                Gimp.ObjectArray, Gimp.ObjectArray.new(Gimp.Drawable, drawable, 0)
-            ),
-            GObject.Value(
-                Gio.File,
-                Gio.File.new_for_path(file_path),
-            ),
-            GObject.Value(GObject.TYPE_BOOLEAN, interlace),
-            GObject.Value(GObject.TYPE_INT, compression),
+    pdb_proc   = Gimp.get_pdb().lookup_procedure('file-png-export')
+    pdb_config = pdb_proc.create_config()
+    pdb_config.set_property('run-mode', Gimp.RunMode.NONINTERACTIVE)
+    pdb_config.set_property('image', image)
+    pdb_config.set_property('file', Gio.File.new_for_path(file_path))
+    pdb_config.set_property('options', None)
+    pdb_config.set_property('interlaced', interlace)
+    pdb_config.set_property('compression', compression)
+    # write all PNG chunks except oFFs(ets)
+    pdb_config.set_property('bkgd', True)
+    pdb_config.set_property('offs', False)
+    pdb_config.set_property('phys', True)
+    pdb_config.set_property('time', True)
+    pdb_config.set_property('save-transparent', True)
+    pdb_proc.run(pdb_config)
 
-            GObject.Value(GObject.TYPE_BOOLEAN, True),
-            GObject.Value(GObject.TYPE_BOOLEAN, True),
-            GObject.Value(GObject.TYPE_BOOLEAN, False),
-            GObject.Value(GObject.TYPE_BOOLEAN, True),
-        ],
-    )
+    # Gimp.get_pdb().run(
+    #     "file-png-save",
+    #     [
+    #         GObject.Value(Gimp.RunMode, Gimp.RunMode.NONINTERACTIVE),
+    #         GObject.Value(Gimp.Image, image),
+    #         GObject.Value(GObject.TYPE_INT, 1),
+    #         GObject.Value(
+    #             Gimp.ObjectArray, Gimp.ObjectArray.new(Gimp.Drawable, drawable, 0)
+    #         ),
+    #         GObject.Value(
+    #             Gio.File,
+    #             Gio.File.new_for_path(file_path),
+    #         ),
+    #         GObject.Value(GObject.TYPE_BOOLEAN, interlace),
+    #         GObject.Value(GObject.TYPE_INT, compression),
+
+    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
+    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
+    #         GObject.Value(GObject.TYPE_BOOLEAN, False),
+    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
+    #     ],
+    # )
 
 
 def N_(message):
