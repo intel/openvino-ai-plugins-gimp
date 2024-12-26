@@ -63,29 +63,6 @@ def save_image(image, drawable, file_path):
     pdb_config.set_property('save-transparent', True)
     pdb_proc.run(pdb_config)
 
-    # Gimp.get_pdb().run(
-    #     "file-png-save",
-    #     [
-    #         GObject.Value(Gimp.RunMode, Gimp.RunMode.NONINTERACTIVE),
-    #         GObject.Value(Gimp.Image, image),
-    #         GObject.Value(GObject.TYPE_INT, 1),
-    #         GObject.Value(
-    #             Gimp.ObjectArray, Gimp.ObjectArray.new(Gimp.Drawable, drawable, 0)
-    #         ),
-    #         GObject.Value(
-    #             Gio.File,
-    #             Gio.File.new_for_path(file_path),
-    #         ),
-    #         GObject.Value(GObject.TYPE_BOOLEAN, interlace),
-    #         GObject.Value(GObject.TYPE_INT, compression),
-
-    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
-    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
-    #         GObject.Value(GObject.TYPE_BOOLEAN, False),
-    #         GObject.Value(GObject.TYPE_BOOLEAN, True),
-    #     ],
-    # )
-
 
 def N_(message):
     return message
