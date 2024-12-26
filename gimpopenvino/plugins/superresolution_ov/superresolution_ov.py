@@ -18,6 +18,7 @@ from plugin_utils import *
 gi.require_version("Gimp", "3.0")
 gi.require_version("GimpUi", "3.0")
 gi.require_version("Gtk", "3.0")
+from gi.repository import Gimp, GimpUi, GObject, GLib, Gio, Gtk
 
 _ = gettext.gettext
 
@@ -30,6 +31,9 @@ image_paths = {
     ),
 }
 
+
+def N_(message): return message
+def _(message): return GLib.dgettext(None, message)
 
 class StringEnum:
     """
@@ -153,22 +157,19 @@ def handle_successful_inference(weight_path, image, drawable, scale):
             Gimp.RunMode.NONINTERACTIVE,
             Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
         )
-        try:
-            result_layer = result.get_active_layer()
-        except:
-            result_layers = result.list_layers()
-            result_layer = result_layers[0]
+
+        result_layer = result.get_layers()[0]
         copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
         copy.set_name("Super Resolution")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
         image_new.insert_layer(copy, None, -1)
     return result_layer
 
-def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    scale = args.index(0)
-    device_name = args.index(1)
-    model_name = args.index(2)
-
+def run(procedure, run_mode, image, layer, config, data):
+    scale = config.get_property("scale") 
+    device_name = config.get_property("device_name") 
+    model_name = config.get_property("model_name") 
+    
     if run_mode == Gimp.RunMode.INTERACTIVE:
         config_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
@@ -183,9 +184,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
-        config.begin_run(image, run_mode, args)
-
-        GimpUi.init("superresolution_ov.py")
+        
+        GimpUi.init("superresolution-ov")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Super Resolution..."))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
@@ -263,8 +263,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 )
                 # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
                 # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                    config.end_run(Gimp.PDBStatusType.SUCCESS)
+                #if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
+                #    config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
@@ -277,58 +277,40 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 )
 
 class Superresolution(Gimp.PlugIn):
-    ## Parameters ##
-    
-    __gproperties__ = {
-        "scale": (float, _("_Scale"), "Scale", 1, 4, 2, GObject.ParamFlags.READWRITE),
-        "model_name": (
-            str,
-            _("Model Name"),
-            "Model Name: 'esrgan', 'sr_1033'",
-            "sr_1033",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "device_name": (
-            str,
-            _("Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-    }
-
     ## GimpPlugIn virtual methods ##
-
-    def do_query_procedures(self):
-        try:
-            self.set_translation_domain(
-                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-            )
-        except:
-            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
-        return ["superresolution-ov"]
-
     def do_set_i18n(self, procname):
         return True, 'gimp30-python', None
+    
+    def do_query_procedures(self):
+        return ["superresolution-ov"]
 
     def do_create_procedure(self, name):
         procedure = None
         if name == "superresolution-ov":
-            procedure = Gimp.ImageProcedure.new(
-                self, name, Gimp.PDBProcType.PLUGIN, run, None
-            )
+            procedure = Gimp.ImageProcedure.new(self, name, 
+                                                Gimp.PDBProcType.PLUGIN, 
+                                                run, None)
             procedure.set_image_types("*")
             procedure.set_documentation(
                 N_("superresolution on the current layer."),
                 globals()["__doc__"],
                 name,
             )
-            procedure.set_menu_label(N_("Super Resolution..."))
+            procedure.set_menu_label(_("Super Resolution..."))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
-            procedure.add_argument_from_property(self, "scale")
-            procedure.add_argument_from_property(self, "device_name")
-            procedure.add_argument_from_property(self, "model_name")
+            procedure.add_int_argument("scale", _("_Scale"), 
+                                       "Scale", 1, 4, 2, 
+                                       GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("device_name",_("Device Name"),
+                                          "Device Name: 'CPU', 'GPU'",
+                                          "CPU",
+                                          GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("model_name",_("Model Name"),
+                                          "Model Name: 'esrgan', 'sr_1033'",
+                                          "sr_1033",
+                                           GObject.ParamFlags.READWRITE)
         return procedure
+
 
 Gimp.main(Superresolution.__gtype__, sys.argv)
