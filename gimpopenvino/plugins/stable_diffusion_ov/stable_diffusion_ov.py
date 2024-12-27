@@ -165,7 +165,7 @@ class SDRunner:
 
         # Option Cache
         sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
-
+        
         with open(sd_option_cache, "w") as file:
             json.dump({"prompt": prompt,
                        "negative_prompt": negative_prompt,
@@ -177,10 +177,6 @@ class SDRunner:
                        "seed": seed,
                        "inference_status": "started"}, file)
 
-        # Run inference and load as layer
-        '''
-        subprocess.call([python_path, plugin_path])
-        '''
         self.current_step = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
@@ -220,14 +216,8 @@ class SDRunner:
                 Gimp.RunMode.NONINTERACTIVE,
                 Gio.file_new_for_path(os.path.join(weight_path, "..", cache_image)),
             )
-            try:
-                # 2.99.10
-                result_layer = result.get_active_layer()
-            except:
-                # > 2.99.10
-                result_layers = result.list_layers()
-                result_layer = result_layers[0]
-
+            result_layer = result.get_layers()[0]
+            
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
             set_name = "Stable Diffusion -" + str(data_output["seed_num"])
             copy.set_name(set_name)
@@ -319,7 +309,7 @@ def on_toggled(widget, dialog):
 #
 # This is what brings up the UI
 #
-def run(procedure, run_mode, image, n_drawables, layer, args, data):
+def run(procedure, run_mode, image, layer, config, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
         config_path = os.path.join(
@@ -365,7 +355,13 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         device_name_enum = DeviceEnum(supported_modes)
 
         config = procedure.create_config()
-        config.begin_run(image, run_mode, args)
+        '''
+        for prop in config.list_properties():
+            prop_name = prop.name
+            prop_value = getattr(config, prop_name, None)
+            print(f"{prop_name}: {prop_value}")
+        '''
+        #procedure.run(config)
 
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
         sd_option_cache_data = dict(prompt="", negative_prompt="", num_images=1,num_infer_steps=20, guidance_scale=7.5,
@@ -373,11 +369,10 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                                     inference_status="success", src_height=512, src_width=512)
 
         sd_option_cache = os.path.join(config_path_output["weight_path"], "..", "gimp_openvino_run_sd.json")
-
         try:
             with open(sd_option_cache, "r") as file:
                 sd_option_cache_data = json.load(file)
-
+               
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
@@ -386,8 +381,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-
-
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
@@ -434,8 +427,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
-
-
 
         # seed
         seed = Gtk.Entry.new()
@@ -948,14 +939,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 if run_inference_thread:
                     run_inference_thread.join()
                     result = runner.result
-                    if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                        config.end_run(Gimp.PDBStatusType.SUCCESS)
-
-                    #if the model managemer is installing something, we have a thread polling for updates.
-                    # Force stop the poll thread (the install will still continue in background), so that the SD
-                    # dialog is allowed to close.
-                    model_management_window.stop_poll_thread()
-
                     return result
             elif response == SDDialogResponse.ProgressUpdate:
                 progress_string=""
@@ -972,7 +955,7 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 remove_all_advanced_widgets()
                 if adv_checkbox.get_active():
                     populate_advanced_settings()
-
+             
 
             else:
                 model_management_window.stop_poll_thread()
@@ -984,67 +967,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
 class StableDiffusion(Gimp.PlugIn):
-    ## Parameters ##
-    __gproperties__ = {
-        "num_images": (
-        int, _("_Number of Images (Default:1)"), "Number of Images to generate", 1, 50, 1,
-        GObject.ParamFlags.READWRITE,),
-        "num_infer_steps": (
-        int, _("_Number of Inference steps (Default:20)"), "Number of Inference steps (Default:20)", 1, 50, 20,
-        GObject.ParamFlags.READWRITE,),
-        "guidance_scale": (float, _("_Guidance Scale (Default:7.5)"), "Guidance Scale (Default:7.5)", 1.0001, 20.0, 7.5,
-                           GObject.ParamFlags.READWRITE,),
-        "strength": (
-        float, _("_Strength of Initial Image (Default:0.8)"), "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
-        GObject.ParamFlags.READWRITE,),
-
-        "model_name": (
-            str,
-            _("Model Name"),
-            "Current Model. Click on the Model button to the left to install new models.",
-            "sd_1.4",
-            GObject.ParamFlags.READWRITE,
-        ),
-
-        "advanced_setting": (
-            bool,
-            _("_Advanced Settings"),
-            "Advanced Settings",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
-
-        "power_mode": (
-            str,
-            _("Power Mode"),
-            "Power Mode: 'Balanced', 'Best performance'",
-            "Best performance",
-            GObject.ParamFlags.READWRITE,
-        ),
-
-        "use_initial_image": (
-            bool,
-            _("_Use Initial Image (Default: Open Image in Canvas"),
-            "Use Initial Image (Default: Open Image in Canvas",
-            False,
-            GObject.ParamFlags.READWRITE,
-        ),
-
-
-        # "initial_image": (str, _("_Init Image (Optional)..."), "_Init Image (Optional)...", None, GObject.ParamFlags.READWRITE,),
-
-    }
-
     ## GimpPlugIn virtual methods ##
     def do_query_procedures(self):
-
-        try:
-            self.set_translation_domain(
-                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-            )
-        except:
-            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
-
         return ["stable-diffusion-ov"]
 
     def do_set_i18n(self, procname):
@@ -1069,21 +993,36 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 
             # procedure.add_argument_from_property(self, "initial_image")
-            procedure.add_argument_from_property(self, "num_images")
-            procedure.add_argument_from_property(self, "num_infer_steps")
-            procedure.add_argument_from_property(self, "guidance_scale")
-            procedure.add_argument_from_property(self, "strength")
-            procedure.add_argument_from_property(self, "model_name")
-
-            procedure.add_argument_from_property(self, "advanced_setting")
-            procedure.add_argument_from_property(self, "power_mode")
-
-            procedure.add_argument_from_property(self, "use_initial_image")
-
+            procedure.add_int_argument("num_images",_("_Number of Images (Default:1)"),
+                                       "Number of Images to generate", 1, 50, 1,
+                                        GObject.ParamFlags.READWRITE)
+            procedure.add_int_argument("num_infer_steps",_("_Number of Inference steps (Default:20)"), 
+                                       "Number of Inference steps (Default:20)", 1, 50, 20,
+                                        GObject.ParamFlags.READWRITE)
+            procedure.add_double_argument("guidance_scale",_("_Guidance Scale (Default:7.5)"), 
+                                          "Guidance Scale (Default:7.5)", 1.0001, 20.0, 7.5,
+                                          GObject.ParamFlags.READWRITE)
+            procedure.add_double_argument("strength",_("_Strength of Initial Image (Default:0.8)"), 
+                                          "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
+                                           GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("model_name",_("Model Name"),
+                                         "Current Model. Click on the Model button to the left to install new models.",
+                                         "sd_1.5_square",
+                                        GObject.ParamFlags.READWRITE)
+            procedure.add_boolean_argument("advanced_setting", _("_Advanced Settings"),
+                                           "Advanced Settings",
+                                           False,
+                                           GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("power_mode", _("Power Mode"),
+                                          "Power Mode: 'Balanced', 'Best performance'",
+                                          "Best performance",
+                                          GObject.ParamFlags.READWRITE)
+            procedure.add_boolean_argument("use_initial_image",
+                                            _("_Use Initial Image (Default: Open Image in Canvas"),
+                                           "Use Initial Image (Default: Open Image in Canvas",
+                                           False,
+                                           GObject.ParamFlags.READWRITE) 
             procedure.set_sensitivity_mask (Gimp.ProcedureSensitivityMask.ALWAYS)
-
-
-
 
         return procedure
 
