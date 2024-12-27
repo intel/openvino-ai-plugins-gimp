@@ -53,8 +53,8 @@ call deactivate
 rem cls
 echo.   
 REM copy to gimp plugin dir
-echo Installing plugin in "%appdata%\GIMP\2.99\plug-ins"
-for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\2.99\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
+echo Installing plugin in "%appdata%\GIMP\3.0\plug-ins"
+for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\3.0\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
 
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    
