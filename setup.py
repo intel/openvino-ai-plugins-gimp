@@ -7,7 +7,7 @@ with open(os.path.join(here, "README.md"), "r", encoding="utf8") as fh:
 
 setup(
     name="gimpopenvino",  # Required
-    version="2.99.3",  # Required
+    version="3.0.1",  # Required
     description="OpenVINO™ AI Plugins for GIMP",  # Optional
     long_description=long_description,  # Optional
     long_description_content_type="text/markdown",  # Optional (see note above)
