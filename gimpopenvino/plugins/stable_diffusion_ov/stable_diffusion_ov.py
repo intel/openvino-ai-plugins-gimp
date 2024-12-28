@@ -119,19 +119,18 @@ def check_files_exist(dir_path, files):
     return all(os.path.isfile(Path(dir_path) / file) for file in files)
 
 class SDRunner:
-    def __init__ (self, procedure, image, drawable, prompt, negative_prompt, num_images,num_infer_steps, guidance_scale, initial_image,
-                  strength, seed, progress_bar, config_path_output):
+    def __init__ (self, procedure, image, drawable, progress_bar, config_path_output, options):
         self.procedure = procedure
         self.image = image
         self.drawable = drawable
-        self.prompt = prompt
-        self.negative_prompt = negative_prompt
-        self.num_images = num_images
-        self.num_infer_steps = num_infer_steps
-        self.guidance_scale = guidance_scale
-        self.initial_image = initial_image
-        self.strength = strength
-        self.seed = seed
+        self.prompt = options["prompt"]
+        self.negative_prompt = options["negative_prompt"]
+        self.num_images = options["num_images"]
+        self.num_infer_steps = options["num_infer_steps"]
+        self.guidance_scale = options["guidance_scale"]
+        self.initial_image = options["initial_image"]
+        self.strength = options["strength"]
+        self.seed = options["seed"]
         self.progress_bar = progress_bar
         self.config_path_output = config_path_output
         self.result = None
@@ -166,17 +165,6 @@ class SDRunner:
         # Option Cache
         sd_option_cache = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
         
-        with open(sd_option_cache, "w") as file:
-            json.dump({"prompt": prompt,
-                       "negative_prompt": negative_prompt,
-                       "num_images": num_images,
-                       "num_infer_steps": num_infer_steps,
-                       "guidance_scale": guidance_scale,
-                       "initial_image": initial_image,
-                       "strength": strength,
-                       "seed": seed,
-                       "inference_status": "started"}, file)
-
         self.current_step = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
@@ -355,16 +343,10 @@ def run(procedure, run_mode, image, layer, config, data):
         device_name_enum = DeviceEnum(supported_modes)
 
         config = procedure.create_config()
-        '''
-        for prop in config.list_properties():
-            prop_name = prop.name
-            prop_value = getattr(config, prop_name, None)
-            print(f"{prop_name}: {prop_value}")
-        '''
-        #procedure.run(config)
-
+    
         # Create JSON Cache - this dictionary will get over witten if the cache exists.
-        sd_option_cache_data = dict(prompt="", negative_prompt="", num_images=1,num_infer_steps=20, guidance_scale=7.5,
+        sd_option_cache_data = dict(prompt="", negative_prompt="", num_images=1, num_infer_steps=20, guidance_scale=7.5,
+                                    model_name=None, advanced_setting=False, power_mode="best power efficiency",
                                     initial_image=None, strength=0.8, seed="",
                                     inference_status="success", src_height=512, src_width=512)
 
@@ -372,7 +354,6 @@ def run(procedure, run_mode, image, layer, config, data):
         try:
             with open(sd_option_cache, "r") as file:
                 sd_option_cache_data = json.load(file)
-               
                 # print(json.dumps(sd_option_cache_data, indent=4))
         except:
             print(f"{sd_option_cache} not found, loading defaults")
@@ -413,13 +394,13 @@ def run(procedure, run_mode, image, layer, config, data):
         num_images_spin = GimpUi.prop_spin_button_new(
             config, "num_images", step_increment=1, page_increment=0.1, digits=0
         )
-
-        # num_infer_steps parameter
+        num_images_spin.set_value(int(sd_option_cache_data["num_images"]))
+        
         steps_label = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
-
         steps_spin = GimpUi.prop_spin_button_new(
             config, "num_infer_steps", step_increment=1, page_increment=0.1, digits=0
         )
+        steps_spin.set_value(int(sd_option_cache_data["num_infer_steps"]))
 
         # guidance_scale parameter
         gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
@@ -427,6 +408,7 @@ def run(procedure, run_mode, image, layer, config, data):
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
+        gscale_spin.set_value(float(sd_option_cache_data["guidance_scale"]))
 
         # seed
         seed = Gtk.Entry.new()
@@ -449,8 +431,11 @@ def run(procedure, run_mode, image, layer, config, data):
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
                                                   _("_Advanced Settings                                                       "))
+        
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
+        adv_checkbox.set_active(True) if sd_option_cache_data["advanced_setting"] == "True" else adv_checkbox.set_active(False) 
+            
         grid.attach(adv_checkbox, 3, 0, 1, 1)
 
         invisible_label4 = Gtk.Label.new_with_mnemonic(_("_"))
@@ -477,6 +462,7 @@ def run(procedure, run_mode, image, layer, config, data):
             return False
 
         def remove_all_advanced_widgets():
+            sd_option_cache_data["advanced_setting"] = "False"
             grid.remove(gscale_label)
             gscale_label.hide()
             grid.remove(gscale_spin)
@@ -509,9 +495,10 @@ def run(procedure, run_mode, image, layer, config, data):
             invisible_label6.show()
             invisible_label7.show()
             invisible_label8.show()
+            
 
         def populate_advanced_settings():
-
+            sd_option_cache_data["advanced_setting"] = "True"
             grid.attach(num_images_label, 0, 3, 1, 1)
             grid.attach(num_images_spin, 1, 3, 1, 1)
 
@@ -529,8 +516,6 @@ def run(procedure, run_mode, image, layer, config, data):
                 adv_power_mode_label.show()
                 adv_power_mode_combo.show()
 
-
-
             steps_label.show()
             steps_spin.show()
             gscale_label.show()
@@ -545,11 +530,11 @@ def run(procedure, run_mode, image, layer, config, data):
             invisible_label6.hide()
             invisible_label7.hide()
             invisible_label8.hide()
-
+            
 
         if adv_checkbox.get_active():
             populate_advanced_settings()
-
+            
 
         # Prompt text
         prompt_text = Gtk.Entry.new()
@@ -845,28 +830,32 @@ def run(procedure, run_mode, image, layer, config, data):
                 model_combo.set_sensitive(False)
 
                 #adv_checkbox.set_sensitive(False)
-                prompt = prompt_text.get_text()
-                negative_prompt = negative_prompt_text.get_text()
+                sd_option_cache_data["prompt"] = prompt_text.get_text()
+                sd_option_cache_data["negative_prompt"] = negative_prompt_text.get_text()
 
                 if adv_checkbox.get_active():
-                    num_images = config.get_property("num_images")
-                    num_infer_steps = config.get_property("num_infer_steps")
-                    guidance_scale = config.get_property("guidance_scale")
-                    strength = config.get_property("strength")
+                    sd_option_cache_data["num_images"] = config.get_property("num_images")
+                    sd_option_cache_data["num_infer_steps"] = config.get_property("num_infer_steps")
+                    sd_option_cache_data["guidance_scale"] = config.get_property("guidance_scale")
+                    sd_option_cache_data["strength"] = config.get_property("strength")
                     if len(seed.get_text()) != 0:
-                        seed = seed.get_text()
+                        sd_option_cache_data["seed"] = seed.get_text()
                     else:
-                        seed = None
+                        sd_option_cache_data["seed"] = None
 
                 else:
-                    num_images = 1
-                    num_infer_steps = 20
+                    sd_option_cache_data["num_images"] = 1
+                    sd_option_cache_data["num_infer_steps"] = 20
                     if config.get_property("model_name") == "sd_1.5_square_lcm":
                         num_infer_steps = 4
+                    else:
+                        num_infer_steps = 20
 
-                    guidance_scale = 7.5
-                    seed = None
-                    strength = 1.0
+                    sd_option_cache_data["num_infer_steps"] = num_infer_steps
+
+                    sd_option_cache_data["guidance_scale"] = 7.5
+                    sd_option_cache_data["seed"] = None
+                    sd_option_cache_data["strength"] = 1.0
 
                 if initialImage_checkbox.get_active() and n_layers == 1:
                     if len(file_entry.get_text()) != 0:
@@ -876,16 +865,20 @@ def run(procedure, run_mode, image, layer, config, data):
                 else:
                     initial_image = None
 
+                sd_option_cache_data["intital_image"] = initial_image
+                sd_option_cache_data["model_name"] = model_name
 
-                runner = SDRunner(procedure, image, layer, prompt, negative_prompt,num_images, num_infer_steps, guidance_scale, initial_image,
-                strength, seed, progress_bar, config_path_output)
+                with open(sd_option_cache, "w") as file:
+                    json.dump(sd_option_cache_data, file, indent=4)
+
+                runner = SDRunner(procedure, image, layer, progress_bar, config_path_output, sd_option_cache_data)
 
                 sd_run_label.set_label("Running Stable Diffusion...")
                 sd_run_label.show()
                 spinner.start()
                 spinner.show()
 
-                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog,num_images))
+                run_inference_thread = threading.Thread(target=async_sd_run_func, args=(runner, dialog,sd_option_cache_data["num_images"]))
                 run_inference_thread.start()
                 run_button.set_sensitive(False)
                 load_model_button.set_sensitive(False)
