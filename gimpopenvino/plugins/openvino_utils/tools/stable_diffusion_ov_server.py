@@ -21,7 +21,7 @@ import psutil
 import threading
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
+#sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
 from tools_utils import get_weight_path, SDOptionCache
 
 
@@ -214,7 +214,6 @@ def initialize_engine(model_name, model_path, device_list):
     return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
 
 def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
-    print(f"GARTH DEBUG - data = {data.decode()}")
     if data.decode() == "kill":
         os._exit(0)
     if data.decode() == "ping":
@@ -241,7 +240,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
         create_gif = False
 
         strength = 1.0 if init_image is None else strength
-        log.info('Starting inference... GARTH')
+        log.info('Starting inference... ')
         log.info('Prompt: %s', prompt)
 
         if model_name != "sd_1.5_square_lcm":
