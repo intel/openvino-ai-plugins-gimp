@@ -21,7 +21,7 @@ import psutil
 import threading
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-#sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
+
 from tools_utils import get_weight_path, SDOptionCache
 
 
