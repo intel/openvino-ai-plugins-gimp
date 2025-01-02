@@ -38,9 +38,6 @@ source gimpenv3/bin/activate
 pip3 install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip3 install "$script_dir/."
 
-# Run Python script to complete the installation
-python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=r'${script_dir}/weights')"
-
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment
 deactivate
@@ -58,5 +55,7 @@ if [[ "$MODEL_SETUP" -eq 1 ]]; then
     echo "**** OpenVINO MODEL SETUP STARTED ****"
     gimpenv3/bin/python3 "$script_dir/model_setup.py"
 fi
+
+cd $current_dir
 
 exit 0

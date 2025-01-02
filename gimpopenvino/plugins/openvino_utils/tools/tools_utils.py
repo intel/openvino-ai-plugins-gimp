@@ -28,7 +28,7 @@ class SDOptionCache:
             num_images=1,
             num_infer_steps=20,
             guidance_scale=7.5,
-            model_name=None,
+            model_name="",
             advanced_setting=False,
             power_mode="best power efficiency",
             initial_image=None,

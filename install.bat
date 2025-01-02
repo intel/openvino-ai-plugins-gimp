@@ -46,7 +46,7 @@ pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=r'%script_dir%\weights')"
+REM python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=r'%script_dir%\weights')"
 
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
@@ -64,4 +64,6 @@ if %MODEL_SETUP% EQU 1 (
     gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
 )
 
+REM return to the directory where we started.
+cd %current_dir%
 exit /b
