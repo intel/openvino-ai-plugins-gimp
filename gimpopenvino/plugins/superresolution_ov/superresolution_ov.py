@@ -101,6 +101,7 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
     weight_path = config_path_output["weight_path"]
     python_path = config_path_output["python_path"]
     plugin_path = config_path_output["plugin_path"]
+    plugin_version = config_path_output["plugin_version"]
 
     Gimp.context_push()
     image.undo_group_start()
@@ -178,16 +179,18 @@ def run(procedure, run_mode, image, layer, config, data):
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
-        python_path = config_path_output["python_path"]
+        plugin_version = config_path_output["plugin_version"]
+
         config_path_output["plugin_path"] = os.path.join(config_path, "superresolution_ov.py")
-        
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
         
         GimpUi.init("superresolution-ov")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Super Resolution..."))
+        title_bar_label =  "Super Resolution : " +  plugin_version + " - PLUGIN LICENSE : Apache-2.0"
+
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_(title_bar_label))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
         dialog.add_button("_Generate", Gtk.ResponseType.OK)
@@ -238,12 +241,6 @@ def run(procedure, run_mode, image, layer, config, data):
         logo = Gtk.Image.new_from_file(image_paths["logo"])
         vbox.pack_start(logo, False, False, 1)
         logo.show()
-
-        # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        vbox.pack_start(label, False, False, 1)
-        label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
@@ -296,7 +293,7 @@ class Superresolution(Gimp.PlugIn):
                 globals()["__doc__"],
                 name,
             )
-            procedure.set_menu_label(_("Super Resolution..."))
+            procedure.set_menu_label(_("Super Resolution"))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
             procedure.add_int_argument("scale", _("_Scale"), 

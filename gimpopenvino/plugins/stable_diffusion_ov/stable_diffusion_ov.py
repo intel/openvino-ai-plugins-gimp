@@ -289,6 +289,8 @@ def run(procedure, run_mode, image, layer, config, data):
             config_path_output = json.load(file)
 
         python_path = config_path_output["python_path"]
+        plugin_version = config_path_output["plugin_version"]
+
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(config_path, client)
 
@@ -331,7 +333,9 @@ def run(procedure, run_mode, image, layer, config, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Stable Diffusion - PLUGIN LICENSE : Apache-2.0"))
+        title_bar_label =  "Stable Diffusion : " +  plugin_version + " - PLUGIN LICENSE : Apache-2.0"
+
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_(title_bar_label))
         dialog.add_button("_Help", Gtk.ResponseType.HELP)
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         load_model_button = dialog.add_button("_Load Models", Gtk.ResponseType.APPLY)
@@ -635,7 +639,7 @@ def run(procedure, run_mode, image, layer, config, data):
         vbox.add(progress_bar)
         progress_bar.show()
 
-        model_name = sd_option_cache.get("model_name")
+        model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
         device_power_mode = "best performance"
 
         if model_name == "sd_1.5_square_lcm":
@@ -940,7 +944,7 @@ class StableDiffusion(Gimp.PlugIn):
                 ],  # This includes the docstring, on the top of the file
                 name,
             )
-            procedure.set_menu_label(N_("Stable Diffusion..."))
+            procedure.set_menu_label(N_("Stable Diffusion"))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2023")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 

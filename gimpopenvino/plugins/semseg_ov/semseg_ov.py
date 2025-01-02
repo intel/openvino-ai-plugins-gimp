@@ -142,9 +142,9 @@ def run(procedure, run_mode, image, layer, config, data):
         with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
-        python_path = config_path_output["python_path"]
         config_path_output["plugin_path"] = os.path.join(config_path, "semseg_ov.py")
-        
+        plugin_version = config_path_output["plugin_version"]
+
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
@@ -153,8 +153,10 @@ def run(procedure, run_mode, image, layer, config, data):
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
+
+        title_bar_label  = "Semantic Segmentation : "+  plugin_version + " - PLUGIN LICENSE : Apache-2.0"
         dialog = GimpUi.Dialog(
-            use_header_bar=use_header_bar, title=_("Semantic Segmentation...")
+            use_header_bar=use_header_bar, title=_(title_bar_label)
         )
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
@@ -200,13 +202,6 @@ def run(procedure, run_mode, image, layer, config, data):
         # grid.attach(logo, 0, 0, 1, 1)
         vbox.pack_start(logo, False, False, 1)
         logo.show()
-
-        # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
-        vbox.pack_start(label, False, False, 1)
-        label.show()
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
@@ -257,7 +252,7 @@ class SemSeg(Gimp.PlugIn):
                 ],  # This includes the docstring, on the top of the file
                 name,
             )
-            procedure.set_menu_label(N_("Semantic Segmentation..."))
+            procedure.set_menu_label(N_("Semantic Segmentation"))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
             procedure.add_string_argument("device_name", _("Devce Name"), 
