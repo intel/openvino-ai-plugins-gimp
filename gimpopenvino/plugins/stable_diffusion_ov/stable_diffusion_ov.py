@@ -419,7 +419,7 @@ def run(procedure, run_mode, image, layer, config, data):
         adv_power_mode_combo.set_active(sd_option_cache.get("power_mode"))
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
-                                                  _("_Advanced Settings                      "))        
+                                                  _("_Advanced Settings                                                       "))
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
         adv_checkbox.set_active(True) if sd_option_cache.get("advanced_setting") == "True" else adv_checkbox.set_active(False) 
@@ -428,7 +428,7 @@ def run(procedure, run_mode, image, layer, config, data):
 
         # Hiding the console is WIP
         show_console_checkbox = GimpUi.prop_check_button_new(config, "show_console",
-                                                  _("_Show Console                           "))        
+                                                  _("_Show Console "))        
         #show_console_checkbox.show()
         show_console_checkbox.set_active(True) #if sd_option_cache.get("show_console") == "True" else show_console_checkbox.set_active(False)             
         #grid.attach(show_console_checkbox, 3, 1, 1, 1)
