@@ -235,7 +235,7 @@ def is_server_running():
 
     return False
 
-def async_load_models(python_path, server_path, model_name, supported_devices, device_power_mode,dialog):
+def async_load_models(python_path, server_path, model_name, supported_devices, device_power_mode, show_console, dialog):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((HOST, PORT))
@@ -245,7 +245,25 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
     except:
         print("No stable-diffusion model server found to kill")
 
-    process = subprocess.Popen([python_path, server_path, model_name, str(supported_devices), device_power_mode], close_fds=True)
+    #if not show_console:
+    #     process = subprocess.Popen([python_path, server_path, model_name, str(supported_devices), device_power_mode],
+    #                             creationflags=subprocess.CREATE_NO_WINDOW,
+    #                             stdout=subprocess.PIPE,
+    #                             stderr=subprocess.PIPE,
+    #                             text=True,
+    #                             close_fds=True)
+    # else: 
+    #     process = subprocess.Popen([python_path, server_path, model_name, str(supported_devices), device_power_mode],
+    #                             close_fds=True)
+
+    process = subprocess.Popen([python_path, 
+                                server_path, 
+                                model_name, 
+                                str(supported_devices), 
+                                device_power_mode],
+                                close_fds=True)
+
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, 65433))
@@ -401,12 +419,19 @@ def run(procedure, run_mode, image, layer, config, data):
         adv_power_mode_combo.set_active(sd_option_cache.get("power_mode"))
 
         adv_checkbox = GimpUi.prop_check_button_new(config, "advanced_setting",
-                                                  _("_Advanced Settings                                                       "))        
+                                                  _("_Advanced Settings                      "))        
         adv_checkbox.connect("toggled", on_toggled, dialog)
         adv_checkbox.show()
         adv_checkbox.set_active(True) if sd_option_cache.get("advanced_setting") == "True" else adv_checkbox.set_active(False) 
             
         grid.attach(adv_checkbox, 3, 0, 1, 1)
+
+        # Hiding the console is WIP
+        show_console_checkbox = GimpUi.prop_check_button_new(config, "show_console",
+                                                  _("_Show Console                           "))        
+        #show_console_checkbox.show()
+        show_console_checkbox.set_active(True) #if sd_option_cache.get("show_console") == "True" else show_console_checkbox.set_active(False)             
+        #grid.attach(show_console_checkbox, 3, 1, 1, 1)
 
         invisible_label4 = Gtk.Label.new_with_mnemonic(_("_"))
         invisible_label5 = Gtk.Label.new_with_mnemonic(_("_"))
@@ -795,6 +820,7 @@ def run(procedure, run_mode, image, layer, config, data):
                 #adv_checkbox.set_sensitive(False)
                 sd_option_cache.set("prompt",prompt_text.get_text())
                 sd_option_cache.set("negative_prompt",negative_prompt_text.get_text())
+                sd_option_cache.set("show_console", show_console_checkbox.get_active())
 
                 if adv_checkbox.get_active():
                     sd_option_cache.set("num_images", config.get_property("num_images"))
@@ -873,7 +899,7 @@ def run(procedure, run_mode, image, layer, config, data):
                     "tools", 
                     server)
 
-                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode,dialog))
+                run_load_model_thread = threading.Thread(target=async_load_models, args=(python_path, server_path, model_name, str(supported_devices), device_power_mode, show_console_checkbox.get_active(), dialog))
                 run_load_model_thread.start()
 
                 continue
@@ -973,6 +999,10 @@ class StableDiffusion(Gimp.PlugIn):
                                         GObject.ParamFlags.READWRITE)
             procedure.add_boolean_argument("advanced_setting", _("_Advanced Settings"),
                                            "Advanced Settings",
+                                           False,
+                                           GObject.ParamFlags.READWRITE)
+            procedure.add_boolean_argument("show_console", _("_Show Console"),
+                                           "Show Console",
                                            False,
                                            GObject.ParamFlags.READWRITE)
             procedure.add_string_argument("power_mode", _("Power Mode"),

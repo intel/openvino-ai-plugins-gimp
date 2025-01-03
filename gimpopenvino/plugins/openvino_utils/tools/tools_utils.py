@@ -49,6 +49,7 @@ class SDOptionCache:
             inference_status="success",
             src_height=512,
             src_width=512,
+            show_console=True,
         )
         self.cache_path = config_path
         self.options = self.default_options.copy()

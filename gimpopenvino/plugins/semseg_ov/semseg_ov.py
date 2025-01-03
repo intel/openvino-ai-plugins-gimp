@@ -96,7 +96,11 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
         json.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
-    subprocess.call([python_path, plugin_path])
+    subprocess.call([python_path, plugin_path], 
+                    creationflags=subprocess.CREATE_NO_WINDOW,  
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True)
     #data_output = subprocess.call([python_path, plugin_path, device_name, model_name])
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
         data_output = json.load(file)

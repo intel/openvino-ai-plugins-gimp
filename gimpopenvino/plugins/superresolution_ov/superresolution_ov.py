@@ -112,7 +112,12 @@ def superresolution(procedure, image, drawable,scale, device_name, model_name, p
     save_inference_parameters(weight_path, device_name, scale, model_name)
 
     try:
-        subprocess.call([python_path, plugin_path])
+        subprocess.call([python_path, plugin_path],
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        )
         data_output = load_inference_results(weight_path)
     except Exception as e:
         Gimp.message(f"Error during inference: {e}")

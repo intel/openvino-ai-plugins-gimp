@@ -66,7 +66,12 @@ class ModelManagementWindow(Gtk.Window):
 
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
-            _process = subprocess.Popen([python_path, server_path], close_fds=True)
+            _process = subprocess.Popen([python_path, server_path],     
+                                        creationflags=subprocess.CREATE_NO_WINDOW,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        text=True,
+                                        close_fds=True)
 
         # make sure that the server is running before we proceed...
         connect_retries = 5
