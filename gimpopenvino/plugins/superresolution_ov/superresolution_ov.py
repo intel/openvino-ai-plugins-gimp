@@ -12,6 +12,8 @@ import subprocess
 import json
 import os
 import sys
+from enum import IntEnum
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 
@@ -78,72 +80,85 @@ model_name_enum = StringEnum(
     "sr_1033", _("sr_1033"),
     "sr_1032", _("sr_1032"),
 )
+class SRDialogResponse(IntEnum):
+    RunInferenceComplete = 778
+    ProgressUpdate = 779
 
-def save_inference_parameters(weight_path, device_name, scale, model_name):
-    parameters = {
-        "device_name": device_name,
-        "scale": float(scale),
-        "model_name": model_name,
-        "inference_status": "started"
-    }
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
-        json.dump(parameters, file)
+def async_run_superes(runner, dialog):
+    print("Running SR async")
+    runner.run(dialog)
+    print("async SR done")
+    dialog.response(SRDialogResponse.RunInferenceComplete)
 
-def load_inference_results(weight_path):
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
-        return json.load(file)
+class SRRunner:
+    def __init__ (self, procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
+        self.procedure = procedure
+        self.image = image
+        self.drawable = drawable
+        self.scale = scale
+        self.device_name = device_name
+        self.model_name = model_name
+        self.progress_bar = progress_bar
+        self.config_path_output = config_path_output
+        self.result = None
 
-def remove_temporary_files(directory):
-    for f_name in os.listdir(directory):
-        if f_name.startswith("cache"):
-            os.remove(os.path.join(directory, f_name))
+    def load_inference_results(self, weight_path):
+        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
+            return json.load(file)
+    
+    def run(self, diaglog):
+        procedure = self.procedure
+        image = self.image
+        drawable = self.drawable
+        scale = self.scale
+        model_name = self.model_name
+        device_name = self.device_name
+        progress_bar = self.progress_bar
+        config_path_output = self.config_path_output
+        # Save inference parameters and layers
+        weight_path = config_path_output["weight_path"]
+        python_path = config_path_output["python_path"]
+        plugin_path = config_path_output["plugin_path"]
 
-def superresolution(procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
-    # Save inference parameters and layers
-    weight_path = config_path_output["weight_path"]
-    python_path = config_path_output["python_path"]
-    plugin_path = config_path_output["plugin_path"]
-    plugin_version = config_path_output["plugin_version"]
+        Gimp.context_push()
+        image.undo_group_start()
 
-    Gimp.context_push()
-    image.undo_group_start()
+        save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+        save_inference_parameters(weight_path, device_name, scale, model_name)
 
-    save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
-    save_inference_parameters(weight_path, device_name, scale, model_name)
-
-    try:
-        subprocess.call([python_path, plugin_path],
+        try:
+            subprocess.call([python_path, plugin_path],
                         creationflags=subprocess.CREATE_NO_WINDOW,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
                         )
-        data_output = load_inference_results(weight_path)
-    except Exception as e:
-        Gimp.message(f"Error during inference: {e}")
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-
-    image.undo_group_end()
-    Gimp.context_pop()
-
-    if data_output["inference_status"] == "success":
-        try:
-            result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+            data_output = self.load_inference_results(weight_path)
         except Exception as e:
-            Gimp.message(f"Error processing inference results: {e}")
+            Gimp.message(f"Error during inference: {e}")
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-        
-        Gimp.displays_flush()
-        remove_temporary_files(os.path.join(weight_path, ".."))
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-    else:
-        show_dialog(
+
+        image.undo_group_end()
+        Gimp.context_pop()
+
+        if data_output["inference_status"] == "success":
+            try:
+                result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+            except Exception as e:
+                Gimp.message(f"Error processing inference results: {e}")
+                return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+    
+            Gimp.displays_flush()
+            remove_temporary_files(os.path.join(weight_path, ".."))
+            self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        else:
+            show_dialog(
             "Inference not successful. See error_log.txt in GIMP-OpenVINO folder.",
             "Error !",
             "error",
             image_paths
         )
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def handle_successful_inference(weight_path, image, drawable, scale):
     if scale == 1:
@@ -173,6 +188,23 @@ def handle_successful_inference(weight_path, image, drawable, scale):
         image_new.insert_layer(copy, None, -1)
     return result_layer
 
+def save_inference_parameters(weight_path, device_name, scale, model_name):
+    parameters = {
+        "device_name": device_name,
+        "scale": float(scale),
+        "model_name": model_name,
+        "inference_status": "started"
+    }
+    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+        json.dump(parameters, file)
+
+
+def remove_temporary_files(directory):
+    for f_name in os.listdir(directory):
+        if f_name.startswith("cache"):
+            os.remove(os.path.join(directory, f_name))
+
+# this is what brings up the UI
 def run(procedure, run_mode, image, layer, config, data):
     scale = config.get_property("scale") 
     device_name = config.get_property("device_name") 
@@ -201,7 +233,7 @@ def run(procedure, run_mode, image, layer, config, data):
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_(title_bar_label))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
-        dialog.add_button("_Generate", Gtk.ResponseType.OK)
+        run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10)
         dialog.get_content_area().add(vbox)
@@ -250,27 +282,46 @@ def run(procedure, run_mode, image, layer, config, data):
         vbox.pack_start(logo, False, False, 1)
         logo.show()
 
+         # Spinner
+        spinner = Gtk.Spinner()
+        vbox.pack_start(spinner, False, False, 1)
+
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
         progress_bar.show()
 
         # Wait for user to click
         dialog.show()
+
+        import threading
+        run_inference_thread = None
+
         while True:
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
                 scale = config.get_property("scale")
                 device_name = config.get_property("device_name")
                 model_name = config.get_property("model_name")
+                
+                runner = SRRunner(procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output)
+                spinner.show()
+                spinner.start()
+                run_inference_thread = threading.Thread(target=async_run_superes, args=(runner, dialog))
+                run_inference_thread.start()
+                run_button.set_sensitive(False)
+                continue
+            elif response == SRDialogResponse.RunInferenceComplete:
+                print ("run superres complete")
+                spinner.stop()
+                spinner.hide()
+                if run_inference_thread:
+                    run_inference_thread.join()
+                    result = runner.result
+                    
+                    if result == Gimp.PDBStatusType.SUCCESS and config is not None:
+                        config.end_run(Gimp.PDBStatusType.SUCCESS)
 
-                result = superresolution(
-                    procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output
-                )
-                # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
-                # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                #if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                #    config.end_run(Gimp.PDBStatusType.SUCCESS)
-                return result
+                    return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
                 Gio.app_info_launch_default_for_uri(url, None)

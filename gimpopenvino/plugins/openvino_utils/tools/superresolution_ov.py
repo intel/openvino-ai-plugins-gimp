@@ -5,6 +5,7 @@
 import json
 import os
 import sys
+import concurrent.futures
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
@@ -22,7 +23,15 @@ def get_sr(img,s, model_name="sr_1033", weight_path=None,device="CPU"):
         weight_path = get_weight_path()
     
     if model_name == "esrgan":
-        out = run(img, os.path.join(weight_path, "superresolution-ov", "realesrgan.xml"), device, model_name)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            out_thread = executor.submit(run, img, 
+                                        os.path.join(weight_path, "superresolution-ov", "realesrgan.xml"), 
+                                        device, 
+                                        model_name
+                                        )
+    
+        out = out_thread.result()
+
         out = cv2.resize(out, (0, 0), fx=s / 4, fy=s / 4)
     elif model_name == "edsr":
         b, g, r = cv2.split(np.array(img))
