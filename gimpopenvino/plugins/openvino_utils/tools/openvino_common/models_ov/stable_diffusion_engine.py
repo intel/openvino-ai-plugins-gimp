@@ -89,8 +89,10 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 
 def try_enable_npu_turbo(device, core):
     try:
-        import platform
-        if "NPU" in device and "3720" not in core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+        architecture = core.get_property('NPU','DEVICE_ARCHITECTURE')
+
+        # NPU Turbo is not supported on 37XX architectures.
+        if "NPU" in device and all(arch not in architecture for arch in ["3700","3720"]):
             try:
                 core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
             except:

@@ -3,6 +3,7 @@ import json
 import sys
 import traceback
 import openvino as ov
+from enum import Enum
 from huggingface_hub import snapshot_download, HfApi, HfFileSystem, hf_hub_url
 import concurrent.futures
 import platform
@@ -244,9 +245,14 @@ g_installable_base_model_map = {
 
 
 access_token = None
-# Constants
-NPU_ARCH_3720 = "3720"
-NPU_ARCH_4000 = "4000"
+
+# Enum for NPU Arch 
+class NPUArchitecture(Enum):
+    ARCH_3700 = "3700" # Keem Bay
+    ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
+    ARCH_4000 = "4000" # Lunar Lake
+    ARCH_NEXT = "FFFF" # Next Lake
+
 NPU_THRESHOLD = 43000
 
 def does_filename_match_patterns(filename, patterns):
@@ -316,16 +322,24 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
     return downloaded_size
 
 def get_npu_architecture(core):
+    """
+    Retrieves the NPU architecture using the OpenVINO core.
+
+    Args:
+        core (ov.Core): The OpenVINO core instance.
+
+    Returns:
+        NPUArchitecture: The detected architecture, or None if not found.
+    """
     try:
         available_devices = core.get_available_devices()
         if 'NPU' in available_devices:
             architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-            if NPU_ARCH_3720 in architecture:
-                return NPU_ARCH_3720
-            elif NPU_ARCH_4000 in architecture:
-                return NPU_ARCH_4000
-            return None
-
+            for arch in NPUArchitecture:
+                if arch.value in architecture:
+                    return arch
+            return NPUArchitecture.ARCH_NEXT
+        return None
     except Exception as e:
         logging.error(f"Error retrieving NPU architecture: {str(e)}")
         return None
@@ -343,16 +357,15 @@ def get_npu_driver_version(core):
 
     return None
 
-
 def get_npu_config(core, architecture):
     try:
-        if architecture == NPU_ARCH_4000:
+        if architecture == NPUArchitecture.ARCH_4000:
             gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
             return 6 if gops_value > NPU_THRESHOLD else None
     except Exception as e:
         logging.error(f"Error retrieving NPU configuration: {str(e)}")
         return None
-
+    
 class ModelManager:
     def __init__(self, weight_path):
         self._core = ov.Core()
@@ -1034,7 +1047,7 @@ class ModelManager:
             print("Downloading Intel/sd-1.5-square-quantized Models")
             download_success = self._download_model(model_id)
         
-        if npu_arch is not None:
+        if npu_arch is not NPUArchitecture.ARCH_3700 and npu_arch is not None:
             if download_success:
                 try:
                     self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
@@ -1046,7 +1059,7 @@ class ModelManager:
                     vae_de_future = None
                     vae_en_future = None
 
-                    if npu_arch == NPU_ARCH_3720:
+                    if npu_arch == NPUArchitecture.ARCH_3720:
                         # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
                         models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder"]
                         shared_models = ["text_encoder.blob"]
@@ -1157,7 +1170,7 @@ class ModelManager:
             print("Downloading Intel/sd-1.5-lcm-openvino")
             download_success = self._download_model(model_id)
 
-        if npu_arch is not None:
+        if npu_arch is not NPUArchitecture.ARCH_3700 and npu_arch is not None:
             if download_success:
                 try:
                     self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
@@ -1166,7 +1179,7 @@ class ModelManager:
                     unet_future = None
                     vae_de_future = None
 
-                    if npu_arch == NPU_ARCH_3720:
+                    if npu_arch == NPUArchitecture.ARCH_3720:
                         models_to_compile = [ "unet", "text_encoder"]
                         sd15_futures = {
                             "text_encoder" : text_future,
