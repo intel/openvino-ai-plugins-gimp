@@ -22,6 +22,8 @@ from gi.repository import Gimp, GimpUi, GObject, GLib, Gio, Gtk
 
 _ = gettext.gettext
 
+from tools.tools_utils import base_model_dir, config_path_dir
+
 image_paths = {
     "logo": os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "images", "plugin_logo.png"
@@ -172,16 +174,17 @@ def run(procedure, run_mode, image, layer, config, data):
     model_name = config.get_property("model_name") 
     
     if run_mode == Gimp.RunMode.INTERACTIVE:
-        config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
-        )
-
-        with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
+        with open(os.path.join(config_path_dir, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
         plugin_version = config_path_output["plugin_version"]
-
-        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution_ov.py")
+        config_path_output["plugin_path"] = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "..", 
+            "openvino_utils", 
+            "tools", 
+            "superresolution_ov.py")
+        
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()

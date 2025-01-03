@@ -1,1 +1,1 @@
-{"python_path": "D:\\Projects\\GIMP\\gimpenv3\\Scripts\\python.exe", "weight_path": "C:\\Users\\LNL\\openvino-ai-plugins-gimp\\weights", "supported_devices": ["CPU", "GPU", "NPU"], "plugin_version": "3.0.0"}
+{"python_path": "D:\\Projects\\GIMP\\gimpenv3\\Scripts\\python.exe", "weight_path": "C:\\Users\\LNL\\openvino-ai-plugins-gimp\\weights", "supported_devices": ["CPU", "GPU", "NPU"], "plugin_version": "3.0.0.dev2"}

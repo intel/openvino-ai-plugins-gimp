@@ -17,6 +17,7 @@ from pathlib import Path
 
 import gimpopenvino
 from openvino.runtime import Core
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import base_model_dir, config_path_dir
 
 
 def install_base_models(base_model_dir, repo_weights_dir):
@@ -146,7 +147,7 @@ def complete_install(install_location=None, repo_weights_dir=None):
     }
 
     # Write config data to gimp_openvino_config.json
-    govconfig_path = os.path.join(plugin_loc, "plugins", "openvino_utils", "tools", "gimp_openvino_config.json")
+    govconfig_path = os.path.join(config_path_dir, "gimp_openvino_config.json")
     with open(govconfig_path, "w+") as file:
         json.dump(py_dict, file)
 

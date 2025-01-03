@@ -42,7 +42,6 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
-        "typing",
         "gdown",
         "requests",
         "opencv-python>=4.8.1.78",
@@ -53,9 +52,8 @@ setup(
         "controlnet-aux>=0.0.6",
         "openvino",
         "psutil",
-        "matplotlib",
+        "matplotlib"
     ],
-
 )
 
 install_utils.complete_install(repo_weights_dir=weights_dir)

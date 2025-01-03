@@ -33,7 +33,8 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
 from openvino.runtime import Model, Core
 from collections import namedtuple
-
+from tools_utils import get_weight_path
+    
 from controlnet_aux import OpenposeDetector
 from typing import Union, List, Optional, Tuple
 
@@ -503,7 +504,7 @@ class ControlNetOpenPose(DiffusionPipeline):
 
 
 if __name__ == "__main__":
-    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
+    weight_path = get_weight_path()
     
     model_path = os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  
     device_name = ["GPU.1", "GPU.1" , "GPU.1"]

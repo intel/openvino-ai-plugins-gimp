@@ -62,7 +62,7 @@ class ModelManagementWindow(Gtk.Window):
         self._host = "127.0.0.1"
         self._port = 65434
         server = "model_management_server.py"
-        server_path = os.path.join(config_path, server)
+        server_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", server)
 
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
