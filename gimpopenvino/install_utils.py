@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 import gimpopenvino
-from openvino.runtime import Core
+import openvino as ov 
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import base_model_dir, config_path_dir
 
 
@@ -30,30 +30,26 @@ def install_base_models(base_model_dir, repo_weights_dir):
     print("Setup done for base models.")
 
 
-def filter_supported_devices(ie: Core):
-    """
-    Filters out non-Intel and zero-UUID devices from the list of available devices.
-
-    Args:
-        ie (Core): OpenVINO runtime Core object.
-
-    Returns:
-        list: Filtered list of supported Intel devices.
-    """
+def filter_supported_devices(core):
     ZERO_UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
     valid_devices = []
 
-    for device in ie.available_devices:
-        full_name = ie.get_property(device, "FULL_DEVICE_NAME")
-        supported_props = ie.get_property(device, "SUPPORTED_PROPERTIES")
+    for device in core.get_available_devices():
+        full_name = core.get_property(device, "FULL_DEVICE_NAME")
+        supported_props = core.get_property(device, "SUPPORTED_PROPERTIES")
 
         # Skip if not Intel
         if "Intel" not in full_name:
             continue
 
+        # skip device if it is NPU < 3720
+        if "AI Boost" in full_name and "AUTO_DETECT"  in core.get_property(device, "DEVICE_ARCHITECTURE"):
+            if  core.get_property(device, "DEVICE_GOPS")[ov.Type.i8] == 0:
+                continue
+
         # Skip if device has a zero UUID (indicates a non-unique or invalid device)
         if "DEVICE_UUID" in supported_props:
-            dev_uuid = uuid.UUID(ie.get_property(device, "DEVICE_UUID"))
+            dev_uuid = uuid.UUID(core.get_property(device, "DEVICE_UUID"))
             if dev_uuid == ZERO_UUID:
                 continue
 
@@ -135,8 +131,8 @@ def complete_install(install_location=None, repo_weights_dir=None):
     plugin_loc = os.path.dirname(gimpopenvino.__file__)
 
     # Filter supported devices using OpenVINO runtime
-    ie = Core()
-    supported_devices = filter_supported_devices(ie)
+    core = ov.Core()
+    supported_devices = filter_supported_devices(core)
 
     # Build the JSON config data
     py_dict = {
