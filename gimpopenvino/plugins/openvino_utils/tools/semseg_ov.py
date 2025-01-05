@@ -8,7 +8,7 @@ import sys
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-from tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 
 
 #from semseg_run import run

@@ -32,7 +32,7 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
 from openvino.runtime import Model, Core
 from collections import namedtuple
-from tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
     
 
 from typing import Union, List, Optional, Tuple

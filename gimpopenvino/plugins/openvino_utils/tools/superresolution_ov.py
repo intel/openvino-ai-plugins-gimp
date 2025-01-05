@@ -14,7 +14,7 @@ sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..",
 import cv2
 from superes_run_ov import run
 import torch
-from tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 import traceback
 import numpy as np
 

@@ -12,7 +12,7 @@ import threading
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
 
-from tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from model_manager import ModelManager
 
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
