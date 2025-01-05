@@ -56,4 +56,3 @@ setup(
     ],
 )
 
-install_utils.complete_install(repo_weights_dir=weights_dir)

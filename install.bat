@@ -46,6 +46,9 @@ pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
+REM post install steps:
+python -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'%script_dir%\weights')"
+
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
 rem cls

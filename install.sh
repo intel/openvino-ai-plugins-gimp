@@ -38,6 +38,9 @@ source gimpenv3/bin/activate
 pip3 install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip3 install "$script_dir/."
 
+# post installation steps
+python3 -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'${script_dir}/weights')"
+
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment
 deactivate
