@@ -96,8 +96,13 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
         json.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
+    if sys.platform == 'win32':
+        creationflags = subprocess.CREATE_NO_WINDOW 
+    else:
+        creationflags = 0 # N/A on linux 
+  
     subprocess.call([python_path, plugin_path], 
-                    creationflags=subprocess.CREATE_NO_WINDOW,  
+                    creationflags=creationflags,   
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True)

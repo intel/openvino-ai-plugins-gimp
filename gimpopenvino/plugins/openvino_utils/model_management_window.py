@@ -66,8 +66,13 @@ class ModelManagementWindow(Gtk.Window):
 
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW 
+            else:
+                creationflags = 0 # N/A on linux 
+                
             _process = subprocess.Popen([python_path, server_path],     
-                                        creationflags=subprocess.CREATE_NO_WINDOW,
+                                        creationflags=creationflags,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,

@@ -245,9 +245,14 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
     except:
         print("No stable-diffusion model server found to kill")
 
+    if sys.platform == 'win32':
+        creationflags = subprocess.CREATE_NO_WINDOW 
+    else:
+        creationflags = 0 # N/A on linux 
+  
     #if not show_console:
     #     process = subprocess.Popen([python_path, server_path, model_name, str(supported_devices), device_power_mode],
-    #                             creationflags=subprocess.CREATE_NO_WINDOW,
+    #                             creationflags=creationflags, 
     #                             stdout=subprocess.PIPE,
     #                             stderr=subprocess.PIPE,
     #                             text=True,

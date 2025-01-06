@@ -127,8 +127,13 @@ class SRRunner:
         save_inference_parameters(weight_path, device_name, scale, model_name)
 
         try:
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW 
+            else:
+                creationflags = 0 # N/A on linux 
+  
             subprocess.call([python_path, plugin_path],
-                        creationflags=subprocess.CREATE_NO_WINDOW,
+                        creationflags=creationflags, 
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
