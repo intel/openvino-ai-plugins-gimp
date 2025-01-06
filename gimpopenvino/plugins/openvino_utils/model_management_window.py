@@ -79,7 +79,7 @@ class ModelManagementWindow(Gtk.Window):
                                         close_fds=True)
 
         # make sure that the server is running before we proceed...
-        connect_retries = 5
+        connect_retries = 30
         while self.is_server_running() is False:
            time.sleep(1)
            connect_retries = connect_retries - 1
