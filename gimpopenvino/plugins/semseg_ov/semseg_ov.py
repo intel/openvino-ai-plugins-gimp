@@ -167,7 +167,7 @@ def run(procedure, run_mode, image, layer, config, data):
             "gtk-dialogs-use-header"
         )
 
-        title_bar_label  = "Semantic Segmentation : "+  plugin_version + " - PLUGIN LICENSE : Apache-2.0"
+        title_bar_label  = "Semantic Segmentation : "+  plugin_version 
         dialog = GimpUi.Dialog(
             use_header_bar=use_header_bar, title=_(title_bar_label)
         )

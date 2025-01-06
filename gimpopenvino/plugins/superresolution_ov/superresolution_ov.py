@@ -233,7 +233,7 @@ def run(procedure, run_mode, image, layer, config, data):
         
         GimpUi.init("superresolution-ov")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
-        title_bar_label =  "Super Resolution : " +  plugin_version + " - PLUGIN LICENSE : Apache-2.0"
+        title_bar_label =  "Super Resolution : " +  plugin_version
 
         dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_(title_bar_label))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
