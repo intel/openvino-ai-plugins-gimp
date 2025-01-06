@@ -24,7 +24,7 @@ Please raise a PR for any new features, modifications, or bug fixes.
 For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windows_users.md).
 
 ### Linux
-This plugin is tested on Ubuntu 22.04. Building GIMP from source is recommended.<br>
+This plugin is tested on Ubuntu 24.04. Building GIMP from source is recommended. Flatpak is not supported.<br>
 For detailed steps and tips please refer to [Linux Installation Guide](./Docs/linux_install_guide.md).
 
 # OpenVINO™ Image Generator Plugin with Stable Diffusion

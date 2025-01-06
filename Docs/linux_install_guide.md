@@ -14,7 +14,7 @@
     ```sh
     git clone https://gitlab.gnome.org/GNOME/babl
     cd babl
-    git checkout tags/BABL_0_1_98
+    git checkout tags/BABL_0_1_110
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -24,7 +24,7 @@
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gegl
     cd gegl
-    git checkout tags/GEGL_0_4_46
+    git checkout tags/GEGL_0_4_52
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -35,7 +35,9 @@
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gimp  
     cd gimp
-    git checkout tags/GIMP_2_99_16
+    git checkout tags/GIMP_3_0_0_RC2
+    git submodule update --init 
+    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -58,7 +60,7 @@
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
-   gimp-2.99
+   gimp
    ```
 
 
