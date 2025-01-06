@@ -404,7 +404,7 @@ def start():
 
     gimp_proc = None
     for proc in psutil.process_iter():
-        if "gimp-3" in proc.name():
+        if "gimp" in proc.name():
             gimp_proc = proc
             break
     
