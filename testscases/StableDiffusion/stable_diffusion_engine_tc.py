@@ -11,6 +11,7 @@ import time
 from datetime import datetime
 from statistics import mean
 import platform
+import subprocess
 import os
 
 import cv2
@@ -37,11 +38,33 @@ log = logging.getLogger()
 
 
 def get_bios_version():
-    import wmi
     try:
-        c = wmi.WMI()
-        bios = c.Win32_BIOS()[0]
-        return bios.SMBIOSBIOSVersion
+        os_name = platform.system()
+        
+        if os_name == "Windows":
+            import wmi
+            c = wmi.WMI()
+            bios = c.Win32_BIOS()[0]
+            return bios.SMBIOSBIOSVersion
+        
+        elif os_name == "Linux":
+            result = subprocess.run(
+                ["sudo", "dmidecode", "-t", "bios"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            if result.returncode != 0:
+                return f"Error executing dmidecode: {result.stderr.strip()}"
+            
+            for line in result.stdout.splitlines():
+                if "Version:" in line:
+                    return line.split("Version:")[1].strip()
+            return "BIOS version not found."
+        
+        else:
+            return f"Unsupported OS: {os_name}"
+    
     except Exception as e:
         return str(e)
 
@@ -89,7 +112,7 @@ def print_system_info():
         log.info(f'GPU Driver: {check_windows_device_driver_version(device_name="Arc",driver_info=driver_info)}')  
     elif "linux" in platform.system().lower():
         try:
-            log.info(f'BIOS: <unsupported>')
+            log.info(f'BIOS: {get_bios_version()}')
             with open('/sys/module/intel_vpu/version', 'r') as f:
                 log.info(f'NPU Driver: {f.readline()}')
             log.info(f'GPU Driver: <unsupported>')
