@@ -104,10 +104,8 @@ def get_plugin_version(file_dir=None):
         return "0.0.0"  # Fallback version    
 
 
-def complete_install(install_location=None, repo_weights_dir=None):
-    # Determine the AI model install location
-    if not install_location:
-        install_location = os.path.join(os.path.expanduser("~"), "openvino-ai-plugins-gimp")
+def complete_install(repo_weights_dir=None):
+    install_location = base_model_dir 
 
     # Create the install directory if it doesn't exist
     os.makedirs(install_location, exist_ok=True)

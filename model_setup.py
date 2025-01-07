@@ -6,7 +6,7 @@ from pathlib import Path
 
 from gimpopenvino.plugins.openvino_utils.tools.model_manager import ModelManager
 
-from gimpopenvino.complete_install import base_model_dir
+from gimpopenvino.install_utils import base_model_dir
 
 def main():
     try:
