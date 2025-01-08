@@ -19,7 +19,7 @@
   - python 3.9-3.12
     - Note: This document will use python 3.9.13 as an example.
   - VC runtime
-  - [GIMP 2.99.16](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe)
+  - [GIMP 3.0 RC2](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.0-RC2-setup.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
@@ -70,9 +70,9 @@ Please download the latest Visual C++ Redistributable package from MSFT [site](h
 ![](figs/VC_runtime_close.png) 
 
 
-### Install GIMP 2.99.16
+### Install GIMP 3.0 RC2
 
-Please download [gimp-2.99.16-setup.exe](https://download.gimp.org/gimp/v2.99/windows/gimp-2.99.16-setup.exe) and follow below steps to install GIMP.
+Please download [GIMP 3.0 RC2](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.0-RC2-setup.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
