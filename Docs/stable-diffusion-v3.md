@@ -31,7 +31,7 @@ Verify that the copied files and directory structure looks as follows:
 ![image](https://github.com/user-attachments/assets/039073d1-e593-4365-92c9-3555ea023670)
 ### Running with GIMP
 After completing model installation steps, SD3 will now be available in the Stable Diffusion UI. Note that SD3 can generate valid images in as few as 4 iterations. Also, the guidance scale needed is normally much lower. See the screenshot below:
-![image](https://github.com/user-attachments/assets/6daf3201-b873-4198-a752-19594f352c50)
+![](figs/stable-diffusion_3.png)
 
 
 
