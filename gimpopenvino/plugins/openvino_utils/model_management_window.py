@@ -62,14 +62,24 @@ class ModelManagementWindow(Gtk.Window):
         self._host = "127.0.0.1"
         self._port = 65434
         server = "model_management_server.py"
-        server_path = os.path.join(config_path, server)
+        server_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", server)
 
         #if it's not running already, start it up!
         if( self.is_server_running() is False ):
-            _process = subprocess.Popen([python_path, server_path], close_fds=True)
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW 
+            else:
+                creationflags = 0 # N/A on linux 
+                
+            _process = subprocess.Popen([python_path, server_path],     
+                                        creationflags=creationflags,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        text=True,
+                                        close_fds=True)
 
         # make sure that the server is running before we proceed...
-        connect_retries = 5
+        connect_retries = 30
         while self.is_server_running() is False:
            time.sleep(1)
            connect_retries = connect_retries - 1

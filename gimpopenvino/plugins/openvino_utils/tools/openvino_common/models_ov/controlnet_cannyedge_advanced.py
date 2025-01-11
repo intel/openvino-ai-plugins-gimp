@@ -32,7 +32,8 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
 from openvino.runtime import Model, Core
 from collections import namedtuple
-
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
+    
 
 from typing import Union, List, Optional, Tuple
 
@@ -586,7 +587,7 @@ class ControlNetCannyEdgeAdvanced(DiffusionPipeline):
 
 
 if __name__ == "__main__":
-    weight_path = os.path.join(os.path.expanduser('~'), "openvino-ai-plugins-gimp", "weights")
+    weight_path = get_weight_path()
     
     model_path = os.path.join(weight_path, "stable-diffusion-ov", "controlnet-canny-advanced")  #os.path.join(weight_path, "stable-diffusion-ov/controlnet-openpose")  -- "D:\\git\\openvino_notebooks\\notebooks\\235-controlnet-stable-diffusion"
     device_name = ["GPU", "GPU" , "GPU","GPU"]

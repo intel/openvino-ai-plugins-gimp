@@ -59,8 +59,9 @@ def run(image, model_path, device, model_name):
             h, w, _ = image.shape
 
         core = ov.Core()
+
         if "esrgan" in model_name and "gpu" not in device.lower():
-            core.set_property({'CACHE_DIR': os.path.join(model_path, '..', 'cache')})
+            core.set_property({'CACHE_DIR': os.path.join(os.path.dirname(model_path), 'cache')})
         
         model = core.read_model(model=model_path)
 
@@ -108,6 +109,7 @@ def run(image, model_path, device, model_name):
             input_image_bicubic = np.expand_dims(bicubic_image.transpose(2, 0, 1), axis=0)
             inputs[bicubic_image_key.any_name] = input_image_bicubic
 
+        
         result = compiled_model(inputs)[output_key]
         result_image = convert_result_to_image(result, model_name)
         return result_image

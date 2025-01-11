@@ -1,3 +1,4 @@
 include gimpopenvino/plugins/openvino_utils/images/plugin_logo.png
 include gimpopenvino/plugins/openvino_utils/images/error_icon.png
+include gimpopenvino/plugins/openvino_utils/tools/gimp_openvino_config.json
 

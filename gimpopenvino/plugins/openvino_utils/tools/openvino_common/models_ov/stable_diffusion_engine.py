@@ -89,8 +89,10 @@ def preprocess(image: PIL.Image.Image, ht=512, wt=512):
 
 def try_enable_npu_turbo(device, core):
     try:
-        import platform
-        if "NPU" in device and "3720" not in core.get_property('NPU', 'DEVICE_ARCHITECTURE'):
+        architecture = core.get_property('NPU','DEVICE_ARCHITECTURE')
+
+        # NPU Turbo is not supported on 37XX architectures.
+        if all(arch not in architecture for arch in ["3700","3720"]):
             try:
                 core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
             except:
@@ -115,7 +117,8 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
-        try_enable_npu_turbo(device, self.core)
+        if "NPU" in device: 
+            try_enable_npu_turbo(device, self.core)
             
         print("Loading models... ")
         
@@ -464,7 +467,8 @@ class StableDiffusionEngine(DiffusionPipeline):
             batch_size = 1
 
         self.batch_size = batch_size
-        try_enable_npu_turbo(device, self.core)
+        if "NPU" in device: 
+            try_enable_npu_turbo(device, self.core)
 
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
@@ -805,8 +809,8 @@ class LatentConsistencyEngine(DiffusionPipeline):
 
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})  # adding caching to reduce init time
-        try_enable_npu_turbo(device, self.core)
-               
+        if "NPU" in device: 
+            try_enable_npu_turbo(device, self.core)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
@@ -1448,37 +1452,37 @@ def print_npu_turbo_art():
     random_number = random.randint(1, 3)
     
     if random_number == 1:
-        print("                                                                                                                      ")
-        print("      ___           ___         ___                                ___           ___                         ___      ")
-        print("     /\  \         /\  \       /\  \                              /\  \         /\  \         _____         /\  \     ")
-        print("     \:\  \       /::\  \      \:\  \                ___          \:\  \       /::\  \       /::\  \       /::\  \    ")
-        print("      \:\  \     /:/\:\__\      \:\  \              /\__\          \:\  \     /:/\:\__\     /:/\:\  \     /:/\:\  \   ")
-        print("  _____\:\  \   /:/ /:/  /  ___  \:\  \            /:/  /      ___  \:\  \   /:/ /:/  /    /:/ /::\__\   /:/  \:\  \  ")
-        print(" /::::::::\__\ /:/_/:/  /  /\  \  \:\__\          /:/__/      /\  \  \:\__\ /:/_/:/__/___ /:/_/:/\:|__| /:/__/ \:\__\ ")
-        print(" \:\~~\~~\/__/ \:\/:/  /   \:\  \ /:/  /         /::\  \      \:\  \ /:/  / \:\/:::::/  / \:\/:/ /:/  / \:\  \ /:/  / ")
-        print("  \:\  \        \::/__/     \:\  /:/  /         /:/\:\  \      \:\  /:/  /   \::/~~/~~~~   \::/_/:/  /   \:\  /:/  /  ")
-        print("   \:\  \        \:\  \      \:\/:/  /          \/__\:\  \      \:\/:/  /     \:\~~\        \:\/:/  /     \:\/:/  /   ")
-        print("    \:\__\        \:\__\      \::/  /                \:\__\      \::/  /       \:\__\        \::/  /       \::/  /    ")
-        print("     \/__/         \/__/       \/__/                  \/__/       \/__/         \/__/         \/__/         \/__/     ")
-        print("                                                                                                                      ")
+        print(r"                                                                                                                      ")
+        print(r"      ___           ___         ___                                ___           ___                         ___      ")
+        print(r"     /\  \         /\  \       /\  \                              /\  \         /\  \         _____         /\  \     ")
+        print(r"     \:\  \       /::\  \      \:\  \                ___          \:\  \       /::\  \       /::\  \       /::\  \    ")
+        print(r"      \:\  \     /:/\:\__\      \:\  \              /\__\          \:\  \     /:/\:\__\     /:/\:\  \     /:/\:\  \   ")
+        print(r"  _____\:\  \   /:/ /:/  /  ___  \:\  \            /:/  /      ___  \:\  \   /:/ /:/  /    /:/ /::\__\   /:/  \:\  \  ")
+        print(r" /::::::::\__\ /:/_/:/  /  /\  \  \:\__\          /:/__/      /\  \  \:\__\ /:/_/:/__/___ /:/_/:/\:|__| /:/__/ \:\__\ ")
+        print(r" \:\~~\~~\/__/ \:\/:/  /   \:\  \ /:/  /         /::\  \      \:\  \ /:/  / \:\/:::::/  / \:\/:/ /:/  / \:\  \ /:/  / ")
+        print(r"  \:\  \        \::/__/     \:\  /:/  /         /:/\:\  \      \:\  /:/  /   \::/~~/~~~~   \::/_/:/  /   \:\  /:/  /  ")
+        print(r"   \:\  \        \:\  \      \:\/:/  /          \/__\:\  \      \:\/:/  /     \:\~~\        \:\/:/  /     \:\/:/  /   ")
+        print(r"    \:\__\        \:\__\      \::/  /                \:\__\      \::/  /       \:\__\        \::/  /       \::/  /    ")
+        print(r"     \/__/         \/__/       \/__/                  \/__/       \/__/         \/__/         \/__/         \/__/     ")
+        print(r"                                                                                                                      ")
     elif random_number == 2:
-        print(" _   _   ____    _   _     _____   _   _   ____    ____     ___  ")
-        print("| \ | | |  _ \  | | | |   |_   _| | | | | |  _ \  | __ )   / _ \ ")
-        print("|  \| | | |_) | | | | |     | |   | | | | | |_) | |  _ \  | | | |")
-        print("| |\  | |  __/  | |_| |     | |   | |_| | |  _ <  | |_) | | |_| |")
-        print("|_| \_| |_|      \___/      |_|    \___/  |_| \_\ |____/   \___/ ")
-        print("                                                                 ")
+        print(r" _   _   ____    _   _     _____   _   _   ____    ____     ___  ")
+        print(r"| \ | | |  _ \  | | | |   |_   _| | | | | |  _ \  | __ )   / _ \ ")
+        print(r"|  \| | | |_) | | | | |     | |   | | | | | |_) | |  _ \  | | | |")
+        print(r"| |\  | |  __/  | |_| |     | |   | |_| | |  _ <  | |_) | | |_| |")
+        print(r"|_| \_| |_|      \___/      |_|    \___/  |_| \_\ |____/   \___/ ")
+        print(r"                                                                 ")
     else:
-        print("")
-        print("    )   (                                 (                )   ")
-        print(" ( /(   )\ )              *   )           )\ )     (    ( /(   ")
-        print(" )\()) (()/(      (     ` )  /(      (   (()/(   ( )\   )\())  ")
-        print("((_)\   /(_))     )\     ( )(_))     )\   /(_))  )((_) ((_)\   ")
-        print(" _((_) (_))    _ ((_)   (_(_())   _ ((_) (_))   ((_)_    ((_)  ")
-        print("| \| | | _ \  | | | |   |_   _|  | | | | | _ \   | _ )  / _ \  ")
-        print("| .` | |  _/  | |_| |     | |    | |_| | |   /   | _ \ | (_) | ")
-        print("|_|\_| |_|     \___/      |_|     \___/  |_|_\   |___/  \___/  ")
-        print("                                                               ")
+        print(r"")
+        print(r"    )   (                                 (                )   ")
+        print(r" ( /(   )\ )              *   )           )\ )     (    ( /(   ")
+        print(r" )\()) (()/(      (     ` )  /(      (   (()/(   ( )\   )\())  ")
+        print(r"((_)\   /(_))     )\     ( )(_))     )\   /(_))  )((_) ((_)\   ")
+        print(r" _((_) (_))    _ ((_)   (_(_())   _ ((_) (_))   ((_)_    ((_)  ")
+        print(r"| \| | | _ \  | | | |   |_   _|  | | | | | _ \   | _ )  / _ \  ")
+        print(r"| .` | |  _/  | |_| |     | |    | |_| | |   /   | _ \ | (_) | ")
+        print(r"|_|\_| |_|     \___/      |_|     \___/  |_|_\   |___/  \___/  ")
+        print(r"                                                               ")
 
 
 

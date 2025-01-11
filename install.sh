@@ -38,18 +38,18 @@ source gimpenv3/bin/activate
 pip3 install -r "$script_dir/requirements.txt" | grep -v "already satisfied"
 pip3 install "$script_dir/."
 
-# Run Python script to complete the installation
-python3 -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=r'${script_dir}/weights')"
+# post installation steps
+python3 -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'${script_dir}/weights')"
 
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment
 deactivate
 
 # Copy to GIMP plugin dir
-echo "Installing plugin in $HOME/.config/GIMP/2.99/plug-ins"
+echo "Installing plugin in $HOME/.config/GIMP/3.0/plug-ins"
 for d in openvino_utils semseg_ov stable_diffusion_ov superresolution_ov; do
-    mkdir -p "$HOME/.config/GIMP/2.99/plug-ins/$d"
-    rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$HOME/.config/GIMP/2.99/plug-ins/."
+    mkdir -p "$HOME/.config/GIMP/3.0/plug-ins/$d"
+    rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$HOME/.config/GIMP/3.0/plug-ins/."
 done
 echo "*** openvino-ai-plugins-gimp Installed ***"
 
@@ -58,5 +58,7 @@ if [[ "$MODEL_SETUP" -eq 1 ]]; then
     echo "**** OpenVINO MODEL SETUP STARTED ****"
     gimpenv3/bin/python3 "$script_dir/model_setup.py"
 fi
+
+cd $current_dir
 
 exit 0

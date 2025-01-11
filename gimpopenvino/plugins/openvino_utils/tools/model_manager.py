@@ -3,6 +3,7 @@ import json
 import sys
 import traceback
 import openvino as ov
+from enum import Enum
 from huggingface_hub import snapshot_download, HfApi, HfFileSystem, hf_hub_url
 import concurrent.futures
 import platform
@@ -244,9 +245,14 @@ g_installable_base_model_map = {
 
 
 access_token = None
-# Constants
-NPU_ARCH_3720 = "3720"
-NPU_ARCH_4000 = "4000"
+
+# Enum for NPU Arch 
+class NPUArchitecture(Enum):
+    ARCH_3700 = "3700" # Keem Bay
+    ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
+    ARCH_4000 = "4000" # Lunar Lake
+    ARCH_NEXT = "FFFF" # Next Lake
+
 NPU_THRESHOLD = 43000
 
 def does_filename_match_patterns(filename, patterns):
@@ -291,7 +297,6 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
         tb_str = traceback.format_exc()
         raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}.\nDetails: {tb_str}")
 
-
 def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size):
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
@@ -316,20 +321,30 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
     return downloaded_size
 
 def get_npu_architecture(core):
+    """
+    Retrieves the NPU architecture using the OpenVINO core.
+
+    Args:
+        core (ov.Core): The OpenVINO core instance.
+
+    Returns:
+        NPUArchitecture: The detected architecture, or None if not found.
+    """
     try:
         available_devices = core.get_available_devices()
         if 'NPU' in available_devices:
             architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-            if NPU_ARCH_3720 in architecture:
-                return NPU_ARCH_3720
-            elif NPU_ARCH_4000 in architecture:
-                return NPU_ARCH_4000
-            return None
-
+            for arch in NPUArchitecture:
+                if arch.value in architecture:
+                    return arch
+            if core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8] > 0:
+                return NPUArchitecture.ARCH_NEXT
+            else:
+                return NPUArchitecture.ARCH_3700
+        return None
     except Exception as e:
         logging.error(f"Error retrieving NPU architecture: {str(e)}")
         return None
-
 
 def get_npu_driver_version(core):
     try:
@@ -343,16 +358,15 @@ def get_npu_driver_version(core):
 
     return None
 
-
 def get_npu_config(core, architecture):
     try:
-        if architecture == NPU_ARCH_4000:
+        if architecture == NPUArchitecture.ARCH_4000:
             gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
             return 6 if gops_value > NPU_THRESHOLD else None
     except Exception as e:
         logging.error(f"Error retrieving NPU configuration: {str(e)}")
         return None
-
+    
 class ModelManager:
     def __init__(self, weight_path):
         self._core = ov.Core()
@@ -361,7 +375,7 @@ class ModelManager:
         self._npu_driver_version = get_npu_driver_version(self._core)
         self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
-
+        self._npu_is_available = True if self._npu_arch is not NPUArchitecture.ARCH_3700 and self._npu_arch is not None else False
         self.show_hf_download_tqdm = False
 
         self.hf_api = HfApi()
@@ -481,9 +495,8 @@ class ModelManager:
     # Right now we only return True if we detect that a driver update has occurred since the model was installed.
     def is_model_update_available(self, model_id):
         try:
-
             # For platforms without NPUs, no updates are necessary (for now).
-            if self._npu_driver_version is None:
+            if self._npu_is_available is False:
                 return False
 
             installed_info = self.get_installed_info(model_id)
@@ -880,15 +893,12 @@ class ModelManager:
                     print("install_test %: ", percent_complete)
                     last_perc_complete_printed = percent_complete
 
-
     def cancel_install(self, model_id):
         print("cancel_install: model_id=", model_id)
 
         with self.model_install_status_lock:
             if model_id in self.model_install_status:
                 self.model_install_status[model_id]["cancelled"] = True
-
-
 
     def install_model(self, model_id):
         #print("install_model: model_id=", model_id)
@@ -1026,15 +1036,23 @@ class ModelManager:
         core = self._core
         npu_arch = self._npu_arch
         npu_config = self._npu_config
+        npu_is_available = self._npu_is_available
 
         download_success = True
-
+        
+        # Default config is that everything should be on GPU.
+        config_fp_16 = { 	"power modes supported": "No",
+                    "best performance" : ["GPU","GPU","GPU","GPU"]
+                 }
+        config_int8 = { 	"power modes supported": "No",
+                    "best performance" : ["GPU","GPU","GPU","GPU"]
+                 }
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
             print("Downloading Intel/sd-1.5-square-quantized Models")
             download_success = self._download_model(model_id)
         
-        if npu_arch is not None:
+        if npu_is_available: 
             if download_success:
                 try:
                     self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
@@ -1046,7 +1064,7 @@ class ModelManager:
                     vae_de_future = None
                     vae_en_future = None
 
-                    if npu_arch == NPU_ARCH_3720:
+                    if npu_arch == NPUArchitecture.ARCH_3720:
                         # larger model should go first to avoid multiple checking when the smaller models loaded / compiled first
                         models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "text_encoder"]
                         shared_models = ["text_encoder.blob"]
@@ -1119,15 +1137,7 @@ class ModelManager:
                                        "best power efficiency" : ["NPU","NPU","NPU","GPU"]
                     }
 
-                    # Specify the file name
-                    file_name = "config.json"
-
-                    # Write the data to a JSON file
-                    with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
-                        json.dump(config_fp_16, json_file, indent=4)
-                    # Write the data to a JSON file
-                    with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
-                        json.dump(config_int8, json_file, indent=4)
+                    
 
                 except Exception as e:
                     # print it:
@@ -1139,7 +1149,15 @@ class ModelManager:
                     self.model_install_error_condition[model_id] = {}
                     self.model_install_error_condition[model_id]["summary"] = "NPU Compilation Routine Failed"
                     self.model_install_error_condition[model_id]["details"] = tb_str
+        # Specify the file name
+        file_name = "config.json"
 
+        # Write the data to a JSON file
+        with open(os.path.join(install_location, model_fp16, file_name), 'w') as json_file:
+            json.dump(config_fp_16, json_file, indent=4)
+        # Write the data to a JSON file
+        with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
+            json.dump(config_int8, json_file, indent=4)
 
     def dl_sd_15_LCM(self, model_id, only_npu_recompilation=False):
         repo_id = "Intel/sd-1.5-lcm-openvino"
@@ -1149,6 +1167,7 @@ class ModelManager:
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
+        npu_is_available = self._npu_is_available
 
         download_success = True
 
@@ -1157,7 +1176,13 @@ class ModelManager:
             print("Downloading Intel/sd-1.5-lcm-openvino")
             download_success = self._download_model(model_id)
 
-        if npu_arch is not None:
+        # Default config is that everything should be on GPU.
+        config = { 	"power modes supported": "No",
+                    "best performance" : ["GPU","GPU","GPU"]
+                 }
+
+
+        if npu_is_available:
             if download_success:
                 try:
                     self.model_install_status[model_id]["status"] = "Compiling models for NPU..."
@@ -1166,7 +1191,7 @@ class ModelManager:
                     unet_future = None
                     vae_de_future = None
 
-                    if npu_arch == NPU_ARCH_3720:
+                    if npu_arch == NPUArchitecture.ARCH_3720:
                         models_to_compile = [ "unet", "text_encoder"]
                         sd15_futures = {
                             "text_encoder" : text_future,
@@ -1206,12 +1231,6 @@ class ModelManager:
                                "best power efficiency" : ["NPU","NPU","GPU"]
                         }
 
-                    # Specify the file name
-                    file_name = "config.json"
-
-                    # Write the data to a JSON file
-                    with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
-                        json.dump(config, json_file, indent=4)
                 except Exception as e:
                     # print it:
                     traceback.print_exc()
@@ -1222,3 +1241,9 @@ class ModelManager:
                     self.model_install_error_condition[model_id] = {}
                     self.model_install_error_condition[model_id]["summary"] = "NPU Compilation Routine Failed"
                     self.model_install_error_condition[model_id]["details"] = tb_str
+        # Specify the file name
+        file_name = "config.json"
+
+        # Write the data to a JSON file
+        with open(os.path.join(install_location, "stable-diffusion-1.5", model_1, file_name), 'w') as json_file:
+            json.dump(config, json_file, indent=4)

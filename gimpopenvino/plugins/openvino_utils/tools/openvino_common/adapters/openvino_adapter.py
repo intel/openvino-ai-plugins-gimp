@@ -32,8 +32,8 @@ def create_core():
     if openvino_absent:
         raise ImportError('The OpenVINO package is not installed')
 
-    log.info('OpenVINO Runtime')
-    log.info('\tbuild: {}'.format(get_version()))
+    #log.info('OpenVINO Runtime')
+    #log.info('\tbuild: {}'.format(get_version()))
     return Core()
 
 
@@ -41,7 +41,6 @@ class OpenvinoAdapter(ModelAdapter):
     '''
     Works with OpenVINO model
     '''
-
     def __init__(self, core, model_path, weights_path=None, model_parameters = {}, device='CPU', plugin_config=None, max_num_requests=0):
         self.core = core
         self.model_path = model_path
@@ -57,7 +56,7 @@ class OpenvinoAdapter(ModelAdapter):
                             'The "weights_path" will be omitted')
 
         self.model_from_buffer = isinstance(model_path, bytes) and isinstance(weights_path, bytes)
-        log.info('Reading model {}'.format('from buffer' if self.model_from_buffer else model_path))
+       # log.info('Reading model {}'.format('from buffer' if self.model_from_buffer else model_path))
         weights = weights_path if self.model_from_buffer else ''
         self.model = core.read_model(model_path, weights)
 
@@ -68,8 +67,8 @@ class OpenvinoAdapter(ModelAdapter):
             # +1 to use it as a buffer of the pipeline
             self.async_queue = AsyncInferQueue(self.compiled_model, len(self.async_queue) + 1)
 
-        log.info('The model {} is loaded to {}'.format("from buffer" if self.model_from_buffer else self.model_path, self.device))
-        self.log_runtime_settings()
+        #log.info('The model {} is loaded to {}'.format("from buffer" if self.model_from_buffer else self.model_path, self.device))
+        #self.log_runtime_settings()
 
     def log_runtime_settings(self):
         devices = set(parse_devices(self.device))

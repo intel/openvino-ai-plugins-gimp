@@ -104,31 +104,16 @@ def render_segmentation(frame, masks, visualiser, only_masks=False):
     return output
  
 
-
-#def get_model(ie, model):
-    
-  #      return SegmentationModel(ie, model), SegmentationVisualizer(None)
-    
-
-
-def run(frame, model_path, device):
-    
-    log.info('Initializing Inference Engine...')
- 
-    
-
+def run(frame, model_path, device): 
     plugin_config = get_user_config(device, '', None)
     model_adapter = OpenvinoAdapter(create_core(), model_path, device=device, plugin_config=plugin_config,max_num_requests=1, model_parameters={})
     model = SegmentationModel.create_model('segmentation', model_adapter, None)
     visualizer = SegmentationVisualizer(None)
-    model.log_layers_info()
+    #model.log_layers_info()
 
     #model, visualizer = get_model(ie, model_path)
-    log.info('Loading network: %s',model_path )
-    log.info('Device: %s',device)   
     pipeline = AsyncPipeline(model)
-    log.info('Starting inference...')
-
+    
     if pipeline.is_ready():
         start_time = perf_counter()
         pipeline.submit_data(frame, 0, {'frame': frame, 'start_time': start_time})
@@ -144,24 +129,17 @@ def run(frame, model_path, device):
     results = pipeline.get_result(0)
 
     while results is None:
-            log.info("WAIT for results")
             results = pipeline.get_result(0)
 
     if results:
-            log.info('We got some results')
             objects, frame_meta = results
             frame = frame_meta['frame']
             start_time = frame_meta['start_time']
             frame = render_segmentation(frame, objects, visualizer)
-   
     
-   
+    
     return frame 
 
-#img = cv2.imread(r'D:\sampleinput\img.png')[:, :, ::-1]
-#mask = run(img, r'C:\GIMP-ML\weights\semseg\deeplabv3.xml',"NPU")
-#print("type = ", type(mask))
-#print(mask.shape)
-#cv2.imwrite("cache_ov.png", mask)
+
 
 

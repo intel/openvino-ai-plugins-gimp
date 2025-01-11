@@ -46,15 +46,16 @@ pip install wmi
 pip install -r "%~dp0\requirements.txt" | find /V "already satisfied"
 pip install "%~dp0\."
 
-python -c "from gimpopenvino import complete_install; complete_install.setup_python_weights(repo_weights_dir=r'%script_dir%\weights')"
+REM post install steps:
+python -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'%script_dir%\weights')"
 
 echo **** openvino-ai-plugins-gimp Setup Ended ****
 call deactivate
 rem cls
 echo.   
 REM copy to gimp plugin dir
-echo Installing plugin in "%appdata%\GIMP\2.99\plug-ins"
-for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\2.99\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
+echo Installing plugin in "%appdata%\GIMP\3.0\plug-ins"
+for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\3.0\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
 
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    
@@ -64,4 +65,6 @@ if %MODEL_SETUP% EQU 1 (
     gimpenv3\Scripts\python.exe "%~dp0\model_setup.py"
 )
 
+REM return to the directory where we started.
+cd %current_dir%
 exit /b

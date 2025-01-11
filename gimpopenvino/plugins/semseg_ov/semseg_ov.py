@@ -19,6 +19,7 @@ import os
 import sys
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
+from tools.tools_utils import base_model_dir, config_path_dir
 
 _ = gettext.gettext
 image_paths = {
@@ -57,8 +58,6 @@ class StringEnum:
 
 
 class DeviceEnum:
-
-
     def __init__(self, supported_devices):
         self.keys = []
         self.values = [] 
@@ -82,8 +81,6 @@ model_name_enum = StringEnum(
 )
 
 
-
-
 def semseg(procedure, image, drawable, device_name, model_name, progress_bar, config_path_output):
     # Save inference parameters and layers
     weight_path = config_path_output["weight_path"]
@@ -99,10 +96,16 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
         json.dump({"device_name": device_name,"model_name": model_name, "inference_status": "started"}, file)
 
     # Run inference and load as layer
-    print("python_path",python_path)
-    print("plugin_path",plugin_path)
-    print("weight_path in main",weight_path)
-    subprocess.call([python_path, plugin_path])
+    if sys.platform == 'win32':
+        creationflags = subprocess.CREATE_NO_WINDOW 
+    else:
+        creationflags = 0 # N/A on linux 
+  
+    subprocess.call([python_path, plugin_path], 
+                    creationflags=creationflags,   
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True)
     #data_output = subprocess.call([python_path, plugin_path, device_name, model_name])
     with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
         data_output = json.load(file)
@@ -113,13 +116,7 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
             Gimp.RunMode.NONINTERACTIVE,
             Gio.file_new_for_path(os.path.join(weight_path, "..", "cache.png")),
         )
-        try:
-            # 2.99.10
-            result_layer = result.get_active_layer()
-        except:
-            # > 2.99.10
-            result_layers = result.list_layers()
-            result_layer = result_layers[0]
+        result_layer = result.get_layers()[0]
         copy = Gimp.Layer.new_from_drawable(result_layer, image)
         copy.set_name("Semantic Segmentation")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)  # DIFFERENCE_LEGACY
@@ -143,32 +140,36 @@ def semseg(procedure, image, drawable, device_name, model_name, progress_bar, co
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    device_name = args.index(0)
-    model_name = args.index(1)
+def run(procedure, run_mode, image, layer, config, data):
+    device_name = config.get_property("device_name")  # this is sketchy
+    model_name = config.get_property("model_name")
 
     if run_mode == Gimp.RunMode.INTERACTIVE:
         # Get all paths
-        config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
-        )
-        with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
+        with open(os.path.join(config_path_dir, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
-        python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "semseg_ov.py")
+        plugin_version = config_path_output["plugin_version"]
+    
+        config_path_output["plugin_path"] = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "..", 
+            "openvino_utils", 
+            "tools",  
+            "semseg_ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
-        config.begin_run(image, run_mode, args)
-
+        
         GimpUi.init("semseg_ov.py")
         use_header_bar = Gtk.Settings.get_default().get_property(
             "gtk-dialogs-use-header"
         )
+
+        title_bar_label  = "Semantic Segmentation : "+  plugin_version 
         dialog = GimpUi.Dialog(
-            use_header_bar=use_header_bar, title=_("Semantic Segmentation...")
+            use_header_bar=use_header_bar, title=_(title_bar_label)
         )
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
@@ -215,13 +216,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.pack_start(logo, False, False, 1)
         logo.show()
 
-        # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        # grid.attach(label, 1, 1, 1, 1)
-        vbox.pack_start(label, False, False, 1)
-        label.show()
-
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
         progress_bar.show()
@@ -237,9 +231,6 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 result = semseg(
                     procedure, image, layer, device_name, model_name, progress_bar, config_path_output
                 )
-                # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                    config.end_run(Gimp.PDBStatusType.SUCCESS)
                 return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
@@ -253,33 +244,8 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
 
 class SemSeg(Gimp.PlugIn):
-    ## Parameters ##
-    __gproperties__ = {
-        "model_name": (
-            str,
-            _("Model Name"),
-            "Model Name: 'deeplabv3', 'sseg-adas-0001'",
-            "deeplabv3",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "device_name": (
-            str,
-            _("Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-    }
-
     ## GimpPlugIn virtual methods ##
     def do_query_procedures(self):
-        try:
-            self.set_translation_domain(
-                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-            )
-        except:
-            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
-
         return ["semseg-ov"]
 
     def do_set_i18n(self, procname):
@@ -288,9 +254,9 @@ class SemSeg(Gimp.PlugIn):
     def do_create_procedure(self, name):
         procedure = None
         if name == "semseg-ov":
-            procedure = Gimp.ImageProcedure.new(
-                self, name, Gimp.PDBProcType.PLUGIN, run, None
-            )
+            procedure = Gimp.ImageProcedure.new(self, name, 
+                                                Gimp.PDBProcType.PLUGIN, 
+                                                run, None)
             procedure.set_image_types("*")
             procedure.set_documentation(
                 N_("Performs semantic segmentation of the current layer."),
@@ -299,12 +265,18 @@ class SemSeg(Gimp.PlugIn):
                 ],  # This includes the docstring, on the top of the file
                 name,
             )
-            procedure.set_menu_label(N_("Semantic Segmentation..."))
+            procedure.set_menu_label(N_("Semantic Segmentation"))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
-            procedure.add_argument_from_property(self, "device_name")
-            procedure.add_argument_from_property(self, "model_name")
-
+            procedure.add_string_argument("device_name", _("Devce Name"), 
+                                          "Device Name: 'CPU', 'GPU'", 
+                                          "CPU", 
+                                          GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("model_name",  _("Model Name"), 
+                                          "Model Name: 'deeplabv3', 'sseg-adas-0001'", 
+                                          "deeplabv3", 
+                                          GObject.ParamFlags.READWRITE)
+            
         return procedure
 
 

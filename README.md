@@ -3,14 +3,20 @@
 <br>Dedicated for GIMP 3, Python 3 and OpenVINO™.<br> :star: :star: :star: :star: are welcome.<br>
 
 ## Current list of plugins:
-[1] Super-Resolution <br>
-[2] Semantic-Segmentation <br>
-[3] Stable-Diffusion (Supports - SD 1.4, SD 1.5 (landscape, portrait, and Latent Consistency Model), SD 1.5 Inpainting, SD 1.5 Controlnet-OpenPose, SD 1.5 Controlnet-CannyEdge, SD 1.5 Controlnet-Scribble) <br>
+1. Super-Resolution 
+2. Semantic-Segmentation 
+3. Stable-Diffusion  
+    * SD 1.5 (landscape, portrait, and Latent Consistency Model)
+    * SD 1.5 Inpainting 
+    * SD 1.5 Controlnet-OpenPose 
+    * SD 1.5 Controlnet-CannyEdge 
+    * SD 1.5 Controlnet-Scribble 
+    * SD 3.0 w/ Flash SD3 LCM  
 
 # Objectives
-[1] Provides a set of OpenVINO™ based plugins that add AI features to GIMP. <br>
-[2] Serve as a reference code for how to make use of OpenVino in GIMP application for inferencing on Intel's CPU & GPU. <br>
-[3] Add AI to routine image editing workflows. <br>
+1. Provides a set of OpenVINO™ based plugins that add AI features to GIMP. 
+2. Serve as a reference code for how to make use of OpenVino in GIMP application for inferencing on Intel® Devices. 
+3. Add AI to routine image editing workflows. 
 
 # Contribution
 Welcome people interested in contribution!
@@ -24,7 +30,7 @@ Please raise a PR for any new features, modifications, or bug fixes.
 For detailed steps and tips please refer [User guide for Windows](./Docs/user_guide_for_windows_users.md).
 
 ### Linux
-This plugin is tested on Ubuntu 22.04. Building GIMP from source is recommended.<br>
+This plugin is tested on Ubuntu 24.04. Building GIMP from source is recommended. Flatpak is not supported.<br>
 For detailed steps and tips please refer to [Linux Installation Guide](./Docs/linux_install_guide.md).
 
 # OpenVINO™ Image Generator Plugin with Stable Diffusion
@@ -79,7 +85,8 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 5. Follow steps 4,5 from section A.
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
-
+#### G. Stable-Diffusion-3.0 w/ Flash SD3
+Please see [Stable Diffusion 3 User Guilde](./Docs/stable-diffusion-v3.md) for details
 _With Advanced Setting and Power Mode_
 
 ![](gifs/stable-diffusion2.png)

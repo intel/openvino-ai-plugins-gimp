@@ -12,7 +12,7 @@ import threading
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
 
-from tools_utils import get_weight_path
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from model_manager import ModelManager
 
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
@@ -196,7 +196,7 @@ def start():
 
     gimp_proc = None
     for proc in psutil.process_iter():
-        if "gimp-2.99" in proc.name():
+        if "gimp" in proc.name():
             gimp_proc = proc
             break
 

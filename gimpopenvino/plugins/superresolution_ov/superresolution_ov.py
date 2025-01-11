@@ -12,14 +12,19 @@ import subprocess
 import json
 import os
 import sys
+from enum import IntEnum
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 
 gi.require_version("Gimp", "3.0")
 gi.require_version("GimpUi", "3.0")
 gi.require_version("Gtk", "3.0")
+from gi.repository import Gimp, GimpUi, GObject, GLib, Gio, Gtk
 
 _ = gettext.gettext
+
+from tools.tools_utils import base_model_dir, config_path_dir
 
 image_paths = {
     "logo": os.path.join(
@@ -30,6 +35,9 @@ image_paths = {
     ),
 }
 
+
+def N_(message): return message
+def _(message): return GLib.dgettext(None, message)
 
 class StringEnum:
     """
@@ -72,66 +80,90 @@ model_name_enum = StringEnum(
     "sr_1033", _("sr_1033"),
     "sr_1032", _("sr_1032"),
 )
+class SRDialogResponse(IntEnum):
+    RunInferenceComplete = 778
+    ProgressUpdate = 779
 
-def save_inference_parameters(weight_path, device_name, scale, model_name):
-    parameters = {
-        "device_name": device_name,
-        "scale": float(scale),
-        "model_name": model_name,
-        "inference_status": "started"
-    }
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
-        json.dump(parameters, file)
+def async_run_superes(runner, dialog):
+    print("Running SR async")
+    runner.run(dialog)
+    print("async SR done")
+    dialog.response(SRDialogResponse.RunInferenceComplete)
 
-def load_inference_results(weight_path):
-    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
-        return json.load(file)
+class SRRunner:
+    def __init__ (self, procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
+        self.procedure = procedure
+        self.image = image
+        self.drawable = drawable
+        self.scale = scale
+        self.device_name = device_name
+        self.model_name = model_name
+        self.progress_bar = progress_bar
+        self.config_path_output = config_path_output
+        self.result = None
 
-def remove_temporary_files(directory):
-    for f_name in os.listdir(directory):
-        if f_name.startswith("cache"):
-            os.remove(os.path.join(directory, f_name))
+    def load_inference_results(self, weight_path):
+        with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "r") as file:
+            return json.load(file)
+    
+    def run(self, diaglog):
+        procedure = self.procedure
+        image = self.image
+        drawable = self.drawable
+        scale = self.scale
+        model_name = self.model_name
+        device_name = self.device_name
+        progress_bar = self.progress_bar
+        config_path_output = self.config_path_output
+        # Save inference parameters and layers
+        weight_path = config_path_output["weight_path"]
+        python_path = config_path_output["python_path"]
+        plugin_path = config_path_output["plugin_path"]
 
-def superresolution(procedure, image, drawable,scale, device_name, model_name, progress_bar, config_path_output):
-    # Save inference parameters and layers
-    weight_path = config_path_output["weight_path"]
-    python_path = config_path_output["python_path"]
-    plugin_path = config_path_output["plugin_path"]
+        Gimp.context_push()
+        image.undo_group_start()
 
-    Gimp.context_push()
-    image.undo_group_start()
+        save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
+        save_inference_parameters(weight_path, device_name, scale, model_name)
 
-    save_image(image, drawable, os.path.join(weight_path, "..", "cache.png"))
-    save_inference_parameters(weight_path, device_name, scale, model_name)
-
-    try:
-        subprocess.call([python_path, plugin_path])
-        data_output = load_inference_results(weight_path)
-    except Exception as e:
-        Gimp.message(f"Error during inference: {e}")
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-
-    image.undo_group_end()
-    Gimp.context_pop()
-
-    if data_output["inference_status"] == "success":
         try:
-            result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW 
+            else:
+                creationflags = 0 # N/A on linux 
+  
+            subprocess.call([python_path, plugin_path],
+                        creationflags=creationflags, 
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        )
+            data_output = self.load_inference_results(weight_path)
         except Exception as e:
-            Gimp.message(f"Error processing inference results: {e}")
+            Gimp.message(f"Error during inference: {e}")
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-        
-        Gimp.displays_flush()
-        remove_temporary_files(os.path.join(weight_path, ".."))
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
-    else:
-        show_dialog(
+
+        image.undo_group_end()
+        Gimp.context_pop()
+
+        if data_output["inference_status"] == "success":
+            try:
+                result_layer = handle_successful_inference(weight_path, image, drawable, scale)
+            except Exception as e:
+                Gimp.message(f"Error processing inference results: {e}")
+                return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+    
+            Gimp.displays_flush()
+            remove_temporary_files(os.path.join(weight_path, ".."))
+            self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        else:
+            show_dialog(
             "Inference not successful. See error_log.txt in GIMP-OpenVINO folder.",
             "Error !",
             "error",
             image_paths
         )
-        return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+        self.result = procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def handle_successful_inference(weight_path, image, drawable, scale):
     if scale == 1:
@@ -153,44 +185,60 @@ def handle_successful_inference(weight_path, image, drawable, scale):
             Gimp.RunMode.NONINTERACTIVE,
             Gio.File.new_for_path(os.path.join(weight_path, "..", "cache.png")),
         )
-        try:
-            result_layer = result.get_active_layer()
-        except:
-            result_layers = result.list_layers()
-            result_layer = result_layers[0]
+
+        result_layer = result.get_layers()[0]
         copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
         copy.set_name("Super Resolution")
         copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
         image_new.insert_layer(copy, None, -1)
     return result_layer
 
-def run(procedure, run_mode, image, n_drawables, layer, args, data):
-    scale = args.index(0)
-    device_name = args.index(1)
-    model_name = args.index(2)
+def save_inference_parameters(weight_path, device_name, scale, model_name):
+    parameters = {
+        "device_name": device_name,
+        "scale": float(scale),
+        "model_name": model_name,
+        "inference_status": "started"
+    }
+    with open(os.path.join(weight_path, "..", "gimp_openvino_run.json"), "w") as file:
+        json.dump(parameters, file)
 
+
+def remove_temporary_files(directory):
+    for f_name in os.listdir(directory):
+        if f_name.startswith("cache"):
+            os.remove(os.path.join(directory, f_name))
+
+# this is what brings up the UI
+def run(procedure, run_mode, image, layer, config, data):
+    scale = config.get_property("scale") 
+    device_name = config.get_property("device_name") 
+    model_name = config.get_property("model_name") 
+    
     if run_mode == Gimp.RunMode.INTERACTIVE:
-        config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils", "tools"
-        )
-
-        with open(os.path.join(config_path, "gimp_openvino_config.json"), "r") as file:
+        with open(os.path.join(config_path_dir, "gimp_openvino_config.json"), "r") as file:
             config_path_output = json.load(file)
         
-        python_path = config_path_output["python_path"]
-        config_path_output["plugin_path"] = os.path.join(config_path, "superresolution_ov.py")
+        plugin_version = config_path_output["plugin_version"]
+        config_path_output["plugin_path"] = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "..", 
+            "openvino_utils", 
+            "tools", 
+            "superresolution_ov.py")
         
         device_name_enum = DeviceEnum(config_path_output["supported_devices"])
 
         config = procedure.create_config()
-        config.begin_run(image, run_mode, args)
-
-        GimpUi.init("superresolution_ov.py")
+        
+        GimpUi.init("superresolution-ov")
         use_header_bar = Gtk.Settings.get_default().get_property("gtk-dialogs-use-header")
-        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_("Super Resolution..."))
+        title_bar_label =  "Super Resolution : " +  plugin_version
+
+        dialog = GimpUi.Dialog(use_header_bar=use_header_bar, title=_(title_bar_label))
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Help", Gtk.ResponseType.APPLY)
-        dialog.add_button("_Generate", Gtk.ResponseType.OK)
+        run_button = dialog.add_button("_Generate", Gtk.ResponseType.OK)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, homogeneous=False, spacing=10)
         dialog.get_content_area().add(vbox)
@@ -239,11 +287,9 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
         vbox.pack_start(logo, False, False, 1)
         logo.show()
 
-        # Show License
-        license_text = _("PLUGIN LICENSE : Apache-2.0")
-        label = Gtk.Label(label=license_text)
-        vbox.pack_start(label, False, False, 1)
-        label.show()
+         # Spinner
+        spinner = Gtk.Spinner()
+        vbox.pack_start(spinner, False, False, 1)
 
         progress_bar = Gtk.ProgressBar()
         vbox.add(progress_bar)
@@ -251,21 +297,36 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
 
         # Wait for user to click
         dialog.show()
+
+        import threading
+        run_inference_thread = None
+
         while True:
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
                 scale = config.get_property("scale")
                 device_name = config.get_property("device_name")
                 model_name = config.get_property("model_name")
+                
+                runner = SRRunner(procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output)
+                spinner.show()
+                spinner.start()
+                run_inference_thread = threading.Thread(target=async_run_superes, args=(runner, dialog))
+                run_inference_thread.start()
+                run_button.set_sensitive(False)
+                continue
+            elif response == SRDialogResponse.RunInferenceComplete:
+                print ("run superres complete")
+                spinner.stop()
+                spinner.hide()
+                if run_inference_thread:
+                    run_inference_thread.join()
+                    result = runner.result
+                    
+                    if result == Gimp.PDBStatusType.SUCCESS and config is not None:
+                        config.end_run(Gimp.PDBStatusType.SUCCESS)
 
-                result = superresolution(
-                    procedure, image, layer, scale, device_name, model_name, progress_bar, config_path_output
-                )
-                # super_resolution(procedure, image, n_drawables, layer, force_cpu, progress_bar, config_path_output)
-                # If the execution was successful, save parameters so they will be restored next time we show dialog.
-                if result.index(0) == Gimp.PDBStatusType.SUCCESS and config is not None:
-                    config.end_run(Gimp.PDBStatusType.SUCCESS)
-                return result
+                    return result
             elif response == Gtk.ResponseType.APPLY:
                 url = "https://github.com/intel/openvino-ai-plugins-gimp.git/README.md"
                 Gio.app_info_launch_default_for_uri(url, None)
@@ -277,58 +338,40 @@ def run(procedure, run_mode, image, n_drawables, layer, args, data):
                 )
 
 class Superresolution(Gimp.PlugIn):
-    ## Parameters ##
-    
-    __gproperties__ = {
-        "scale": (float, _("_Scale"), "Scale", 1, 4, 2, GObject.ParamFlags.READWRITE),
-        "model_name": (
-            str,
-            _("Model Name"),
-            "Model Name: 'esrgan', 'sr_1033'",
-            "sr_1033",
-            GObject.ParamFlags.READWRITE,
-        ),
-        "device_name": (
-            str,
-            _("Device Name"),
-            "Device Name: 'CPU', 'GPU'",
-            "CPU",
-            GObject.ParamFlags.READWRITE,
-        ),
-    }
-
     ## GimpPlugIn virtual methods ##
-
-    def do_query_procedures(self):
-        try:
-            self.set_translation_domain(
-                "gimp30-python", Gio.file_new_for_path(Gimp.locale_directory())
-            )
-        except:
-            print("Error in set_translation_domain. This is expected if running GIMP 2.99.11 or later")
-        return ["superresolution-ov"]
-
     def do_set_i18n(self, procname):
         return True, 'gimp30-python', None
+    
+    def do_query_procedures(self):
+        return ["superresolution-ov"]
 
     def do_create_procedure(self, name):
         procedure = None
         if name == "superresolution-ov":
-            procedure = Gimp.ImageProcedure.new(
-                self, name, Gimp.PDBProcType.PLUGIN, run, None
-            )
+            procedure = Gimp.ImageProcedure.new(self, name, 
+                                                Gimp.PDBProcType.PLUGIN, 
+                                                run, None)
             procedure.set_image_types("*")
             procedure.set_documentation(
                 N_("superresolution on the current layer."),
                 globals()["__doc__"],
                 name,
             )
-            procedure.set_menu_label(N_("Super Resolution..."))
+            procedure.set_menu_label(_("Super Resolution"))
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2022")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
-            procedure.add_argument_from_property(self, "scale")
-            procedure.add_argument_from_property(self, "device_name")
-            procedure.add_argument_from_property(self, "model_name")
+            procedure.add_int_argument("scale", _("_Scale"), 
+                                       "Scale", 1, 4, 2, 
+                                       GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("device_name",_("Device Name"),
+                                          "Device Name: 'CPU', 'GPU'",
+                                          "CPU",
+                                          GObject.ParamFlags.READWRITE)
+            procedure.add_string_argument("model_name",_("Model Name"),
+                                          "Model Name: 'esrgan', 'sr_1033'",
+                                          "sr_1033",
+                                           GObject.ParamFlags.READWRITE)
         return procedure
+
 
 Gimp.main(Superresolution.__gtype__, sys.argv)
