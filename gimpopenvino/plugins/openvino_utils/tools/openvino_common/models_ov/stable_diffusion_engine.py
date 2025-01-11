@@ -523,13 +523,15 @@ class StableDiffusionEngine(DiffusionPipeline):
          
         self.set_dimensions()
 
-        
-
     def load_model(self, model, model_name, device):
         if "NPU" in device:
             with open(os.path.join(model, f"{model_name}.blob"), "rb") as f:
                 return self.core.import_model(f.read(), device)
-        return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+        if "GPU" in device:
+            return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device, {'INFERENCE_PRECISION_HINT': 'f32'})
+        else:
+            return self.core.compile_model(os.path.join(model, f"{model_name}.xml"), device)
+        
         
     def set_dimensions(self):
         latent_shape = self.unet.input(self.unet_input_tensor_name).shape
