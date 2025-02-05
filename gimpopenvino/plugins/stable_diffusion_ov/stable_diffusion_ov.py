@@ -340,8 +340,22 @@ def run(procedure, run_mode, image, layer, config, data):
             else:
                 n_layers = 2
                 mask = list_layers[0].get_mask()
-                save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+                mask_image = Gimp.Image.new(image.get_width(), image.get_height(), 0)
+                mask_layer = Gimp.Layer.new_from_drawable(mask, mask_image)
+                mask_image.insert_layer(mask_layer, None, 0)
+
+              
+                save_image(mask_image, mask_layer, os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+
+                list_layers[0].remove_mask(Gimp.MaskApplyMode.DISCARD)
+
                 save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+                #print("Adding mask back")
+                #list_layers[0].add_mask(mask)
+                #print("mask added back")
+
+
+           
 
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]

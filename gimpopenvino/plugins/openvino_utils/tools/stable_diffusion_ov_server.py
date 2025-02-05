@@ -27,6 +27,7 @@ from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_pat
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
 from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
+from models_ov.stable_diffusion_engine_inpainting_genai import StableDiffusionEngineInpaintingGenai
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 from models_ov.controlnet_openpose import ControlNetOpenPose
 from models_ov.controlnet_canny_edge import ControlNetCannyEdge
@@ -36,6 +37,7 @@ from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 from models_ov import (
     stable_diffusion_engine,
+    stable_diffusion_engine_inpainting_genai,
     stable_diffusion_engine_inpainting,
     stable_diffusion_engine_inpainting_advanced,
     stable_diffusion_3,
@@ -187,7 +189,8 @@ def initialize_engine(model_name, model_path, device_list):
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
-        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
+        #return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=model_path, device=device_list[0])
     if model_name == "sd_1.5_square_lcm":
         return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
@@ -264,18 +267,31 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                image=Image.open(os.path.join(weight_path, "..", "cache1.png")),
-                mask_image=Image.open(os.path.join(weight_path, "..", "cache0.png")),
+                image_path=os.path.join(weight_path, "..", "cache1.png"),
+                mask_path=os.path.join(weight_path, "..", "cache0.png"),
                 scheduler=scheduler,
                 strength=strength,
                 num_inference_steps=num_infer_steps,
                 guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
                 callback=progress_callback,
                 callback_userdata=conn
             )
+
+            #     output = engine(
+            #     prompt=prompt,
+            #     negative_prompt=negative_prompt,
+            #     image=Image.open(os.path.join(weight_path, "..", "cache1.png")),
+            #     mask_image=Image.open(os.path.join(weight_path, "..", "cache0.png")),
+            #     scheduler=scheduler,
+            #     strength=strength,
+            #     num_inference_steps=num_infer_steps,
+            #     guidance_scale=guidance_scale,
+            #     eta=0.0,
+            #     create_gif=bool(create_gif),
+            #     model=model_path,
+            #     callback=progress_callback,
+            #     callback_userdata=conn
+            # )
         elif model_name == "controlnet_referenceonly":
             output = engine(
                 prompt=prompt,
@@ -370,6 +386,11 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
         if ("controlnet" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3.0" in model_name) and "referenceonly" not in model_name:
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size
+        elif("inpainting" in model_name):
+            print("In painting")
+            output.save(os.path.join(weight_path, "..", image))
+            src_width, src_height = output.size          
+
         else:
             cv2.imwrite(os.path.join(weight_path, "..", image), output)
             src_height, src_width, _ = output.shape

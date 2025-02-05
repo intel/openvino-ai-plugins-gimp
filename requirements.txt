@@ -9,7 +9,7 @@ ftfy==6.2.3
 git+https://github.com/initml/diffusers.git@clement/feature/flash_sd3 
 huggingface_hub
 numpy==1.26.4
-openvino==2024.6.0
+openvino
 peft==0.12.0
 pillow==10.4.0
 protobuf==5.27.3
@@ -21,3 +21,16 @@ torchvision==0.18.1
 tqdm==4.66.5
 transformers==4.44.0
 watchdog==4.0.2
+
+--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/pre-release
+--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
+openvino_genai~=2025.1.0.0.dev
+librosa==0.10.2.post1  # For Whisper
+pillow==11.1.0  # Image processing for VLMs
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/pre-release
+--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
+openvino-tokenizers~=2025.1.0.0.dev
+optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@faeebf3416d17e3a6761db5f2e05569e0319311b
+ 
