@@ -699,6 +699,10 @@ def run(procedure, run_mode, image, layer, config, data):
             run_button.set_sensitive(True)
             if adv_checkbox.get_active() and power_modes_supported(model_name):
                 device_power_mode = config.get_property("power_mode")
+        #else:
+            #run_button.set_sensitive(False)
+
+                
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -742,7 +746,8 @@ def run(procedure, run_mode, image, layer, config, data):
 
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
-                run_button.set_sensitive(True)
+                if is_server_running():
+                    run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
 

@@ -29,7 +29,7 @@ class StableDiffusionEngineInpaintingGenai:
 
         # Convert to numpy array (H, W, C) → (1, C, H, W) for OpenVINO
         image_data = np.array(pic.getdata()).reshape(1, pic.size[1], pic.size[0], 3).astype(np.uint8)
-
+                
         return openvino.Tensor(image_data)
     
 
