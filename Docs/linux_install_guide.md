@@ -1,4 +1,24 @@
-# Build GIMP
+There are two methods for installing the plugins in Linux:
+
+* Install the plugins from the Snap Store
+* Build and install GIMP and the plugins manually
+
+# Snap Installation
+
+ For Linux distributions supporting snaps (e.g. Ubuntu), the plugins can be installed along with the GIMP snap with these commands:
+
+```
+sudo snap install gimp --channel preview/stable
+sudo snap install intel-npu-driver --beta # for NPU support
+sudo snap install openvino-toolkit-2404 --beta
+sudo snap install openvino-ai-plugins-gimp --beta
+```
+
+More details can be found [here](https://github.com/snapcrafters/gimp/tree/preview?tab=readme-ov-file#openvino-ai-plugins).
+
+# Building and installing the plugins manually
+
+## Build GIMP
 1. Create a directory where you will download and build all of the sources for GIMP
     ```sh
     cd $HOME
@@ -43,7 +63,7 @@
     sudo ninja -C _build install
     cd ..
     ```
-# Install Plugins
+## Install Plugins
 1. Clone this repo
    ```sh
    cd $HOME/GIMP
@@ -56,7 +76,7 @@
    ./openvino-ai-plugins-gimp/install.sh
    ```
 
-# Verify Installation
+## Verify Installation
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
