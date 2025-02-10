@@ -340,8 +340,22 @@ def run(procedure, run_mode, image, layer, config, data):
             else:
                 n_layers = 2
                 mask = list_layers[0].get_mask()
-                save_image(image, [mask], os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+                mask_image = Gimp.Image.new(image.get_width(), image.get_height(), 0)
+                mask_layer = Gimp.Layer.new_from_drawable(mask, mask_image)
+                mask_image.insert_layer(mask_layer, None, 0)
+
+              
+                save_image(mask_image, mask_layer, os.path.join(config_path_output["weight_path"], "..", "cache0.png"))
+
+                list_layers[0].remove_mask(Gimp.MaskApplyMode.DISCARD)
+
                 save_image(image, list_layers, os.path.join(config_path_output["weight_path"], "..", "cache1.png"))
+                #print("Adding mask back")
+                #list_layers[0].add_mask(mask)
+                #print("mask added back")
+
+
+           
 
         if "NPU" in supported_devices:
             supported_modes = ["Best power efficiency", "Balanced", "Best performance"]
@@ -685,6 +699,10 @@ def run(procedure, run_mode, image, layer, config, data):
             run_button.set_sensitive(True)
             if adv_checkbox.get_active() and power_modes_supported(model_name):
                 device_power_mode = config.get_property("power_mode")
+        #else:
+            #run_button.set_sensitive(False)
+
+                
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -728,7 +746,8 @@ def run(procedure, run_mode, image, layer, config, data):
 
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
-                run_button.set_sensitive(True)
+                if is_server_running():
+                    run_button.set_sensitive(True)
             else:
                 run_button.set_sensitive(False)
 

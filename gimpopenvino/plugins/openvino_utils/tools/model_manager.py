@@ -17,6 +17,7 @@ import threading
 from pathlib import Path
 from tqdm import tqdm
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
+#from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 
 # This dictionary is used to populate the drop-down model selection list.
 # It's a map from model-id -> model_details.
@@ -191,8 +192,8 @@ g_installable_base_model_map = {
     "sd_15_inpainting":
     {
         "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "Intel/sd-1.5-inpainting-quantized",
-        "download_exclude_filters": ["*.blob", "INT8*"],
+        "repo_id": "stabilityai/stable-diffusion-2-inpainting",
+        "download_exclude_filters": ["512-inpainting-ema.ckpt", "512-inpainting-ema.safetensors", "*.bin","*.fp16.safetensors"],
     },
 
     "sd_15_openpose":
@@ -632,6 +633,7 @@ class ModelManager:
     # This function returns true if the download was cancelled, otherwise it returns False upon success.
     # All errors are raised as exceptions, so it's recommended to wrap this in a try/except clause.
     def _download_hf_repo(self, repo_id, model_id, download_folder, exclude_filters = None):
+        
 
         retries_left = 5
         while retries_left > 0:
@@ -798,8 +800,43 @@ class ModelManager:
 
                     full_install_path = os.path.join(self._weight_path, *install_subdir)
 
+
+                    if model_id == "sd_15_inpainting":
+                        from pathlib import Path
+                        #from gi.repository import Gimp
+                        cwd = Path.cwd() 
+                        full_download_folder = os.path.join(cwd, download_folder)
+                        
+                        print("Download path",full_download_folder)
+                        if os.path.isdir(full_install_path):
+                            shutil.rmtree(full_install_path)
+                        else:
+                            os.makedirs(full_install_path)
+
+                        print("Inpainting optimun-cli full install path",full_install_path)
+                        import subprocess
+                        
+                       
+                        ppath = sys.executable
+                        optimum_ex = ppath.replace("python.exe","optimum-cli.exe")
+
+                        output_file = Path(os.path.join(full_install_path, "export_output.log"))
+                        export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
+                        print("Running the command:", export_command)
+
+                        with open(output_file, "w") as f:
+                             result = subprocess.run(export_command, shell=True, stdout=f, stderr=subprocess.STDOUT, text=True)
+
+
+                        if os.path.isdir(download_folder):
+                            shutil.rmtree(download_folder, ignore_errors=True)
+                  
+                        return True
+                    
+
                     # get 'right-most' folder in the subdir.
                     leaf_folder = install_subdir[-1]
+
 
                     # If <download_folder>/<leaf_folder> exists, then *that* is the folder we will copy
                     #  to <full_install_path>
@@ -983,6 +1020,7 @@ class ModelManager:
                 if "cancelled" not in self.model_install_status[model_id]:
                     try:
                         # If there was not an error in installation, write some installation info to the install directory.
+                       
                         if model_id not in self.model_install_error_condition:
                             for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
                                 install_subdir = g_supported_model_map[supported_model]["install_subdir"]
@@ -990,6 +1028,7 @@ class ModelManager:
 
                                 if is_subdirectory(full_install_path, self._weight_path):
                                     # If the install info dictionary is non-empty, write the info.
+                                 
                                     if self.model_install_status[model_id]["install_info"]:
                                         file_name = "install_info.json"
                                         with open(os.path.join(full_install_path, file_name), 'w') as json_file:

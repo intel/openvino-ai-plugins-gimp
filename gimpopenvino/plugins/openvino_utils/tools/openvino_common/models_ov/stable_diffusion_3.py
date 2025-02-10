@@ -16,7 +16,7 @@ from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
 from diffusers.utils.torch_utils import randn_tensor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion_3.pipeline_output import StableDiffusion3PipelineOutput
-from diffusers.schedulers import FlowMatchEulerDiscreteScheduler, FlashFlowMatchEulerDiscreteScheduler
+from diffusers.schedulers import FlowMatchEulerDiscreteScheduler #, FlashFlowMatchEulerDiscreteScheduler
 from peft import PeftModel
 from transformers import (
     CLIPTextModelWithProjection,
@@ -297,7 +297,7 @@ class StableDiffusionThreeEngine(DiffusionPipeline):
         use_flash_lora = True
 
         self.scheduler = (
-            FlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model, "scheduler")) if not use_flash_lora else FlashFlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model,"scheduler"))
+            FlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model, "scheduler")) #if not use_flash_lora else FlashFlowMatchEulerDiscreteScheduler.from_pretrained(os.path.join(model,"scheduler"))
         )        
                 
         
@@ -775,8 +775,8 @@ def init_pipeline(models_dict: Dict[str, Any], device: str, use_flash_lora: bool
 
     scheduler = (
         FlowMatchEulerDiscreteScheduler.from_pretrained(MODEL_DIR / "scheduler")
-        if not use_flash_lora
-        else FlashFlowMatchEulerDiscreteScheduler.from_pretrained(MODEL_DIR / "scheduler")
+        #if not use_flash_lora
+        #else FlashFlowMatchEulerDiscreteScheduler.from_pretrained(MODEL_DIR / "scheduler")
     )
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR / "tokenizer")
