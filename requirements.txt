@@ -19,5 +19,5 @@ streamlit==1.37.1
 torch==2.3.1
 torchvision==0.18.1
 tqdm==4.66.5
-transformers==4.44.0
+transformers==4.48.0
 watchdog==4.0.2
