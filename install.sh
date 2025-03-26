@@ -26,10 +26,10 @@ fi
 
 echo "**** openvino-ai-plugins-gimp Setup started ****"
 # Install virtualenv if not already installed
-python3 -m pip install virtualenv | grep -v "already satisfied"
+#python3 -m pip install virtualenv | grep -v "already satisfied"
 
 # Create a virtual environment
-python3 -m virtualenv gimpenv3
+python3 -m venv gimpenv3
 
 # Activate the virtual environment
 source gimpenv3/bin/activate
