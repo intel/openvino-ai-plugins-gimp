@@ -56,11 +56,33 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
     },
 
-    "sd_3.0_square":
+    "sdxl_base_1.0_square":
     {
-        "name": "Stable Diffusion 3.0 [Square]",
+        "name": "Stable Diffusion XL Base 1.0 [Square] [FP16]",
+        "install_id": "sdxl_base",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "square_base"],
+    },
+
+    
+   "sdxl_turbo_square":
+    {
+        "name": "Stable Diffusion XL Turbo [Square] [FP16]",
+        "install_id": "sdxl_turbo",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "square_turbo"],
+    },
+
+    "sd_3.0_med_diffuser_square":
+    {
+        "name": "Stable Diffusion 3.0 Medium Diffusers [Square]",
         "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0"],
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
+    },
+
+    "sd_3.0_med_turbo_square":
+    {
+        "name": "Stable Diffusion 3.0 Medium Turbo [Square]",
+        "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_turbo" ],
     },
 
     "sd_1.5_portrait":
@@ -167,12 +189,38 @@ g_installable_base_model_map = {
         "npu_compilation_routine": True,
     },
 
+    # "sd_15_LCM":
+    # {
+    #     "name": "Stable Diffusion 1.5 LCM",
+    #     "repo_id": "Intel/sd-1.5-lcm-openvino",
+    #     "download_exclude_filters": ["*.blob", "unet_dynamic*"],
+    #     "npu_compilation_routine": True,
+    # },
+
     "sd_15_LCM":
     {
         "name": "Stable Diffusion 1.5 LCM",
-        "repo_id": "Intel/sd-1.5-lcm-openvino",
-        "download_exclude_filters": ["*.blob", "unet_dynamic*"],
-        "npu_compilation_routine": True,
+        "repo_id": "SimianLuo/LCM_Dreamshaper_v7",
+        "download_exclude_filters": ["*.py", "*.png", "LCM_Dreamshaper_v7_4k.safetensors","model.onnx_data"],
+        
+    },
+
+    "sdxl_base":
+    {
+        "name": "Stable Diffusion XL Base 1.0",
+        "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+        "download_exclude_filters": ["*.msgpack","*.fp16.safetensors","*.bin", "*.xml","*.onnx","*.onnx_data","*.png", "sd_xl_base_1.0.safetensors","sd_xl_base_1.0_0.9vae.safetensors", "sd_xl_offset_example-lora_1.0.safetensors"],
+    
+        
+    },
+
+    "sdxl_turbo":
+    {
+        "name": "Stable Diffusion XL Turbo",
+        "repo_id": "stabilityai/sdxl-turbo",
+        "download_exclude_filters": ["*.msgpack","*.fp16.safetensors","*.bin", "*.xml","*.onnx","*.onnx_data","*.png", "*.jpg","sd_xl_turbo_1.0.safetensors","sd_xl_turbo_1.0_fp16.safetensors"],
+      
+        
     },
 
     "sd_15_portrait":
@@ -483,6 +531,31 @@ class ModelManager:
                 if not os.path.isfile(required_bin_path):
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
+                
+            if "sd_3.0_med" in model_id:
+
+                install_subdir = g_supported_model_map[model_id]["install_subdir"]
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
+
+                config = { 	"power modes supported": "No",
+                                "best performance" : ["GPU","GPU","GPU"]
+                        }
+
+                npu_is_available = self._npu_is_available
+            
+                if npu_is_available:
+                    config = { 	"power modes supported": "yes",
+                                    "best performance" : ["GPU","GPU","GPU"],
+                                            "balanced" : ["GPU","NPU","GPU"],
+                                "best power efficiency" : ["NPU","NPU","GPU"]
+                        }
+
+                    # Specify the file name
+                    file_name = "config.json"
+
+                    # Write the data to a JSON file
+                    with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                        json.dump(config, json_file, indent=4)
 
             return True
 
@@ -668,8 +741,9 @@ class ModelManager:
                     relative_path = os.path.relpath(file_name, repo_id)
 
                     if exclude_filters:
+                       # print("relative_path before----------------", relative_path)
                         if does_filename_match_patterns(relative_path, exclude_filters):
-                            #print(relative_path, ": Skipped due to exclude filters")
+                            print(relative_path, ": Skipped due to exclude filters")
                             continue
 
                     total_file_list_size += file_size
@@ -801,7 +875,7 @@ class ModelManager:
                     full_install_path = os.path.join(self._weight_path, *install_subdir)
 
 
-                    if model_id == "sd_15_inpainting":
+                    if("sd_15_inpainting" in model_id or "sd_15_LCM" in model_id or "sdxl" in model_id):
                         from pathlib import Path
                         #from gi.repository import Gimp
                         cwd = Path.cwd() 
@@ -821,7 +895,36 @@ class ModelManager:
                         optimum_ex = ppath.replace("python.exe","optimum-cli.exe")
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
-                        export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
+                        if(model_id != "sd_15_inpainting"):
+                            print("IN LCM NEW CONFIG CREATION")
+                            config = { 	"power modes supported": "No",
+                                            "best performance" : ["GPU","GPU","GPU"]
+                                    }
+
+
+                            npu_is_available = self._npu_is_available
+                        
+
+
+                            if npu_is_available:
+                                config = { 	"power modes supported": "yes",
+                                                "best performance" : ["GPU","GPU","GPU"],
+                                                        "balanced" : ["GPU","NPU","GPU"],
+                                           "best power efficiency" : ["NPU","NPU","GPU"]
+                                    }
+
+
+                                # Specify the file name
+                                file_name = "config.json"
+
+                                # Write the data to a JSON file
+                                with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                                    json.dump(config, json_file, indent=4)
+
+                        if model_id == "sd_15_inpainting":
+                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
+                        else:
+                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task stable-diffusion {Path(full_install_path)}"
                         print("Running the command:", export_command)
 
                         with open(output_file, "w") as f:
@@ -965,6 +1068,9 @@ class ModelManager:
                 "sd_15_portrait",
                 "sd_15_landscape",
                 "sd_15_inpainting",
+                "sd_15_LCM",
+                "sdxl_base",
+                "sdxl_turbo",
                 "sd_15_openpose",
                 "sd_15_canny",
                 "sd_15_scribble",
@@ -1006,8 +1112,8 @@ class ModelManager:
                         print("only_npu_recompilation is unexpectedly set to True for a 'download-only' model.. skipping")
                 elif  model_id == "sd_15_square":
                     self.dl_sd_15_square(model_id, only_npu_recompilation)
-                elif model_id == "sd_15_LCM":
-                    self.dl_sd_15_LCM(model_id, only_npu_recompilation)
+                #elif model_id == "sd_15_LCM":
+                #    self.dl_sd_15_LCM(model_id, only_npu_recompilation)
                 elif (model_id == "test1"):
                     self.install_test(model_id)
                 elif (model_id == "test2"):

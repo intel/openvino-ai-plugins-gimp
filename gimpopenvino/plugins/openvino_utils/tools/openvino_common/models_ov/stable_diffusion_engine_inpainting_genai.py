@@ -67,9 +67,9 @@ class StableDiffusionEngineInpaintingGenai:
         if (image.shape[1] == image.shape[2]):
 
 
-            image_tensor = self.pipe.generate(prompt, image, mask_image,num_inference_steps=num_inference_steps,callback=callback_genai)
+            image_tensor = self.pipe.generate(prompt, image, mask_image,num_inference_steps=num_inference_steps,negative_prompt=negative_prompt,callback=callback_genai)
         else:
-            image_tensor = self.pipe.generate(prompt, image, mask_image, width=width, height=height,num_inference_steps=num_inference_steps,callback=callback_genai)
+            image_tensor = self.pipe.generate(prompt, image, mask_image, width=width, height=height,num_inference_steps=num_inference_steps,negative_prompt=negative_prompt,callback=callback_genai)
         
 
             

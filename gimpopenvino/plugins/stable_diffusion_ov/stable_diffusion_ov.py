@@ -471,7 +471,7 @@ def run(procedure, run_mode, image, layer, config, data):
         invisible_label8.show()
 
         def power_modes_supported(model_name):
-            if "sd_1.5_square" in model_name or "int8" in model_name:
+            if "sd_1.5_square" in model_name or "int8" in model_name or "sdxl" in model_name or "sd_3.0_med" in model_name:
                 return True
             return False
 
@@ -687,7 +687,7 @@ def run(procedure, run_mode, image, layer, config, data):
         model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
         device_power_mode = "best performance"
 
-        if model_name == "sd_1.5_square_lcm":
+        if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_turbo_square"):
             negative_prompt_label.hide()
             negative_prompt_text.hide()
             initialImage_checkbox.hide()
@@ -711,7 +711,7 @@ def run(procedure, run_mode, image, layer, config, data):
             device_power_mode_tmp = None
             model_name_tmp = config.get_property("model_name")
             # LCM model has no negative prompt
-            if model_name_tmp == "sd_1.5_square_lcm":
+            if model_name_tmp == "sd_1.5_square_lcm" or "sdxl" in model_name_tmp or "sd_3.0_med_turbo_square" in model_name_tmp: # or "sd_3.0_med" in model_name_tmp :
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
             else:
@@ -721,7 +721,7 @@ def run(procedure, run_mode, image, layer, config, data):
             # default this to True, and some below conditions will set it to False.
             initialImage_checkbox.set_sensitive(True)
 
-            if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp:
+            if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp or "sdxl" in model_name_tmp or "sd_3.0_med" in model_name_tmp :
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
@@ -849,6 +849,7 @@ def run(procedure, run_mode, image, layer, config, data):
                 if adv_checkbox.get_active():
                     sd_option_cache.set("num_images", config.get_property("num_images"))
                     sd_option_cache.set("num_infer_steps", config.get_property("num_infer_steps"))
+                    
                     sd_option_cache.set("guidance_scale", config.get_property("guidance_scale"))
                     sd_option_cache.set("strength", config.get_property("strength"))
                     sd_option_cache.set("power_mode", config.get_property("power_mode"))
@@ -860,14 +861,21 @@ def run(procedure, run_mode, image, layer, config, data):
                 else:
                     sd_option_cache.set("num_images", 1)
                     sd_option_cache.set("num_infer_steps", 20)
+                    guidance_scale = 7.5
                     if config.get_property("model_name") == "sd_1.5_square_lcm":
                         num_infer_steps = 4
+                    if config.get_property("model_name") == "sdxl_turbo_square":
+                        num_infer_steps = 3
+                        guidance_scale = 0.1
+                    if config.get_property("model_name") == "sd_3.0_med_turbo_square":
+                        num_infer_steps = 4
+                        guidance_scale = 0.5                        
                     else:
                         num_infer_steps = 20
 
                     sd_option_cache.set("num_infer_steps", num_infer_steps)
 
-                    sd_option_cache.set("guidance_scale", 7.5)
+                    sd_option_cache.set("guidance_scale", guidance_scale)
                     sd_option_cache.set("seed", None)
                     sd_option_cache.set("strength", 1.0)
                     sd_option_cache.set("power_mode", "best performance")
@@ -1012,7 +1020,7 @@ class StableDiffusion(Gimp.PlugIn):
                                        "Number of Inference steps (Default:20)", 1, 50, 20,
                                         GObject.ParamFlags.READWRITE)
             procedure.add_double_argument("guidance_scale",_("_Guidance Scale (Default:7.5)"), 
-                                          "Guidance Scale (Default:7.5)", 1.0001, 20.0, 7.5,
+                                          "Guidance Scale (Default:7.5)", 0.0, 20.0, 7.5,
                                           GObject.ParamFlags.READWRITE)
             procedure.add_double_argument("strength",_("_Strength of Initial Image (Default:0.8)"), 
                                           "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
