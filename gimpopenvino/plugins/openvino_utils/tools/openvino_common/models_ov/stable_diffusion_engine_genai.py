@@ -26,6 +26,9 @@ class StableDiffusionEngineGenai:
             self.pipe.reshape(1, 512, 512, 0) 
         elif model_name == "sd_3.0_med_turbo_square":
             self.pipe.reshape(1, 512, 512, 0.5) 
+        elif model_name == "sdxl_base_1.0_square":
+            self.pipe.reshape(1, 1024, 1024, self.pipe.get_generation_config().guidance_scale)
+
         else:
              self.pipe.reshape(1, 512, 512, self.pipe.get_generation_config().guidance_scale)
 
