@@ -242,11 +242,19 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
         negative_prompt = options.get("negative_prompt")
         init_image = options.get("initial_image")
         num_images = options.get("num_images")
-        num_infer_steps = options.get("num_infer_steps")
-        guidance_scale = options.get("guidance_scale")
+        
+        
         strength = options.get("strength")
         seed = options.get("seed")
         create_gif = False
+
+        if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+            num_infer_steps = options.get("num_infer_steps_turbo")
+            guidance_scale = options.get("guidance_scale_turbo")
+        else:
+            num_infer_steps = options.get("num_infer_steps")
+            guidance_scale = options.get("guidance_scale")
+
 
         strength = 1.0 if init_image is None else strength
         log.info('Starting inference... ')

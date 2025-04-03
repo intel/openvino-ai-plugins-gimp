@@ -903,10 +903,11 @@ class ModelManager:
 
 
                             npu_is_available = self._npu_is_available
+                            npu_arch = self._npu_arch
                         
 
 
-                            if npu_is_available:
+                            if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
                                 config = { 	"power modes supported": "yes",
                                                 "best performance" : ["GPU","GPU","GPU"],
                                                         "balanced" : ["GPU","NPU","GPU"],

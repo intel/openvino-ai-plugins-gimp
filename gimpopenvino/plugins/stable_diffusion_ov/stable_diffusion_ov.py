@@ -415,12 +415,28 @@ def run(procedure, run_mode, image, layer, config, data):
         )
         steps_spin.set_value(int(sd_option_cache.get("num_infer_steps")))
 
+        #number of steps
+        steps_label_turbo = Gtk.Label.new_with_mnemonic(_("_Number of Inference steps"))
+        steps_spin_turbo = GimpUi.prop_spin_button_new(
+            config, "num_infer_steps_turbo", step_increment=1, page_increment=0.1, digits=0
+        )
+       
+        steps_spin_turbo.set_value(int(sd_option_cache.get("num_infer_steps_turbo")))        
+
         # guidance_scale parameter
         gscale_label = Gtk.Label.new_with_mnemonic(_("_Guidance Scale"))
         gscale_spin = GimpUi.prop_spin_button_new(
             config, "guidance_scale", step_increment=0.1, page_increment=0.1, digits=1
         )
         gscale_spin.set_value(float(sd_option_cache.get("guidance_scale")))
+
+
+        # guidance_scale parameter for SDXL Turbo & SD3 Turbo
+        gscale_label_turbo = Gtk.Label.new_with_mnemonic(_("_Guidance Scale Turbo"))
+        gscale_spin_turbo = GimpUi.prop_spin_button_new(
+            config, "guidance_scale_turbo", step_increment=0.1, page_increment=0.1, digits=1
+        )
+        gscale_spin_turbo.set_value(float(sd_option_cache.get("guidance_scale_turbo")))
 
         # seed
         seed = Gtk.Entry.new()
@@ -482,10 +498,22 @@ def run(procedure, run_mode, image, layer, config, data):
             grid.remove(gscale_spin)
             gscale_spin.hide()
 
+            grid.remove(gscale_label_turbo)
+            gscale_label_turbo.hide()
+            grid.remove(gscale_spin_turbo)
+            gscale_spin_turbo.hide()
+
             grid.remove(steps_label)
             steps_label.hide()
             grid.remove(steps_spin)
             steps_spin.hide()
+
+            grid.remove(steps_label_turbo)
+            steps_label_turbo.hide()
+            grid.remove(steps_spin_turbo)
+            steps_spin_turbo.hide()
+
+            
 
             grid.remove(num_images_label)
             num_images_label.hide()
@@ -518,8 +546,16 @@ def run(procedure, run_mode, image, layer, config, data):
 
             grid.attach(steps_label, 0, 4, 1, 1)
             grid.attach(steps_spin, 1, 4, 1, 1)
+
+            grid.attach(steps_label_turbo, 0, 4, 1, 1)
+            grid.attach(steps_spin_turbo, 1, 4, 1, 1)            
+
             grid.attach(gscale_label, 0, 5, 1, 1)
             grid.attach(gscale_spin, 1, 5, 1, 1)
+
+            grid.attach(gscale_label_turbo, 0, 5, 1, 1)
+            grid.attach(gscale_spin_turbo, 1, 5, 1, 1)
+
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
             model_name = config.get_property("model_name")
@@ -529,10 +565,22 @@ def run(procedure, run_mode, image, layer, config, data):
                 adv_power_mode_label.show()
                 adv_power_mode_combo.show()
 
-            steps_label.show()
-            steps_spin.show()
-            gscale_label.show()
-            gscale_spin.show()
+
+            
+            if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                
+                gscale_label_turbo.show()
+                gscale_spin_turbo.show()  
+                steps_label_turbo.show()
+                steps_spin_turbo.show()
+
+            else:
+                steps_label.show()
+                steps_spin.show()                
+                gscale_label.show()
+                gscale_spin.show()
+
+          
             seed_label.show()
             seed.show()
             num_images_label.show()
@@ -692,6 +740,24 @@ def run(procedure, run_mode, image, layer, config, data):
             negative_prompt_text.hide()
             initialImage_checkbox.hide()
 
+        if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+            gscale_label.hide()
+            gscale_spin.hide()
+            gscale_label_turbo.show()
+            gscale_spin_turbo.show()
+            steps_label.hide()
+            steps_spin.hide()   
+            steps_label_turbo.show()
+            steps_spin_turbo.show()
+         
+        else:
+
+            gscale_label_turbo.hide()
+            gscale_spin_turbo.hide() 
+            steps_label_turbo.hide()
+            steps_spin_turbo.hide()            
+
+
         if "sd_3.0" in model_name:
             initialImage_checkbox.hide()
 
@@ -717,6 +783,28 @@ def run(procedure, run_mode, image, layer, config, data):
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
+
+            if model_name_tmp in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                gscale_label.hide()
+                gscale_spin.hide()
+                gscale_label_turbo.show()
+                gscale_spin_turbo.show()    
+                steps_label.hide()
+                steps_spin.hide()   
+                steps_label_turbo.show()
+                steps_spin_turbo.show()                            
+            else:
+
+                gscale_label_turbo.hide()
+                gscale_spin_turbo.hide() 
+                steps_label_turbo.hide()
+                steps_spin_turbo.hide()                
+                gscale_label.show()
+                gscale_spin.show()
+                steps_label.show()
+                steps_spin.show()   
+                
+
 
             # default this to True, and some below conditions will set it to False.
             initialImage_checkbox.set_sensitive(True)
@@ -848,9 +936,16 @@ def run(procedure, run_mode, image, layer, config, data):
 
                 if adv_checkbox.get_active():
                     sd_option_cache.set("num_images", config.get_property("num_images"))
-                    sd_option_cache.set("num_infer_steps", config.get_property("num_infer_steps"))
                     
-                    sd_option_cache.set("guidance_scale", config.get_property("guidance_scale"))
+
+                    if config.get_property("model_name") in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                        sd_option_cache.set("guidance_scale_turbo", config.get_property("guidance_scale_turbo"))
+                        sd_option_cache.set("num_infer_steps_turbo", config.get_property("num_infer_steps_turbo"))
+                    else:
+        
+                        sd_option_cache.set("guidance_scale", config.get_property("guidance_scale"))
+                        sd_option_cache.set("num_infer_steps", config.get_property("num_infer_steps"))                        
+
                     sd_option_cache.set("strength", config.get_property("strength"))
                     sd_option_cache.set("power_mode", config.get_property("power_mode"))
                     if len(seed.get_text()) != 0:
@@ -860,22 +955,30 @@ def run(procedure, run_mode, image, layer, config, data):
 
                 else:
                     sd_option_cache.set("num_images", 1)
-                    sd_option_cache.set("num_infer_steps", 20)
+         
                     guidance_scale = 7.5
                     if config.get_property("model_name") == "sd_1.5_square_lcm":
                         num_infer_steps = 4
+                        sd_option_cache.set("guidance_scale", guidance_scale)
+                        sd_option_cache.set("num_infer_steps", num_infer_steps)
                     if config.get_property("model_name") == "sdxl_turbo_square":
-                        num_infer_steps = 3
+                        num_infer_steps = 2
                         guidance_scale = 0.1
+                        sd_option_cache.set("guidance_scale_turbo", guidance_scale)
+                        sd_option_cache.set("num_infer_steps_turbo", num_infer_steps)
                     if config.get_property("model_name") == "sd_3.0_med_turbo_square":
-                        num_infer_steps = 4
-                        guidance_scale = 0.5                        
+                        num_infer_steps = 6
+                        guidance_scale = 0.8   
+                        sd_option_cache.set("guidance_scale_turbo", guidance_scale)
+                        sd_option_cache.set("num_infer_steps_turbo", num_infer_steps)                     
                     else:
                         num_infer_steps = 20
+                        sd_option_cache.set("guidance_scale", guidance_scale)
+                        sd_option_cache.set("num_infer_steps", num_infer_steps)
 
-                    sd_option_cache.set("num_infer_steps", num_infer_steps)
+                    
 
-                    sd_option_cache.set("guidance_scale", guidance_scale)
+                    
                     sd_option_cache.set("seed", None)
                     sd_option_cache.set("strength", 1.0)
                     sd_option_cache.set("power_mode", "best performance")
@@ -961,7 +1064,12 @@ def run(procedure, run_mode, image, layer, config, data):
                     return result
             elif response == SDDialogResponse.ProgressUpdate:
                 progress_string=""
-                num_steps = sd_option_cache.get("num_infer_steps")
+
+                if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                    num_steps = sd_option_cache.get("num_infer_steps_turbo")
+                else:
+
+                    num_steps = sd_option_cache.get("num_infer_steps")
                 if runner.current_step == num_steps:
                     progress_string = "Running Stable Diffusion... Finalizing Generated Image"
                 else:
@@ -1012,6 +1120,8 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.set_attribution("Arisha Kumar", "OpenVINO-AI-Plugins", "2023")
             procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
 
+            
+
             # procedure.add_argument_from_property(self, "initial_image")
             procedure.add_int_argument("num_images",_("_Number of Images (Default:1)"),
                                        "Number of Images to generate", 1, 50, 1,
@@ -1019,8 +1129,15 @@ class StableDiffusion(Gimp.PlugIn):
             procedure.add_int_argument("num_infer_steps",_("_Number of Inference steps (Default:20)"), 
                                        "Number of Inference steps (Default:20)", 1, 50, 20,
                                         GObject.ParamFlags.READWRITE)
+            procedure.add_int_argument("num_infer_steps_turbo",_("_Number of Inference steps (Default:2)"), 
+                                       "Number of Inference steps (Default:2)", 1, 50, 2,
+                                        GObject.ParamFlags.READWRITE)            
             procedure.add_double_argument("guidance_scale",_("_Guidance Scale (Default:7.5)"), 
                                           "Guidance Scale (Default:7.5)", 0.0, 20.0, 7.5,
+                                          GObject.ParamFlags.READWRITE)
+            
+            procedure.add_double_argument("guidance_scale_turbo",_("_Guidance Scale Turbo (Default:0.5)"), 
+                                          "Guidance Scale Turbo (Default:0.5)", 0.0, 1.0, 0.5,
                                           GObject.ParamFlags.READWRITE)
             procedure.add_double_argument("strength",_("_Strength of Initial Image (Default:0.8)"), 
                                           "_Strength of Initial Image (Default:0.8)", 0.0, 1.0, 0.8,
