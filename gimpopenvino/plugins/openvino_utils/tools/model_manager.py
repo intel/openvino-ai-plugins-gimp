@@ -551,11 +551,11 @@ class ModelManager:
                         }
 
                     # Specify the file name
-                    file_name = "config.json"
+                file_name = "config.json"
 
                     # Write the data to a JSON file
-                    with open(os.path.join(full_install_path,file_name), 'w') as json_file:
-                        json.dump(config, json_file, indent=4)
+                with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                    json.dump(config, json_file, indent=4)
 
             return True
 
@@ -707,7 +707,7 @@ class ModelManager:
     # All errors are raised as exceptions, so it's recommended to wrap this in a try/except clause.
     def _download_hf_repo(self, repo_id, model_id, download_folder, exclude_filters = None):
         
-
+        #return False
         retries_left = 5
         while retries_left > 0:
             try:
@@ -908,6 +908,7 @@ class ModelManager:
 
 
                             if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
+                                print("In ALL POWER MODEEEE--")
                                 config = { 	"power modes supported": "yes",
                                                 "best performance" : ["GPU","GPU","GPU"],
                                                         "balanced" : ["GPU","NPU","GPU"],
@@ -916,11 +917,11 @@ class ModelManager:
 
 
                                 # Specify the file name
-                                file_name = "config.json"
+                            file_name = "config.json"
 
-                                # Write the data to a JSON file
-                                with open(os.path.join(full_install_path,file_name), 'w') as json_file:
-                                    json.dump(config, json_file, indent=4)
+                            # Write the data to a JSON file
+                            with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                                json.dump(config, json_file, indent=4)
 
                         if model_id == "sd_15_inpainting":
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"

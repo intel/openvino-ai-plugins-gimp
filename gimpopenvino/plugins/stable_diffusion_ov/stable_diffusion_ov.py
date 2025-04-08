@@ -44,7 +44,6 @@ image_paths = {
 }
 
 
-
 class StringEnum:
     """
     Helper class for when you want to use strings as keys of an enum. The values would be
@@ -309,6 +308,7 @@ def run(procedure, run_mode, image, layer, config, data):
 
         python_path = config_path_output["python_path"]
         plugin_version = config_path_output["plugin_version"]
+        npu_arch = config_path_output["npu_architecture_version"]
 
         client = "test-client.py"
         config_path_output["plugin_path"] = os.path.join(
@@ -487,8 +487,14 @@ def run(procedure, run_mode, image, layer, config, data):
         invisible_label8.show()
 
         def power_modes_supported(model_name):
-            if "sd_1.5_square" in model_name or "int8" in model_name or "sdxl" in model_name or "sd_3.0_med" in model_name:
+            if "sd_1.5_square" in model_name or "int8" in model_name or "sdxl_base_1.0_square" in model_name or "sd_3.0_med_turbo_square" in model_name: 
+                
                 return True
+            
+            elif model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square") and npu_arch != "3720":
+                
+                return True
+            
             return False
 
         def remove_all_advanced_widgets():

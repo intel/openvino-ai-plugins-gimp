@@ -14,10 +14,18 @@ import shutil
 import platform
 import subprocess
 from pathlib import Path
+from enum import Enum
 
 import gimpopenvino
 import openvino as ov 
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import base_model_dir, config_path_dir
+
+# Enum for NPU Arch 
+class NPUArchitecture(Enum):
+    ARCH_3700 = "3700" # Keem Bay
+    ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
+    ARCH_4000 = "4000" # Lunar Lake
+    ARCH_NEXT = "FFFF" # Next Lake
 
 
 def install_base_models(base_model_dir, repo_weights_dir):
@@ -56,6 +64,33 @@ def filter_supported_devices(core):
         valid_devices.append(device)
 
     return valid_devices
+
+
+def get_npu_architecture(core):
+    """
+    Retrieves the NPU architecture using the OpenVINO core.
+
+    Args:
+        core (ov.Core): The OpenVINO core instance.
+
+    Returns:
+        NPUArchitecture: The detected architecture, or None if not found.
+    """
+    try:
+        available_devices = core.get_available_devices()
+        if 'NPU' in available_devices:
+            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
+            for arch in NPUArchitecture:
+                if arch.value in architecture:
+                    return arch
+            if core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8] > 0:
+                return NPUArchitecture.ARCH_NEXT
+            else:
+                return NPUArchitecture.ARCH_3700
+        return None
+    except Exception as e:
+        logging.error(f"Error retrieving NPU architecture: {str(e)}")
+        return None
 
 def get_plugin_version(file_dir=None):
     """
@@ -131,13 +166,16 @@ def complete_install(repo_weights_dir=None):
     # Filter supported devices using OpenVINO runtime
     core = ov.Core()
     supported_devices = filter_supported_devices(core)
+    npu_arch = get_npu_architecture(core)
+
 
     # Build the JSON config data
     py_dict = {
         "python_path": python_path,
         "weight_path": weight_path,
         "supported_devices": supported_devices,
-        "plugin_version": plugin_version
+        "plugin_version": plugin_version,
+        "npu_architecture_version": npu_arch.value,
     }
 
     # Write config data to gimp_openvino_config.json
