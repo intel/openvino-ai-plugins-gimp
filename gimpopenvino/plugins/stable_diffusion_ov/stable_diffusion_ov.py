@@ -564,12 +564,16 @@ def run(procedure, run_mode, image, layer, config, data):
 
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
-            #model_name = config.get_property("model_name")
-            model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
+
+            grid.attach(adv_power_mode_label, 0, 7, 1, 1)
+            grid.attach(adv_power_mode_combo, 1, 7, 1, 1)            
+            model_name = config.get_property("model_name")
+            #model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
+            #print("POWER MODE MODEL------",model_name) 
             if power_modes_supported(model_name):
-                print("IN CHECK POWER MODE SUPPORTED----------MODEL NAME-------------",model_name)
-                grid.attach(adv_power_mode_label, 0, 7, 1, 1)
-                grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
+                
+                #grid.attach(adv_power_mode_label, 0, 7, 1, 1)
+                #grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
                 adv_power_mode_label.show()
                 adv_power_mode_combo.show()
 
@@ -602,6 +606,8 @@ def run(procedure, run_mode, image, layer, config, data):
             
 
         if adv_checkbox.get_active():
+            model_name = config.get_property("model_name")
+            #print("NEW IN ADV CHECK ACTIVE", model_name)
             populate_advanced_settings()
             
 
@@ -742,6 +748,13 @@ def run(procedure, run_mode, image, layer, config, data):
 
         model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
         device_power_mode = "best performance"
+        if power_modes_supported(model_name):
+            
+                adv_power_mode_label.show()
+                adv_power_mode_combo.show()
+        else:
+                adv_power_mode_label.hide()
+                adv_power_mode_combo.hide()
 
         if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_turbo_square"):
             negative_prompt_label.hide()
@@ -763,7 +776,8 @@ def run(procedure, run_mode, image, layer, config, data):
             gscale_label_turbo.hide()
             gscale_spin_turbo.hide() 
             steps_label_turbo.hide()
-            steps_spin_turbo.hide()            
+            steps_spin_turbo.hide()  
+                  
 
 
         if "sd_3.0" in model_name:
@@ -772,7 +786,7 @@ def run(procedure, run_mode, image, layer, config, data):
         if is_server_running():
             run_button.set_sensitive(True)
             if adv_checkbox.get_active() and power_modes_supported(model_name):
-                print("IN SERVER RUN and check power mode ------",power_modes_supported(model_name))
+                
                 device_power_mode = config.get_property("power_mode")
         #else:
             #run_button.set_sensitive(False)
@@ -785,6 +799,7 @@ def run(procedure, run_mode, image, layer, config, data):
         def model_sensitive_combo_changed(widget):
             device_power_mode_tmp = None
             model_name_tmp = config.get_property("model_name")
+            #print("model_name_tmp------------",model_name_tmp)
             # LCM model has no negative prompt
             if model_name_tmp == "sd_1.5_square_lcm" or "sdxl" in model_name_tmp or "sd_3.0_med_turbo_square" in model_name_tmp: # or "sd_3.0_med" in model_name_tmp :
                 negative_prompt_text.hide()
@@ -836,10 +851,15 @@ def run(procedure, run_mode, image, layer, config, data):
                 initialImage_checkbox.set_active(False)
 
             if adv_checkbox.get_active():
-                if power_modes_supported(model_name):
+                #print("IN ADV CHECKBOX------",model_name_tmp)
+                if power_modes_supported(model_name_tmp):
+                    adv_power_mode_label.show()
+                    adv_power_mode_combo.show()
                     device_power_mode_tmp = config.get_property("power_mode")
                 else:
                     device_power_mode_tmp = device_power_mode
+                    adv_power_mode_label.hide()
+                    adv_power_mode_combo.hide()                  
 
             if (model_name_tmp==model_name   and
                 device_power_mode_tmp==device_power_mode):
@@ -1028,6 +1048,7 @@ def run(procedure, run_mode, image, layer, config, data):
                 spinner.show()
 
                 model_name = config.get_property("model_name")
+                print("IN ELIF OF RUN-------------", model_name)
 
                 if power_modes_supported(model_name):
                     if adv_checkbox.get_active():
