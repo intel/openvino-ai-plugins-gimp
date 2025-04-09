@@ -542,8 +542,10 @@ class ModelManager:
                         }
 
                 npu_is_available = self._npu_is_available
+                npu_arch = self._npu_arch
+                                              
             
-                if npu_is_available:
+                if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
                     config = { 	"power modes supported": "yes",
                                     "best performance" : ["GPU","GPU","GPU"],
                                             "balanced" : ["GPU","NPU","GPU"],
@@ -907,14 +909,18 @@ class ModelManager:
                         
 
 
-                            if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
-                                print("In ALL POWER MODEEEE--")
+                            if npu_is_available:
                                 config = { 	"power modes supported": "yes",
                                                 "best performance" : ["GPU","GPU","GPU"],
                                                         "balanced" : ["GPU","NPU","GPU"],
-                                           "best power efficiency" : ["NPU","NPU","GPU"]
-                                    }
-
+                                        "best power efficiency"    : ["NPU","NPU","GPU"]
+                                        }  
+                                                                  
+                                if "sdxl" in model_id and npu_arch is NPUArchitecture.ARCH_3720 :
+                                    config = { 	"power modes supported": "No",
+                                                    "best performance" : ["GPU","GPU","GPU"]
+                                            }
+                              
 
                                 # Specify the file name
                             file_name = "config.json"
