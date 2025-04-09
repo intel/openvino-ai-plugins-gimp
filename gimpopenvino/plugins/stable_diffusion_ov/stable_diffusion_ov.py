@@ -487,11 +487,11 @@ def run(procedure, run_mode, image, layer, config, data):
         invisible_label8.show()
 
         def power_modes_supported(model_name):
-            if "sd_1.5_square" in model_name or "int8" in model_name or "sdxl_base_1.0_square" in model_name or "sd_3.0_med_turbo_square" in model_name: 
+            if "sd_1.5_square" in model_name or "int8" in model_name: 
                 
                 return True
             
-            elif model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square") and npu_arch != "3720":
+            elif model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square", "sdxl_base_1.0_square", "sd_3.0_med_turbo_square") and npu_arch != "3720":
                 
                 return True
             
@@ -564,8 +564,10 @@ def run(procedure, run_mode, image, layer, config, data):
 
             grid.attach(seed, 1, 6, 1, 1)
             grid.attach(seed_label, 0, 6, 1, 1)
-            model_name = config.get_property("model_name")
+            #model_name = config.get_property("model_name")
+            model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
             if power_modes_supported(model_name):
+                print("IN CHECK POWER MODE SUPPORTED----------MODEL NAME-------------",model_name)
                 grid.attach(adv_power_mode_label, 0, 7, 1, 1)
                 grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
                 adv_power_mode_label.show()
@@ -770,6 +772,7 @@ def run(procedure, run_mode, image, layer, config, data):
         if is_server_running():
             run_button.set_sensitive(True)
             if adv_checkbox.get_active() and power_modes_supported(model_name):
+                print("IN SERVER RUN and check power mode ------",power_modes_supported(model_name))
                 device_power_mode = config.get_property("power_mode")
         #else:
             #run_button.set_sensitive(False)
