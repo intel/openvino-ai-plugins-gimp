@@ -28,3 +28,4 @@ torchvision==0.18.1
 tqdm==4.66.5
 transformers==4.44.0
 watchdog==4.0.2
+
