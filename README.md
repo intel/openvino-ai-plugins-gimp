@@ -6,12 +6,16 @@
 1. Super-Resolution 
 2. Semantic-Segmentation 
 3. Stable-Diffusion  
-    * SD 1.5 (landscape, portrait, and Latent Consistency Model)
+    * SD 1.5
+    * SD 1.5 LCM
     * SD 1.5 Inpainting 
     * SD 1.5 Controlnet-OpenPose 
     * SD 1.5 Controlnet-CannyEdge 
     * SD 1.5 Controlnet-Scribble 
-    * SD 3.0 w/ Flash SD3 LCM  
+    * SD 3.0 Medium
+    * SD 3.5 Medium Turbo
+    * SDXL (Turbo, Base)
+
 
 # Objectives
 1. Provides a set of OpenVINO™ based plugins that add AI features to GIMP. 
@@ -85,10 +89,10 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 5. Follow steps 4,5 from section A.
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
-#### G. Stable-Diffusion-3.0 w/ Flash SD3
+#### G. Stable-Diffusion-3.0 Medium & Stable-Diffusion-3.5 Medium Turbo
 Please see [Stable Diffusion 3 User Guilde](./Docs/stable-diffusion-v3.md) for details
 _With Advanced Setting and Power Mode_
-For SD3 Medium Turbo - Select Guidance Scale between 0.0 - 1.0, as anything greater than 1.0 will result in a failure. Also, with the Turbo version one can generate valid images in as few as 4 iterations. 
+For SD3.5 Medium Turbo - Select Guidance Scale between 0.0 - 1.0, as anything greater than 1.0 will result in a failure. Also, with the Turbo version one can generate valid images in as few as 4 iterations. 
 
 #### H. SDXL 
 For SDXL Turbo - Please make sure to Select Guidance Scale between 0.0 - 1.0. Also, for number of inference steps use between 2-5 for best result.
@@ -97,8 +101,6 @@ For SDXL Turbo - Please make sure to Select Guidance Scale between 0.0 - 1.0. Al
 
 _Note that the screenshots below are based on the previous UI_
 
-
-
 ### OpenVINO™ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
 
@@ -106,16 +108,12 @@ _Note that the screenshots below are based on the previous UI_
 ![](gifs/super-res.webp)
 
 
-
-
 # Acknowledgements
 * Plugin architecture inspired from GIMP-ML - https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
 * Stable Diffusion Engine - https://github.com/bes-dev/stable_diffusion.openvino
 
-
 # License
 Apache 2.0
-
 
 # Disclaimer
 Stable Diffusion’s data model is governed by the Creative ML Open Rail M license, which is not an open source license.

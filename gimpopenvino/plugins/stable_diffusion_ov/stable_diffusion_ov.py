@@ -491,7 +491,7 @@ def run(procedure, run_mode, image, layer, config, data):
                 
                 return True
             
-            elif model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square", "sdxl_base_1.0_square", "sd_3.0_med_turbo_square") and npu_arch != "3720":
+            elif model_name in ("sdxl_turbo_square","sd_3.5_med_turbo_square", "sdxl_base_1.0_square", "sd_3.0_med_diffuser_square") and npu_arch != "3720":
                 
                 return True
             
@@ -568,18 +568,11 @@ def run(procedure, run_mode, image, layer, config, data):
             grid.attach(adv_power_mode_label, 0, 7, 1, 1)
             grid.attach(adv_power_mode_combo, 1, 7, 1, 1)            
             model_name = config.get_property("model_name")
-            #model_name = sd_option_cache.get("model_name",default=config.get_property("model_name"))
-            #print("POWER MODE MODEL------",model_name) 
             if power_modes_supported(model_name):
-                
-                #grid.attach(adv_power_mode_label, 0, 7, 1, 1)
-                #grid.attach(adv_power_mode_combo, 1, 7, 1, 1)
                 adv_power_mode_label.show()
                 adv_power_mode_combo.show()
-
-
             
-            if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+            if model_name in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
                 
                 gscale_label_turbo.show()
                 gscale_spin_turbo.show()  
@@ -607,7 +600,6 @@ def run(procedure, run_mode, image, layer, config, data):
 
         if adv_checkbox.get_active():
             model_name = config.get_property("model_name")
-            #print("NEW IN ADV CHECK ACTIVE", model_name)
             populate_advanced_settings()
             
 
@@ -756,12 +748,12 @@ def run(procedure, run_mode, image, layer, config, data):
                 adv_power_mode_label.hide()
                 adv_power_mode_combo.hide()
 
-        if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_turbo_square"):
+        if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.5_med_turbo_square"):
             negative_prompt_label.hide()
             negative_prompt_text.hide()
             initialImage_checkbox.hide()
 
-        if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+        if model_name in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
             gscale_label.hide()
             gscale_spin.hide()
             gscale_label_turbo.show()
@@ -788,10 +780,7 @@ def run(procedure, run_mode, image, layer, config, data):
             if adv_checkbox.get_active() and power_modes_supported(model_name):
                 
                 device_power_mode = config.get_property("power_mode")
-        #else:
-            #run_button.set_sensitive(False)
 
-                
 
         # called when model or device drop down lists are changed.
         # The idea here is that we want to disable the run button
@@ -799,16 +788,15 @@ def run(procedure, run_mode, image, layer, config, data):
         def model_sensitive_combo_changed(widget):
             device_power_mode_tmp = None
             model_name_tmp = config.get_property("model_name")
-            #print("model_name_tmp------------",model_name_tmp)
             # LCM model has no negative prompt
-            if model_name_tmp == "sd_1.5_square_lcm" or "sdxl" in model_name_tmp or "sd_3.0_med_turbo_square" in model_name_tmp: # or "sd_3.0_med" in model_name_tmp :
+            if model_name_tmp == "sd_1.5_square_lcm" or "sdxl" in model_name_tmp or "sd_3.5_med_turbo_square" in model_name_tmp:
                 negative_prompt_text.hide()
                 negative_prompt_label.hide()
             else:
                 negative_prompt_text.show()
                 negative_prompt_label.show()
 
-            if model_name_tmp in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+            if model_name_tmp in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
                 gscale_label.hide()
                 gscale_spin.hide()
                 gscale_label_turbo.show()
@@ -833,7 +821,7 @@ def run(procedure, run_mode, image, layer, config, data):
             # default this to True, and some below conditions will set it to False.
             initialImage_checkbox.set_sensitive(True)
 
-            if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp or "sdxl" in model_name_tmp or "sd_3.0_med" in model_name_tmp :
+            if "sd_3.0" in model_name_tmp or "sd_1.5_square_lcm" in model_name_tmp or "sdxl" in model_name_tmp or "sd_3.0_med" in model_name_tmp or "sd_3.5_med" in model_name_tmp :
                 initialImage_checkbox.hide()
             else:
                 initialImage_checkbox.show()
@@ -851,7 +839,6 @@ def run(procedure, run_mode, image, layer, config, data):
                 initialImage_checkbox.set_active(False)
 
             if adv_checkbox.get_active():
-                #print("IN ADV CHECKBOX------",model_name_tmp)
                 if power_modes_supported(model_name_tmp):
                     adv_power_mode_label.show()
                     adv_power_mode_combo.show()
@@ -967,7 +954,7 @@ def run(procedure, run_mode, image, layer, config, data):
                     sd_option_cache.set("num_images", config.get_property("num_images"))
                     
 
-                    if config.get_property("model_name") in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                    if config.get_property("model_name") in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
                         sd_option_cache.set("guidance_scale_turbo", config.get_property("guidance_scale_turbo"))
                         sd_option_cache.set("num_infer_steps_turbo", config.get_property("num_infer_steps_turbo"))
                     else:
@@ -995,7 +982,7 @@ def run(procedure, run_mode, image, layer, config, data):
                         guidance_scale = 0.1
                         sd_option_cache.set("guidance_scale_turbo", guidance_scale)
                         sd_option_cache.set("num_infer_steps_turbo", num_infer_steps)
-                    if config.get_property("model_name") == "sd_3.0_med_turbo_square":
+                    if config.get_property("model_name") == "sd_3.5_med_turbo_square":
                         num_infer_steps = 6
                         guidance_scale = 0.8   
                         sd_option_cache.set("guidance_scale_turbo", guidance_scale)
@@ -1095,7 +1082,7 @@ def run(procedure, run_mode, image, layer, config, data):
             elif response == SDDialogResponse.ProgressUpdate:
                 progress_string=""
 
-                if model_name in ("sdxl_turbo_square","sd_3.0_med_turbo_square"):
+                if model_name in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
                     num_steps = sd_option_cache.get("num_infer_steps_turbo")
                 else:
 
