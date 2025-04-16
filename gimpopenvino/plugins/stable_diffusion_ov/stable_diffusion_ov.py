@@ -1035,7 +1035,6 @@ def run(procedure, run_mode, image, layer, config, data):
                 spinner.show()
 
                 model_name = config.get_property("model_name")
-                print("IN ELIF OF RUN-------------", model_name)
 
                 if power_modes_supported(model_name):
                     if adv_checkbox.get_active():
