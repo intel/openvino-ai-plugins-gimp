@@ -162,12 +162,12 @@ def run(model_name, available_devices, power_mode):
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s2.connect((HOST, 65433))
         s2.sendall(b"Ready")
-        print("Ready")
+        #print("Ready")
         while True:
             conn, addr = s.accept()
             with conn:
                 while True:
-                    print("Waiting")
+                    #print("Waiting")
                     data = conn.recv(1024)
 
                     if data.decode() == "kill":
