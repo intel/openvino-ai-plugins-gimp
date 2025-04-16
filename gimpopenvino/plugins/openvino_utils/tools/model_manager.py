@@ -17,7 +17,6 @@ import threading
 from pathlib import Path
 from tqdm import tqdm
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
-#from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 
 # This dictionary is used to populate the drop-down model selection list.
 # It's a map from model-id -> model_details.
@@ -149,7 +148,6 @@ g_supported_model_map = {
     },
 
 }
-
 
 # add these to above dictionary for UI testing
 '''
@@ -532,8 +530,8 @@ class ModelManager:
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
                 
-            if "sd_3.0_med" in model_id:
-
+            print("model_id",model_id)
+            if "sd_3.0_med" in model_id or "sd_3.5_med" in model_id:
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
 
@@ -543,8 +541,7 @@ class ModelManager:
 
                 npu_is_available = self._npu_is_available
                 npu_arch = self._npu_arch
-                                              
-            
+                                                        
                 if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
                     config = { 	"power modes supported": "yes",
                                     "best performance" : ["GPU","GPU","GPU"],
@@ -708,8 +705,6 @@ class ModelManager:
     # This function returns true if the download was cancelled, otherwise it returns False upon success.
     # All errors are raised as exceptions, so it's recommended to wrap this in a try/except clause.
     def _download_hf_repo(self, repo_id, model_id, download_folder, exclude_filters = None):
-        
-        #return False
         retries_left = 5
         while retries_left > 0:
             try:
@@ -738,12 +733,9 @@ class ModelManager:
                     file_name: str = file.get("name")
                     file_size: int = file.get("size")
                     file_checksum: int = file.get("sha256")
-
-                    #print(file_name)
                     relative_path = os.path.relpath(file_name, repo_id)
 
                     if exclude_filters:
-                       # print("relative_path before----------------", relative_path)
                         if does_filename_match_patterns(relative_path, exclude_filters):
                             print(relative_path, ": Skipped due to exclude filters")
                             continue
@@ -757,10 +749,6 @@ class ModelManager:
                         )
                     download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
                     download_list.append( download_list_item )
-                    #print(download_list_item)
-
-                #print("total_file_list_size = ", total_file_list_size)
-
 
                 if self.show_hf_download_tqdm is True:
                     bar_format = '{desc}: |{bar}| {percentage:3.0f}% [elapsed: {elapsed}, remaining: {remaining}]'
@@ -898,31 +886,23 @@ class ModelManager:
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
-                            print("IN LCM NEW CONFIG CREATION")
                             config = { 	"power modes supported": "No",
                                             "best performance" : ["GPU","GPU","GPU"]
                                     }
-
-
                             npu_is_available = self._npu_is_available
                             npu_arch = self._npu_arch
-                        
-
-
                             if npu_is_available:
                                 config = { 	"power modes supported": "yes",
                                                 "best performance" : ["GPU","GPU","GPU"],
                                                         "balanced" : ["GPU","NPU","GPU"],
                                         "best power efficiency"    : ["NPU","NPU","GPU"]
-                                        }  
-                                                                  
+                                        }                                                                    
                                 if "sdxl" in model_id and npu_arch is NPUArchitecture.ARCH_3720 :
                                     config = { 	"power modes supported": "No",
                                                     "best performance" : ["GPU","GPU","GPU"]
                                             }
                               
-
-                                # Specify the file name
+                            # Specify the file name
                             file_name = "config.json"
 
                             # Write the data to a JSON file
@@ -938,16 +918,13 @@ class ModelManager:
                         with open(output_file, "w") as f:
                              result = subprocess.run(export_command, shell=True, stdout=f, stderr=subprocess.STDOUT, text=True)
 
-
                         if os.path.isdir(download_folder):
                             shutil.rmtree(download_folder, ignore_errors=True)
                   
                         return True
                     
-
                     # get 'right-most' folder in the subdir.
                     leaf_folder = install_subdir[-1]
-
 
                     # If <download_folder>/<leaf_folder> exists, then *that* is the folder we will copy
                     #  to <full_install_path>
@@ -1333,7 +1310,6 @@ class ModelManager:
         config = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU"]
                  }
-
 
         if npu_is_available:
             if download_success:
