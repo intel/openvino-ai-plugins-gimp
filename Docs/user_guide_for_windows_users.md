@@ -74,7 +74,7 @@ Please download the latest Visual C++ Redistributable package from MSFT [site](h
 
 ### Install GIMP 3.0.2
 
-Please download [GIMP 3.0.2](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.2-setup.exe) and follow below steps to install GIMP.
+Please download [GIMP 3.0.2](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.2-setup-1.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
