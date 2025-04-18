@@ -18,6 +18,12 @@ from pathlib import Path
 from tqdm import tqdm
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
+from models_ov import (stable_diffusion_engine_genai)
+
+
+
 # This dictionary is used to populate the drop-down model selection list.
 # It's a map from model-id -> model_details.
 # 'install_id' is the key used for the 'installable model map'
@@ -538,6 +544,8 @@ class ModelManager:
                 config = { 	"power modes supported": "No",
                                 "best performance" : ["GPU","GPU","GPU"]
                         }
+                
+
 
                 npu_is_available = self._npu_is_available
                 npu_arch = self._npu_arch
@@ -546,7 +554,7 @@ class ModelManager:
                     config = { 	"power modes supported": "yes",
                                     "best performance" : ["GPU","GPU","GPU"],
                                             "balanced" : ["GPU","NPU","GPU"],
-                                "best power efficiency" : ["NPU","NPU","GPU"]
+                                "best power efficiency": ["NPU","NPU","GPU"]
                         }
 
                     # Specify the file name
@@ -889,6 +897,8 @@ class ModelManager:
                             config = { 	"power modes supported": "No",
                                             "best performance" : ["GPU","GPU","GPU"]
                                     }
+                            
+
                             npu_is_available = self._npu_is_available
                             npu_arch = self._npu_arch
                             if npu_is_available:
@@ -920,7 +930,18 @@ class ModelManager:
 
                         if os.path.isdir(download_folder):
                             shutil.rmtree(download_folder, ignore_errors=True)
-                  
+
+                        # To cache these models upfront as it takes a lot of time to load. 
+                        if "sdxl_turbo" in model_id:
+                                model_name="sdxl_turbo_square"
+                        if "sdxl_base" in model_id:
+                                model_name="sdxl_base_1.0_square"
+                        if "sdxl" in model_id:
+                                stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
+                                if config["power modes supported"] == "yes":
+                                    stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","NPU","GPU"])
+                                    stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["NPU","NPU","GPU"])                                 
+                                                                     
                         return True
                     
                     # get 'right-most' folder in the subdir.
