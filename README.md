@@ -93,9 +93,11 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 Please see [Stable Diffusion 3 User Guilde](./Docs/stable-diffusion-v3.md) for details
 _With Advanced Setting and Power Mode_
 For SD3.5 Medium Turbo - Select Guidance Scale between 0.0 - 1.0, as anything greater than 1.0 will result in a failure. Also, with the Turbo version one can generate valid images in as few as 4 iterations. 
+The very first time you do "Load Models", it may take a few minutes. Subsequent runs will be much faster once the model is cached.
 
 #### H. SDXL 
 For SDXL Turbo - Please make sure to Select Guidance Scale between 0.0 - 1.0. Also, for number of inference steps use between 2-5 for best result.
+The very first time you do "Load Models", it may take a few minutes. Subsequent runs will be much faster once the model is cached.
 
 ![](gifs/stable-diffusion2.png)
 
