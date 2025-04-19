@@ -920,8 +920,10 @@ class ModelManager:
                                 json.dump(config, json_file, indent=4)
 
                         if model_id == "sd_15_inpainting":
+                            self.model_install_status[model_id]["status"] = "Generating IRs..."
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
                         else:
+                            self.model_install_status[model_id]["status"] = "Generating IRs..."
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task stable-diffusion {Path(full_install_path)}"
                         print("Running the command:", export_command)
 
@@ -937,6 +939,7 @@ class ModelManager:
                         if "sdxl_base" in model_id:
                                 model_name="sdxl_base_1.0_square"
                         if "sdxl" in model_id:
+                                self.model_install_status[model_id]["status"] = "Model Caching..."
                                 stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
                                 if config["power modes supported"] == "yes":
                                     stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","NPU","GPU"])
