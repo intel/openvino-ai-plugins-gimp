@@ -55,7 +55,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gimp  
     cd gimp
-    git checkout tags/GIMP_3_0_0_RC2
+    git checkout tags/GIMP_3_0_2
     git submodule update --init 
     export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
     meson _build
