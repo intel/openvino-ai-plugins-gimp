@@ -20,11 +20,12 @@ import gimpopenvino
 import openvino as ov 
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import base_model_dir, config_path_dir
 
-# Enum for NPU Arch 
+# Enum for NPU Arch - 
 class NPUArchitecture(Enum):
     ARCH_3700 = "3700" # Keem Bay
     ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
     ARCH_4000 = "4000" # Lunar Lake
+    ARCH_NONE = "0000" # No NPU
     ARCH_NEXT = "FFFF" # Next Lake
 
 
@@ -87,10 +88,11 @@ def get_npu_architecture(core):
                 return NPUArchitecture.ARCH_NEXT
             else:
                 return NPUArchitecture.ARCH_3700
-        return None
+        return NPUArchitecture.ARCH_NONE
+
     except Exception as e:
         logging.error(f"Error retrieving NPU architecture: {str(e)}")
-        return None
+        return NPUArchitecture.ARCH_NONE
 
 def get_plugin_version(file_dir=None):
     """

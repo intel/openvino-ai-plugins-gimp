@@ -80,7 +80,8 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
-   gimp
+   export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu
+   gimp-3
    ```
 
 
