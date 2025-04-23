@@ -882,6 +882,7 @@ class ModelManager:
                               
                             # Specify the file name
                             file_name = "config.json"
+                            os.makedirs(os.path.dirname(full_install_path), exist_ok=True)
 
                             # Write the data to a JSON file
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
