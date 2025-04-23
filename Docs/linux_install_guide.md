@@ -34,7 +34,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/babl
     cd babl
-    git checkout tags/BABL_0_1_110
+    git checkout tags/BABL_0_1_112
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -44,7 +44,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gegl
     cd gegl
-    git checkout tags/GEGL_0_4_52
+    git checkout tags/GEGL_0_4_58
     meson _build
     ninja -C _build
     sudo ninja -C _build install
