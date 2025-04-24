@@ -16,12 +16,14 @@ import logging
 import threading
 from pathlib import Path
 from tqdm import tqdm
+import time
+
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
 from models_ov import (stable_diffusion_engine_genai)
-
+from gimpopenvino.install_utils import *
 
 
 # This dictionary is used to populate the drop-down model selection list.
@@ -299,13 +301,6 @@ g_installable_base_model_map = {
 
 access_token = None
 
-# Enum for NPU Arch 
-class NPUArchitecture(Enum):
-    ARCH_3700 = "3700" # Keem Bay
-    ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
-    ARCH_4000 = "4000" # Lunar Lake
-    ARCH_NEXT = "FFFF" # Next Lake
-
 NPU_THRESHOLD = 43000
 
 def does_filename_match_patterns(filename, patterns):
@@ -371,33 +366,8 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
                   if callback(total_bytes_downloaded, total_file_list_size):
                       return downloaded_size
 
+    time.sleep(0.5) # give large files a chance to sync in their target directory. 
     return downloaded_size
-
-def get_npu_architecture(core):
-    """
-    Retrieves the NPU architecture using the OpenVINO core.
-
-    Args:
-        core (ov.Core): The OpenVINO core instance.
-
-    Returns:
-        NPUArchitecture: The detected architecture, or None if not found.
-    """
-    try:
-        available_devices = core.get_available_devices()
-        if 'NPU' in available_devices:
-            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-            for arch in NPUArchitecture:
-                if arch.value in architecture:
-                    return arch
-            if core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8] > 0:
-                return NPUArchitecture.ARCH_NEXT
-            else:
-                return NPUArchitecture.ARCH_3700
-        return None
-    except Exception as e:
-        logging.error(f"Error retrieving NPU architecture: {str(e)}")
-        return None
 
 def get_npu_driver_version(core):
     try:
@@ -428,7 +398,7 @@ class ModelManager:
         self._npu_driver_version = get_npu_driver_version(self._core)
         self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
-        self._npu_is_available = True if self._npu_arch is not NPUArchitecture.ARCH_3700 and self._npu_arch is not None else False
+        self._npu_is_available = True if self._npu_arch is not NPUArchitecture.ARCH_3700 and self._npu_arch is not NPUArchitecture.ARCH_NONE else False
         self.show_hf_download_tqdm = False
 
         self.hf_api = HfApi()
@@ -536,7 +506,7 @@ class ModelManager:
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
                 
-            print("model_id",model_id)
+            #print("model_id",model_id)
             if "sd_3.0_med" in model_id or "sd_3.5_med" in model_id:
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
@@ -885,12 +855,10 @@ class ModelManager:
                         else:
                             os.makedirs(full_install_path)
 
-                        print("Inpainting optimun-cli full install path",full_install_path)
+                        #print("optimun-cli full install path",full_install_path)
                         import subprocess
                         
-                       
-                        ppath = sys.executable
-                        optimum_ex = ppath.replace("python.exe","optimum-cli.exe")
+                        optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
@@ -914,6 +882,7 @@ class ModelManager:
                               
                             # Specify the file name
                             file_name = "config.json"
+                            os.makedirs(os.path.dirname(full_install_path), exist_ok=True)
 
                             # Write the data to a JSON file
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
@@ -933,6 +902,8 @@ class ModelManager:
                         if os.path.isdir(download_folder):
                             shutil.rmtree(download_folder, ignore_errors=True)
 
+                        
+                        
                         # To cache these models upfront as it takes a lot of time to load. 
                         if "sdxl_turbo" in model_id:
                                 model_name="sdxl_turbo_square"

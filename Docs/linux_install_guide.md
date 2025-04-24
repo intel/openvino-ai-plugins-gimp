@@ -34,7 +34,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/babl
     cd babl
-    git checkout tags/BABL_0_1_110
+    git checkout tags/BABL_0_1_112
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -44,7 +44,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gegl
     cd gegl
-    git checkout tags/GEGL_0_4_52
+    git checkout tags/GEGL_0_4_58
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -55,7 +55,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gimp  
     cd gimp
-    git checkout tags/GIMP_3_0_0_RC2
+    git checkout tags/GIMP_3_0_2
     git submodule update --init 
     export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
     meson _build
@@ -80,7 +80,8 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
  Start GIMP, ensuring to setup the environment variables correctly,  and you should see 'OpenVINO-AI-Plugins' show up in 'Layer' menu
    ```sh
    export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
-   gimp
+   export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu
+   gimp-3
    ```
 
 
