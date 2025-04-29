@@ -257,7 +257,7 @@ def run(procedure, run_mode, image, layer, config, data):
         grid.attach(label, 0, 2, 1, 1)
         label.show()
         spin = GimpUi.prop_spin_button_new(
-            config, "scale", step_increment=0.01, page_increment=0.1, digits=2
+            config, "scale", step_increment=1, page_increment=0.1, digits=2
         )
         grid.attach(spin, 1, 2, 1, 1)
         spin.show()

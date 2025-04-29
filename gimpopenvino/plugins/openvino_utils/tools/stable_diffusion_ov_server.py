@@ -27,6 +27,7 @@ from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_pat
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
 from models_ov.stable_diffusion_engine import StableDiffusionEngineAdvanced, StableDiffusionEngine, LatentConsistencyEngine, StableDiffusionEngineReferenceOnly
 from models_ov.stable_diffusion_engine_inpainting import StableDiffusionEngineInpainting
+from models_ov.stable_diffusion_engine_inpainting_genai import StableDiffusionEngineInpaintingGenai
 from models_ov.stable_diffusion_engine_inpainting_advanced import StableDiffusionEngineInpaintingAdvanced
 from models_ov.controlnet_openpose import ControlNetOpenPose
 from models_ov.controlnet_canny_edge import ControlNetCannyEdge
@@ -36,6 +37,8 @@ from models_ov.controlnet_cannyedge_advanced import ControlNetCannyEdgeAdvanced
 
 from models_ov import (
     stable_diffusion_engine,
+    stable_diffusion_engine_genai,
+    stable_diffusion_engine_inpainting_genai,
     stable_diffusion_engine_inpainting,
     stable_diffusion_engine_inpainting_advanced,
     stable_diffusion_3,
@@ -64,15 +67,19 @@ def run(model_name, available_devices, power_mode):
         beta_schedule="scaled_linear"
     )
 
-    log.info('Model Name: %s', model_name)
+    log.info('Model Name: %s', model_name) 
 
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+        "sdxl_base_1.0_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_base"],
+        "sdxl_turbo_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_turbo"],
         "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
         "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
         "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
         "sd_1.5_square_int8a16": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "sd_3.0_med_diffuser_square": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
+        "sd_3.5_med_turbo_square": ["stable-diffusion-ov", "stable-diffusion-3.5-medium", "square_turbo" ],
         "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
         "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
         "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
@@ -110,7 +117,7 @@ def run(model_name, available_devices, power_mode):
                 if model_config['power modes supported'].lower() == "yes":
                     device_list = model_config[power_mode.lower()]
                 else:
-                    device_list = model_config['best performance']
+                    device_list = model_config['best performance']   
         else:
             with open(model_config_file_name,  'w') as file:
                 json.dump(default_config, file, indent=4)
@@ -155,12 +162,12 @@ def run(model_name, available_devices, power_mode):
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s2.connect((HOST, 65433))
         s2.sendall(b"Ready")
-        print("Ready")
+        #print("Ready")
         while True:
             conn, addr = s.accept()
             with conn:
                 while True:
-                    print("Waiting")
+                    #print("Waiting")
                     data = conn.recv(1024)
 
                     if data.decode() == "kill":
@@ -187,9 +194,9 @@ def initialize_engine(model_name, model_path, device_list):
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
-        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
-    if model_name == "sd_1.5_square_lcm":
-        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=model_path, device=device_list[0])
+    if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_diffuser_square","sd_3.5_med_turbo_square"):
+        return stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=model_path,model_name=model_name,device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
         log.info('Advanced Inpainting Device list: %s', device_list)
         return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
@@ -222,7 +229,6 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
         tosend = bytes(model_name, 'utf-8')
         conn.sendall(tosend)
         return
-
     try:
         weight_path = get_weight_path()
         option_cache_file = os.path.join(weight_path, "..", "gimp_openvino_run_sd.json")
@@ -232,22 +238,28 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
         negative_prompt = options.get("negative_prompt")
         init_image = options.get("initial_image")
         num_images = options.get("num_images")
-        num_infer_steps = options.get("num_infer_steps")
-        guidance_scale = options.get("guidance_scale")
         strength = options.get("strength")
         seed = options.get("seed")
         create_gif = False
+
+        if model_name in ("sdxl_turbo_square","sd_3.5_med_turbo_square"):
+            num_infer_steps = options.get("num_infer_steps_turbo")
+            guidance_scale = options.get("guidance_scale_turbo")
+        else:
+            num_infer_steps = options.get("num_infer_steps")
+            guidance_scale = options.get("guidance_scale")
 
         strength = 1.0 if init_image is None else strength
         log.info('Starting inference... ')
         log.info('Prompt: %s', prompt)
 
         if model_name != "sd_1.5_square_lcm":
+            log.info('Strength: %s', strength)
             log.info('Negative Prompt: %s', negative_prompt)
         log.info('Inference Steps: %s', num_infer_steps)
         log.info('Number of Images: %s', num_images)
         log.info('Guidance Scale: %s', guidance_scale)
-        log.info('Strength: %s', strength)
+        
         log.info('Init Image: %s', init_image)
 
         if seed is not None:
@@ -264,15 +276,12 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                image=Image.open(os.path.join(weight_path, "..", "cache1.png")),
-                mask_image=Image.open(os.path.join(weight_path, "..", "cache0.png")),
+                image_path=os.path.join(weight_path, "..", "cache1.png"),
+                mask_path=os.path.join(weight_path, "..", "cache0.png"),
                 scheduler=scheduler,
                 strength=strength,
                 num_inference_steps=num_infer_steps,
                 guidance_scale=guidance_scale,
-                eta=0.0,
-                create_gif=bool(create_gif),
-                model=model_path,
                 callback=progress_callback,
                 callback_userdata=conn
             )
@@ -303,38 +312,40 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
                 model=model_path,
                 callback=progress_callback,
                 callback_userdata=conn
-            )
-        
-        elif model_name == "sd_1.5_square_lcm":
-            scheduler = LCMScheduler(
-                beta_start=0.00085,
-                beta_end=0.012,
-                beta_schedule="scaled_linear"
-            )
+            )        
+        elif model_name == "sd_1.5_square_lcm":        
             output = engine(
-                prompt=prompt,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                scheduler=scheduler,
-                lcm_origin_steps=50,
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn,
-                seed=seed
+                 prompt=prompt,
+                 negative_prompt=None,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
             )
-        elif "sd_3.0" in model_name:
+        elif "sdxl" in model_name:        
             output = engine(
-                    prompt = prompt,
-                    negative_prompt = negative_prompt,
-                    num_inference_steps = num_infer_steps,
-                    guidance_scale = 0,
-                    generator=torch.Generator().manual_seed(int(seed)),
-                    callback=progress_callback,
-                    callback_userdata=conn
-                    #callback_on_step_end_tensor_inputs = conn,
-                    
-            ).images[0] 
-                
+                 prompt=prompt,
+                 negative_prompt=None,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
+            )            
+        elif "sd_3.0_med" in model_name or "sd_3.5_med" in model_name:
+            if model_name =="sd_3.5_med_turbo_square":
+                negative_prompt=None
+            
+            output = engine(
+                 prompt=prompt,
+                 negative_prompt=negative_prompt,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
+            )                           
         else:
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(
@@ -364,17 +375,18 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
         end_time = time.time()
         print("Image generated from Stable-Diffusion in ", end_time - start_time, " seconds.")
-
         image = "sd_cache.png"
 
-        if ("controlnet" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3.0" in model_name) and "referenceonly" not in model_name:
+        if ("controlnet" in model_name) and "referenceonly" not in model_name:
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size
+        elif("inpainting" in model_name or model_name == "sd_1.5_square_lcm" or "sd_3" in model_name or "sdxl" in model_name):
+            output.save(os.path.join(weight_path, "..", image))
+            src_width, src_height = output.size          
         else:
             cv2.imwrite(os.path.join(weight_path, "..", image), output)
             src_height, src_width, _ = output.shape
 
-        #options.set("seed_num"] = seed
         options.set("model_name", model_name)
         options.set("src_height",src_height)
         options.set("src_width", src_width)

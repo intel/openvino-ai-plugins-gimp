@@ -33,11 +33,8 @@ if /i "%script_dir%"=="%current_dir%" (
 
 echo **** openvino-ai-plugins-gimp Setup started **** 
 
-REM Install virtualenv if not already installed
-python -m pip install virtualenv | find /V "already satisfied"
-
 REM Create a virtual environment
-python -m virtualenv gimpenv3
+python -m venv gimpenv3
 
 call "gimpenv3\Scripts\activate"
 

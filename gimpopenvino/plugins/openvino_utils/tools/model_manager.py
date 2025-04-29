@@ -16,7 +16,15 @@ import logging
 import threading
 from pathlib import Path
 from tqdm import tqdm
+import time
+
 logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
+
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
+from models_ov import (stable_diffusion_engine_genai)
+from gimpopenvino.install_utils import *
+
 
 # This dictionary is used to populate the drop-down model selection list.
 # It's a map from model-id -> model_details.
@@ -55,11 +63,33 @@ g_supported_model_map = {
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
     },
 
-    "sd_3.0_square":
+    "sdxl_base_1.0_square":
     {
-        "name": "Stable Diffusion 3.0 [Square]",
+        "name": "Stable Diffusion XL Base 1.0 [Square] [FP16]",
+        "install_id": "sdxl_base",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "square_base"],
+    },
+
+    
+   "sdxl_turbo_square":
+    {
+        "name": "Stable Diffusion XL Turbo [Square] [FP16]",
+        "install_id": "sdxl_turbo",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "square_turbo"],
+    },
+
+    "sd_3.0_med_diffuser_square":
+    {
+        "name": "Stable Diffusion 3.0 Medium Diffusers [Square]",
         "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0"],
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
+    },
+
+    "sd_3.5_med_turbo_square":
+    {
+        "name": "Stable Diffusion 3.5 Medium Turbo [Square]",
+        "install_id": None, # Set to None, so that model manager UI doesn't give option to install.
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-3.5-medium", "square_turbo" ],
     },
 
     "sd_1.5_portrait":
@@ -127,7 +157,6 @@ g_supported_model_map = {
 
 }
 
-
 # add these to above dictionary for UI testing
 '''
     "test.1":
@@ -166,12 +195,38 @@ g_installable_base_model_map = {
         "npu_compilation_routine": True,
     },
 
+    # "sd_15_LCM":
+    # {
+    #     "name": "Stable Diffusion 1.5 LCM",
+    #     "repo_id": "Intel/sd-1.5-lcm-openvino",
+    #     "download_exclude_filters": ["*.blob", "unet_dynamic*"],
+    #     "npu_compilation_routine": True,
+    # },
+
     "sd_15_LCM":
     {
         "name": "Stable Diffusion 1.5 LCM",
-        "repo_id": "Intel/sd-1.5-lcm-openvino",
-        "download_exclude_filters": ["*.blob", "unet_dynamic*"],
-        "npu_compilation_routine": True,
+        "repo_id": "SimianLuo/LCM_Dreamshaper_v7",
+        "download_exclude_filters": ["*.py", "*.png", "LCM_Dreamshaper_v7_4k.safetensors","model.onnx_data"],
+        
+    },
+
+    "sdxl_base":
+    {
+        "name": "Stable Diffusion XL Base 1.0",
+        "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+        "download_exclude_filters": ["*.msgpack","*.fp16.safetensors","*.bin", "*.xml","*.onnx","*.onnx_data","*.png", "sd_xl_base_1.0.safetensors","sd_xl_base_1.0_0.9vae.safetensors", "sd_xl_offset_example-lora_1.0.safetensors"],
+    
+        
+    },
+
+    "sdxl_turbo":
+    {
+        "name": "Stable Diffusion XL Turbo",
+        "repo_id": "stabilityai/sdxl-turbo",
+        "download_exclude_filters": ["*.msgpack","*.fp16.safetensors","*.bin", "*.xml","*.onnx","*.onnx_data","*.png", "*.jpg","sd_xl_turbo_1.0.safetensors","sd_xl_turbo_1.0_fp16.safetensors"],
+      
+        
     },
 
     "sd_15_portrait":
@@ -191,8 +246,8 @@ g_installable_base_model_map = {
     "sd_15_inpainting":
     {
         "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "Intel/sd-1.5-inpainting-quantized",
-        "download_exclude_filters": ["*.blob", "INT8*"],
+        "repo_id": "stabilityai/stable-diffusion-2-inpainting",
+        "download_exclude_filters": ["512-inpainting-ema.ckpt", "512-inpainting-ema.safetensors", "*.bin","*.fp16.safetensors"],
     },
 
     "sd_15_openpose":
@@ -245,13 +300,6 @@ g_installable_base_model_map = {
 
 
 access_token = None
-
-# Enum for NPU Arch 
-class NPUArchitecture(Enum):
-    ARCH_3700 = "3700" # Keem Bay
-    ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
-    ARCH_4000 = "4000" # Lunar Lake
-    ARCH_NEXT = "FFFF" # Next Lake
 
 NPU_THRESHOLD = 43000
 
@@ -318,33 +366,8 @@ def download_file_with_progress(url, local_filename, callback, total_bytes_downl
                   if callback(total_bytes_downloaded, total_file_list_size):
                       return downloaded_size
 
+    time.sleep(0.5) # give large files a chance to sync in their target directory. 
     return downloaded_size
-
-def get_npu_architecture(core):
-    """
-    Retrieves the NPU architecture using the OpenVINO core.
-
-    Args:
-        core (ov.Core): The OpenVINO core instance.
-
-    Returns:
-        NPUArchitecture: The detected architecture, or None if not found.
-    """
-    try:
-        available_devices = core.get_available_devices()
-        if 'NPU' in available_devices:
-            architecture = core.get_property('NPU', 'DEVICE_ARCHITECTURE')
-            for arch in NPUArchitecture:
-                if arch.value in architecture:
-                    return arch
-            if core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8] > 0:
-                return NPUArchitecture.ARCH_NEXT
-            else:
-                return NPUArchitecture.ARCH_3700
-        return None
-    except Exception as e:
-        logging.error(f"Error retrieving NPU architecture: {str(e)}")
-        return None
 
 def get_npu_driver_version(core):
     try:
@@ -375,7 +398,7 @@ class ModelManager:
         self._npu_driver_version = get_npu_driver_version(self._core)
         self._weight_path = weight_path
         self._install_location = os.path.join(self._weight_path, "stable-diffusion-ov")
-        self._npu_is_available = True if self._npu_arch is not NPUArchitecture.ARCH_3700 and self._npu_arch is not None else False
+        self._npu_is_available = True if self._npu_arch is not NPUArchitecture.ARCH_3700 and self._npu_arch is not NPUArchitecture.ARCH_NONE else False
         self.show_hf_download_tqdm = False
 
         self.hf_api = HfApi()
@@ -482,6 +505,34 @@ class ModelManager:
                 if not os.path.isfile(required_bin_path):
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
+                
+            #print("model_id",model_id)
+            if "sd_3.0_med" in model_id or "sd_3.5_med" in model_id:
+                install_subdir = g_supported_model_map[model_id]["install_subdir"]
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
+
+                config = { 	"power modes supported": "No",
+                                "best performance" : ["GPU","GPU","GPU"]
+                        }
+                
+
+
+                npu_is_available = self._npu_is_available
+                npu_arch = self._npu_arch
+                                                        
+                if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
+                    config = { 	"power modes supported": "yes",
+                                    "best performance" : ["GPU","GPU","GPU"],
+                                            "balanced" : ["GPU","NPU","GPU"],
+                                "best power efficiency": ["NPU","NPU","GPU"]
+                        }
+
+                    # Specify the file name
+                file_name = "config.json"
+
+                    # Write the data to a JSON file
+                with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                    json.dump(config, json_file, indent=4)
 
             return True
 
@@ -632,7 +683,6 @@ class ModelManager:
     # This function returns true if the download was cancelled, otherwise it returns False upon success.
     # All errors are raised as exceptions, so it's recommended to wrap this in a try/except clause.
     def _download_hf_repo(self, repo_id, model_id, download_folder, exclude_filters = None):
-
         retries_left = 5
         while retries_left > 0:
             try:
@@ -661,13 +711,11 @@ class ModelManager:
                     file_name: str = file.get("name")
                     file_size: int = file.get("size")
                     file_checksum: int = file.get("sha256")
-
-                    #print(file_name)
                     relative_path = os.path.relpath(file_name, repo_id)
 
                     if exclude_filters:
                         if does_filename_match_patterns(relative_path, exclude_filters):
-                            #print(relative_path, ": Skipped due to exclude filters")
+                            print(relative_path, ": Skipped due to exclude filters")
                             continue
 
                     total_file_list_size += file_size
@@ -679,10 +727,6 @@ class ModelManager:
                         )
                     download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
                     download_list.append( download_list_item )
-                    #print(download_list_item)
-
-                #print("total_file_list_size = ", total_file_list_size)
-
 
                 if self.show_hf_download_tqdm is True:
                     bar_format = '{desc}: |{bar}| {percentage:3.0f}% [elapsed: {elapsed}, remaining: {remaining}]'
@@ -798,6 +842,82 @@ class ModelManager:
 
                     full_install_path = os.path.join(self._weight_path, *install_subdir)
 
+
+                    if("sd_15_inpainting" in model_id or "sd_15_LCM" in model_id or "sdxl" in model_id):
+                        from pathlib import Path
+                        #from gi.repository import Gimp
+                        cwd = Path.cwd() 
+                        full_download_folder = os.path.join(cwd, download_folder)
+                        
+                        print("Download path",full_download_folder)
+                        if os.path.isdir(full_install_path):
+                            shutil.rmtree(full_install_path)
+                        else:
+                            os.makedirs(full_install_path)
+
+                        #print("optimun-cli full install path",full_install_path)
+                        import subprocess
+                        
+                        optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
+
+                        output_file = Path(os.path.join(full_install_path, "export_output.log"))
+                        if(model_id != "sd_15_inpainting"):
+                            config = { 	"power modes supported": "No",
+                                            "best performance" : ["GPU","GPU","GPU"]
+                                    }
+                            
+
+                            npu_is_available = self._npu_is_available
+                            npu_arch = self._npu_arch
+                            if npu_is_available:
+                                config = { 	"power modes supported": "yes",
+                                                "best performance" : ["GPU","GPU","GPU"],
+                                                        "balanced" : ["GPU","NPU","GPU"],
+                                        "best power efficiency"    : ["NPU","NPU","GPU"]
+                                        }                                                                    
+                                if "sdxl" in model_id and npu_arch is NPUArchitecture.ARCH_3720 :
+                                    config = { 	"power modes supported": "No",
+                                                    "best performance" : ["GPU","GPU","GPU"]
+                                            }
+                              
+                            # Specify the file name
+                            file_name = "config.json"
+                            os.makedirs(os.path.dirname(full_install_path), exist_ok=True)
+
+                            # Write the data to a JSON file
+                            with open(os.path.join(full_install_path,file_name), 'w') as json_file:
+                                json.dump(config, json_file, indent=4)
+
+                        if model_id == "sd_15_inpainting":
+                            self.model_install_status[model_id]["status"] = "Converting Model"
+                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
+                        else:
+                            self.model_install_status[model_id]["status"] = "Converting Model"
+                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task stable-diffusion {Path(full_install_path)}"
+                        print("Running the command:", export_command)
+
+                        with open(output_file, "w") as f:
+                             result = subprocess.run(export_command, shell=True, stdout=f, stderr=subprocess.STDOUT, text=True)
+
+                        if os.path.isdir(download_folder):
+                            shutil.rmtree(download_folder, ignore_errors=True)
+
+                        
+                        
+                        # To cache these models upfront as it takes a lot of time to load. 
+                        if "sdxl_turbo" in model_id:
+                                model_name="sdxl_turbo_square"
+                        if "sdxl_base" in model_id:
+                                model_name="sdxl_base_1.0_square"
+                        if "sdxl" in model_id:
+                                self.model_install_status[model_id]["status"] = "Compiling Model"
+                                stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
+                                if config["power modes supported"] == "yes":
+                                    stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","NPU","GPU"])
+                                    stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["NPU","NPU","GPU"])                                 
+                                                                     
+                        return True
+                    
                     # get 'right-most' folder in the subdir.
                     leaf_folder = install_subdir[-1]
 
@@ -928,6 +1048,9 @@ class ModelManager:
                 "sd_15_portrait",
                 "sd_15_landscape",
                 "sd_15_inpainting",
+                "sd_15_LCM",
+                "sdxl_base",
+                "sdxl_turbo",
                 "sd_15_openpose",
                 "sd_15_canny",
                 "sd_15_scribble",
@@ -969,8 +1092,8 @@ class ModelManager:
                         print("only_npu_recompilation is unexpectedly set to True for a 'download-only' model.. skipping")
                 elif  model_id == "sd_15_square":
                     self.dl_sd_15_square(model_id, only_npu_recompilation)
-                elif model_id == "sd_15_LCM":
-                    self.dl_sd_15_LCM(model_id, only_npu_recompilation)
+                #elif model_id == "sd_15_LCM":
+                #    self.dl_sd_15_LCM(model_id, only_npu_recompilation)
                 elif (model_id == "test1"):
                     self.install_test(model_id)
                 elif (model_id == "test2"):
@@ -983,6 +1106,7 @@ class ModelManager:
                 if "cancelled" not in self.model_install_status[model_id]:
                     try:
                         # If there was not an error in installation, write some installation info to the install directory.
+                       
                         if model_id not in self.model_install_error_condition:
                             for supported_model in self.installable_model_map[model_id]["supported_model_ids"]:
                                 install_subdir = g_supported_model_map[supported_model]["install_subdir"]
@@ -990,6 +1114,7 @@ class ModelManager:
 
                                 if is_subdirectory(full_install_path, self._weight_path):
                                     # If the install info dictionary is non-empty, write the info.
+                                 
                                     if self.model_install_status[model_id]["install_info"]:
                                         file_name = "install_info.json"
                                         with open(os.path.join(full_install_path, file_name), 'w') as json_file:
@@ -1180,7 +1305,6 @@ class ModelManager:
         config = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU"]
                  }
-
 
         if npu_is_available:
             if download_success:
