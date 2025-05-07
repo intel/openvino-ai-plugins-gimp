@@ -22,6 +22,8 @@ from openvino.runtime import Core
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import (
     stable_diffusion_engine,
+    stable_diffusion_engine_genai,
+    stable_diffusion_engine_inpainting_genai,
     stable_diffusion_engine_inpainting,
     stable_diffusion_engine_inpainting_advanced,
     stable_diffusion_3,
@@ -128,9 +130,9 @@ def initialize_engine(model_name, model_path, device_list):
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
-        return stable_diffusion_engine_inpainting.StableDiffusionEngineInpainting(model=model_path, device=device_list)
-    if model_name == "sd_1.5_square_lcm":
-        return stable_diffusion_engine.LatentConsistencyEngine(model=model_path, device=device_list)
+        return stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=model_path, device=device_list[0])
+    if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_diffuser_square","sd_3.5_med_turbo_square"):
+        return stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=model_path,model_name=model_name,device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
         log.info('Advanced Inpainting Device list: %s', device_list)
         return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
@@ -139,7 +141,7 @@ def initialize_engine(model_name, model_path, device_list):
         return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny_int8":
         log.info('Device list: %s', device_list)
-        return controlnet_canny_edge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
+        return controlnet_cannyedge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_scribble_int8":
         log.info('Device list: %s', device_list)
         return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
@@ -227,10 +229,14 @@ def main():
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
+        "sdxl_base_1.0_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_base"],
+        "sdxl_turbo_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_turbo"],
         "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
         "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
         "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
         "sd_1.5_square_int8a16": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
+        "sd_3.0_med_diffuser_square": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
+        "sd_3.5_med_turbo_square": ["stable-diffusion-ov", "stable-diffusion-3.5-medium", "square_turbo" ],
         "sd_1.5_landscape": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape"],
         "sd_1.5_portrait_512x768": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait_512x768"],
         "sd_1.5_landscape_768x512": ["stable-diffusion-ov", "stable-diffusion-1.5", "landscape_768x512"],
@@ -247,6 +253,7 @@ def main():
         "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
         "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
     }
+
     model_name = args.model_name
     model_path = os.path.join(weight_path, *model_paths.get(model_name))    
     model_config_file_name = os.path.join(model_path, "config.json")
@@ -329,15 +336,26 @@ def main():
         
         
         start_time = time.time()
-        
+
         if model_name == "sd_1.5_inpainting" or model_name == "sd_1.5_inpainting_int8":
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                image=Image.open(os.path.join(weight_path, "..", "cache1.png")),
-                mask_image=Image.open(os.path.join(weight_path, "..", "cache0.png")),
+                image_path=os.path.join(weight_path, "..", "cache1.png"),
+                mask_path=os.path.join(weight_path, "..", "cache0.png"),
                 scheduler=scheduler,
                 strength=strength,
+                num_inference_steps=num_infer_steps,
+                guidance_scale=guidance_scale,
+                callback=progress_callback,
+                callback_userdata=conn
+            )
+        elif model_name == "controlnet_referenceonly":
+            output = engine(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image=Image.open(init_image),
+                scheduler=scheduler,
                 num_inference_steps=num_infer_steps,
                 guidance_scale=guidance_scale,
                 eta=0.0,
@@ -359,39 +377,41 @@ def main():
                 model=model_path,
                 callback=progress_callback,
                 callback_userdata=conn
-            )
-       
-        elif model_name == "sd_1.5_square_lcm":
-            scheduler = LCMScheduler(
-                beta_start=0.00085,
-                beta_end=0.012,
-                beta_schedule="scaled_linear"
-            )
+            )        
+        elif model_name == "sd_1.5_square_lcm":        
             output = engine(
-                prompt=prompt,
-                num_inference_steps=num_infer_steps,
-                guidance_scale=guidance_scale,
-                scheduler=scheduler,
-                lcm_origin_steps=50,
-                model=model_path,
-                callback=progress_callback,
-                callback_userdata=conn,
-                seed=ran_seed
+                 prompt=prompt,
+                 negative_prompt=None,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
             )
-        elif "sd_3.0" in model_name:
+        elif "sdxl" in model_name:        
             output = engine(
-                    prompt = prompt,
-                    negative_prompt = negative_prompt,
-                    num_inference_steps = num_infer_steps,
-                    guidance_scale = 0,
-                    callback=progress_callback,
-                    callback_userdata=conn,
-                    generator=torch.Generator().manual_seed(seed),
-                    # callback_on_step_end = progress_callback,
-                    # callback_on_step_end_tensor_inputs = conn,
-                    
-            ).images[0]    
-        else: # Covers SD 1.5 Square, Square INT8, SD 2.0
+                 prompt=prompt,
+                 negative_prompt=None,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
+            )            
+        elif "sd_3.0_med" in model_name or "sd_3.5_med" in model_name:
+            if model_name =="sd_3.5_med_turbo_square":
+                negative_prompt=None
+            
+            output = engine(
+                 prompt=prompt,
+                 negative_prompt=negative_prompt,
+                 num_inference_steps=num_infer_steps,
+                 guidance_scale=guidance_scale,
+                 seed=seed,
+                 callback=progress_callback,
+                 callback_userdata=conn,
+            )                           
+        else:
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(
                     beta_start=0.00085,
@@ -417,6 +437,8 @@ def main():
                 callback=progress_callback,
                 callback_userdata=conn
             )
+
+
         gen_time = time.time() - start_time
         print (f"Image Generation Time: {round(gen_time,2)} seconds")
         results.append([output,model_name 
