@@ -384,7 +384,7 @@ def main():
                  negative_prompt=None,
                  num_inference_steps=num_infer_steps,
                  guidance_scale=guidance_scale,
-                 seed=seed,
+                 seed=ran_seed,
                  callback=progress_callback,
                  callback_userdata=conn,
             )
@@ -394,7 +394,7 @@ def main():
                  negative_prompt=None,
                  num_inference_steps=num_infer_steps,
                  guidance_scale=guidance_scale,
-                 seed=seed,
+                 seed=ran_seed,
                  callback=progress_callback,
                  callback_userdata=conn,
             )            
@@ -407,7 +407,7 @@ def main():
                  negative_prompt=negative_prompt,
                  num_inference_steps=num_infer_steps,
                  guidance_scale=guidance_scale,
-                 seed=seed,
+                 seed=ran_seed,
                  callback=progress_callback,
                  callback_userdata=conn,
             )                           
