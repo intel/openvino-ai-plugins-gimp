@@ -15,8 +15,9 @@ openvino_genai==2025.1.0.0
 --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/pre-release
 --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
 openvino-tokenizers==2025.1.0.0
-optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@10bc734d6f4629d3410682bb9a3c241ab778ee17
+optimum-intel==1.23.0 
 openvino==2025.1.0.0
+openvino-genai==2025.1.0.0
 peft==0.12.0
 pillow
 protobuf==5.27.3
