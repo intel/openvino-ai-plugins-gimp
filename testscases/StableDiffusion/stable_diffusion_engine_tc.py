@@ -203,10 +203,9 @@ def parse_args() -> argparse.Namespace:
     args.add_argument('-pp','--prompt',type = str, 
                       default ="a portrait of an old coal miner in 19th century, beautiful painting with highly detailed face by greg rutkowski and magali villanueve",
                       required = False,
-                      #help='Optional. Specify the prompt.  Default: "a bowl of cherries"')
                       help='Optional. Specify the prompt.  Default: "castle surrounded by water and nature, village, volumetric lighting, photorealistic, detailed and intricate, fantasy, epic cinematic shot, mountains, 8k ultra hd"')
-    args.add_argument('-np','--neg_prompt',type = str, default = "deformed face, Ugly, bad quality, lowres, monochrome, bad anatomy", required = False,
-                      help='Optional. Specify the negative prompt.  Default: "low  quality, bad, low resolution, monochrome"')
+    args.add_argument('-np','--neg_prompt',type = str, default = None , required=False, 
+                      help='Optional. Specify the negative prompt.  Default: None')
          
     return parser.parse_args()
 
@@ -258,6 +257,7 @@ def main():
     model_path = os.path.join(weight_path, *model_paths.get(model_name))    
     model_config_file_name = os.path.join(model_path, "config.json")
 
+
     try:
         if args.power_mode is not None and os.path.exists(model_config_file_name):
             with open(model_config_file_name, 'r') as file:
@@ -290,6 +290,10 @@ def main():
     log.info('')
     log.info('Initializing Inference Engine...') 
     log.info('Model Path: %s',model_path ) 
+
+    if "turbo" in model_name and args.guidance_scale > 1.0:
+        log.warning(f"Max guidance scale for {model_name} is 1.0, adjusting {args.guidance_scale} down to 1.0")
+        args.guidance_scale = 1.0
     
     prompt = args.prompt #"a beautiful artwork illustration, concept art sketch of an astronaut in white futuristic cybernetic armor in a dark cave, volumetric fog, godrays, high contrast, vibrant colors, vivid colors, high saturation, by Greg Rutkowski and Jesper Ejsing and Raymond Swanland and alena aenami, featured on artstation, wide angle, vertical orientation" 
     negative_prompt = args.neg_prompt # "lowres, bad quality, monochrome, cropped head, deformed face, bad anatomy" 
@@ -456,7 +460,7 @@ def main():
     if args.save_image:
         index = 1
         for result in results:
-            if "sd_3.0" not in model_name and "lcm" not in model_name:
+            if "sd_3.0" not in model_name and "lcm" not in model_name and "sdxl" not in model_name:
                 cv2.imwrite(result[1] + "_" + str(index) + ".jpg", result[0])                         
             else:
                 result[0].save(result[1] + "_" + str(index) + ".jpg")
