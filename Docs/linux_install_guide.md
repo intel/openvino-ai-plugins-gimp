@@ -34,7 +34,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/babl
     cd babl
-    git checkout tags/BABL_0_1_112
+    git checkout tags/BABL_0_1_114
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -44,7 +44,7 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gegl
     cd gegl
-    git checkout tags/GEGL_0_4_58
+    git checkout tags/GEGL_0_4_62
     meson _build
     ninja -C _build
     sudo ninja -C _build install
@@ -55,9 +55,10 @@ More details can be found [here](https://github.com/snapcrafters/gimp/tree/previ
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gimp  
     cd gimp
-    git checkout tags/GIMP_3_0_2
+    git checkout tags/GIMP_3_0_4
     git submodule update --init 
     export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
+    sudo ldconfig
     meson _build
     ninja -C _build
     sudo ninja -C _build install
