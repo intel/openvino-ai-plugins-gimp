@@ -120,7 +120,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         if "NPU" in device: 
             try_enable_npu_turbo(device, self.core)
             
-        print("Loading models... ")
+        print("Loading models ... int8 ")
         
 
 
