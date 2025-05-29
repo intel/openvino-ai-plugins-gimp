@@ -217,7 +217,7 @@ def initialize_engine(model_name, model_path, device_list):
         return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
     if model_name == "controlnet_referenceonly":
         return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
+    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list, model_name=model_name)
 
 def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
     if data.decode() == "kill":

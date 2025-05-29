@@ -123,27 +123,21 @@ def print_system_info():
 
 def initialize_engine(model_name, model_path, device_list):
     if model_name == "sd_1.5_square_int8":
-        log.info('Device list: %s', device_list)
         return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
     if model_name == "sd_3.0_square":
         device_list = ["GPU"]
-        log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
     if model_name == "sd_1.5_inpainting":
         return stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=model_path, device=device_list[0])
     if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_diffuser_square","sd_3.5_med_turbo_square"):
         return stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=model_path,model_name=model_name,device=device_list)
     if model_name == "sd_1.5_inpainting_int8":
-        log.info('Advanced Inpainting Device list: %s', device_list)
         return stable_diffusion_engine_inpainting_advanced.StableDiffusionEngineInpaintingAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_openpose_int8":
-        log.info('Device list: %s', device_list)
         return controlnet_openpose_advanced.ControlNetOpenPoseAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny_int8":
-        log.info('Device list: %s', device_list)
         return controlnet_cannyedge_advanced.ControlNetCannyEdgeAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_scribble_int8":
-        log.info('Device list: %s', device_list)
         return controlnet_scribble.ControlNetScribbleAdvanced(model=model_path, device=device_list)
     if model_name == "controlnet_canny":
         return controlnet_canny_edge.ControlNetCannyEdge(model=model_path, device=device_list)
@@ -153,7 +147,7 @@ def initialize_engine(model_name, model_path, device_list):
         return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
     if model_name == "controlnet_referenceonly":
         return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
-    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list)
+    return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list, model_name=model_name)
 
 def parse_args() -> argparse.Namespace:
     """Parse and return command line arguments."""
@@ -161,6 +155,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.add_argument_group('Options')
     args.add_argument('-h', '--help', action = 'help',
                       help='Show this help message and exit.')
+    args.add_argument('-l', '--list', action = 'store_true', 
+                      help='Show list of models currently installed.')
     # base path to models
     args.add_argument('-bp','--model_base_path',type = str, default = None, required = False,
                       help='Optional. Specify the absolute base path to model weights. \nUsage example:  -bp \\stable-diffusion\\model-weights\\')
@@ -194,8 +190,6 @@ def parse_args() -> argparse.Namespace:
     # guidance scale
     args.add_argument('-g','--guidance_scale',type = float, default = 7.5, required = False,
                       help='Optional. Affects how closely the image prompt is followed.')
-    
-    
     # power mode
     args.add_argument('-pm','--power_mode',type = str, default = "best performance", required = False,
                       help='Optional. Specify the power mode. Default is best performance')
@@ -208,6 +202,32 @@ def parse_args() -> argparse.Namespace:
                       help='Optional. Specify the negative prompt.  Default: None')
          
     return parser.parse_args()
+
+def validate_model_paths(base_path: str, model_paths: dict) -> dict:
+    """
+    Check if model directories exist based on base_path and model_paths structure.
+
+    Args:
+        base_path (str): Root directory where models are stored.
+        model_paths (dict): Dictionary with model keys and relative path parts.
+
+    Returns:
+        dict: Dictionary with model names and a boolean indicating existence.
+    """
+    results = {}
+    for model_name, relative_parts in model_paths.items():
+        full_path = os.path.join(base_path, *relative_parts)
+        if os.path.isdir(full_path):
+            if "int8a16" in model_name:
+                if os.path.isfile(os.path.join(full_path, "unet_int8a16.xml")):
+                    results[model_name] = full_path
+            elif "fp8" in model_name:
+                if os.path.isfile(os.path.join(full_path, "unet_fp8.xml")):
+                    results[model_name] = full_path
+            else:
+                results[model_name] = full_path
+    return results
+
 
 def main():
     args = parse_args()
@@ -253,6 +273,12 @@ def main():
         "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
     }
 
+    if args.list:
+        print(f"\nInstalled models: ")
+        for key in validate_model_paths(weight_path, model_paths).keys():
+            print(f"{key}")
+        exit()
+ 
     model_name = args.model_name
     model_path = os.path.join(weight_path, *model_paths.get(model_name))    
     model_config_file_name = os.path.join(model_path, "config.json")

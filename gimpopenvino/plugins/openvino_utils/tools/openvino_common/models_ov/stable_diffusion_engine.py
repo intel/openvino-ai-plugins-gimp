@@ -120,7 +120,7 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
         if "NPU" in device: 
             try_enable_npu_turbo(device, self.core)
             
-        print("Loading models... ")
+        print("Loading models ... int8 ")
         
 
 
@@ -455,7 +455,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             self,
             model="bes-dev/stable-diffusion-v1-4-openvino",
             tokenizer="openai/clip-vit-large-patch14",
-            device=["CPU","CPU","CPU","CPU"]):
+            device=["CPU","CPU","CPU","CPU"], model_name="fp16"):
         
         self.core = Core()
         self.core.set_property({'CACHE_DIR': os.path.join(model, 'cache')})
@@ -463,7 +463,7 @@ class StableDiffusionEngine(DiffusionPipeline):
         batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
 
         # if 'int8' is in model, then we are using unet_int8a16 model, and for this we will always use batch size 1.
-        if "int8" in model:
+        if "int8" in model_name:
             batch_size = 1
 
         self.batch_size = batch_size
@@ -477,7 +477,7 @@ class StableDiffusionEngine(DiffusionPipeline):
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
     
-        print("Loading models... ")
+    
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             text_future = executor.submit(self.load_model, model, "text_encoder", device[0])
@@ -485,13 +485,16 @@ class StableDiffusionEngine(DiffusionPipeline):
             vae_en_future = executor.submit(self.load_model, model, "vae_encoder", device[3])
 
             if self.batch_size == 1:
-                if "int8" not in model:
-                    unet_future = executor.submit(self.load_model, model, "unet_bs1", device[1])
-                    unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
-                else:
-                    unet_future = executor.submit(self.load_model, model, "unet_int8a16", device[1])
+                if "int8a16" in model_name:
+                    print("Loading models ... int8a16")
+                    unet_future     = executor.submit(self.load_model, model, "unet_int8a16", device[1])
                     unet_neg_future = executor.submit(self.load_model, model, "unet_int8a16", device[2]) if device[1] != device[2] else None
+                else:
+                    print("Loading models ... fp16 bs1")
+                    unet_future     = executor.submit(self.load_model, model, "unet_bs1", device[1])
+                    unet_neg_future = executor.submit(self.load_model, model, "unet_bs1", device[2]) if device[1] != device[2] else None
             else:
+                print("Loading models ... fp16")
                 unet_future = executor.submit(self.load_model, model, "unet", device[1])
                 unet_neg_future = None
 

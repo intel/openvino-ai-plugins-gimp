@@ -515,8 +515,6 @@ class ModelManager:
                                 "best performance" : ["GPU","GPU","GPU"]
                         }
                 
-
-
                 npu_is_available = self._npu_is_available
                 npu_arch = self._npu_arch
                                                         
