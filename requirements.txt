@@ -73,7 +73,7 @@ pytz==2025.2
 PyYAML==6.0.2
 referencing==0.36.2
 regex==2024.11.6
-requests==2.32.3
+requests==2.32.4
 rich==13.9.4
 rpds-py==0.25.0
 safetensors==0.4.4
