@@ -100,7 +100,7 @@ tqdm==4.66.5
 transformers==4.51.3
 typing_extensions==4.13.2
 tzdata==2025.2
-urllib3==2.4.0
+urllib3==2.5.0
 watchdog==4.0.2
 wcwidth==0.2.13
 xxhash==3.5.0
