@@ -345,18 +345,20 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
         tb_str = traceback.format_exc()
         raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}.\nDetails: {tb_str}")
 
-def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size):
+def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size,total_file_size):
     response = requests.get(url, stream=True)
-    total_size = int(response.headers.get('content-length', 0))
+    total_size = int(total_file_size)
     downloaded_size = 0
 
+    percent_complete = 0
     percent_complete_last = -1.0;
     with open(local_filename, 'wb') as file:
         for data in response.iter_content(chunk_size=4096):
             file.write(data)
             downloaded_size += len(data)
             total_bytes_downloaded += len(data)
-            percent_complete = (downloaded_size / total_size) * 100
+            if total_size != 0:
+                percent_complete = (downloaded_size / total_size) * 100
 
             if percent_complete - percent_complete_last > 1:
                percent_complete_last = percent_complete
@@ -764,7 +766,7 @@ class ModelManager:
                    os.makedirs(subfolder,  exist_ok=True)
 
                    #print("Downloading", download_list_item["url"], " to ", local_filename)
-                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
+                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size, download_list_item["size"])
 
                    if "cancelled" in self.model_install_status[model_id]:
                        return True
