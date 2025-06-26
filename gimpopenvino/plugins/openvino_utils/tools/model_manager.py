@@ -41,6 +41,13 @@ g_supported_model_map = {
         "install_id": "sd_15_square",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
     },
+    
+    "sd_1.5_square_fp8":
+    {
+        "name": "Stable Diffusion 1.5 [Square] [FP8]",
+        "install_id": "sd_15_square_fp8",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
+    },
 
     "sd_1.5_square_int8":
     {
@@ -345,18 +352,23 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
         tb_str = traceback.format_exc()
         raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}.\nDetails: {tb_str}")
 
-def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size):
+def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size, total_file_size):
     response = requests.get(url, stream=True)
-    total_size = int(response.headers.get('content-length', 0))
+    #print("response", response)
+    total_size = int(total_file_size)
     downloaded_size = 0
+    print('total_size--',total_size )
 
+    percent_complete = 0
     percent_complete_last = -1.0;
     with open(local_filename, 'wb') as file:
         for data in response.iter_content(chunk_size=4096):
+           
             file.write(data)
             downloaded_size += len(data)
             total_bytes_downloaded += len(data)
-            percent_complete = (downloaded_size / total_size) * 100
+            if total_size != 0:
+                percent_complete = (downloaded_size / total_size) * 100
 
             if percent_complete - percent_complete_last > 1:
                percent_complete_last = percent_complete
@@ -436,7 +448,8 @@ class ModelManager:
                 continue
 
             if install_id not in self.installable_model_map:
-                print("Unexpected error: install_id=", install_id, " not present in installable model map..")
+                if "square_fp8" not in install_id and self._npu_arch is not NPUArchitecture.ARCH_5000:
+                    print("Unexpected error: install_id=", install_id, " not present in installable model map..")
                 continue
 
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
@@ -505,8 +518,15 @@ class ModelManager:
                 if not os.path.isfile(required_bin_path):
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
+            
+            if model_id == "sd_1.5_square_fp8" and self._npu_arch is NPUArchitecture.ARCH_5000:
+                install_subdir = g_supported_model_map[model_id]["install_subdir"]
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
+                required_bin_path = os.path.join(full_install_path, "unet_fp8.bin")
+                if not os.path.isfile(required_bin_path):
+                    print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
+                    return False
                 
-            #print("model_id",model_id)
             if "sd_3.0_med" in model_id or "sd_3.5_med" in model_id:
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
@@ -712,6 +732,7 @@ class ModelManager:
                     relative_path = os.path.relpath(file_name, repo_id)
 
                     if exclude_filters:
+                        #print("exclude_filters--", exclude_filters)
                         if does_filename_match_patterns(relative_path, exclude_filters):
                             print(relative_path, ": Skipped due to exclude filters")
                             continue
@@ -725,6 +746,7 @@ class ModelManager:
                         )
                     download_list_item = {"filename": relative_path, "subfolder": subfolder, "size": file_size, "sha256": file_checksum, "url": url }
                     download_list.append( download_list_item )
+                    
 
                 if self.show_hf_download_tqdm is True:
                     bar_format = '{desc}: |{bar}| {percentage:3.0f}% [elapsed: {elapsed}, remaining: {remaining}]'
@@ -756,6 +778,7 @@ class ModelManager:
 
                 total_bytes_downloaded = 0
                 #okay, let's download the files one by one.
+                #print('download_list', download_list)
                 for download_list_item in download_list:
                    local_filename = os.path.join(download_folder, download_list_item["filename"])
 
@@ -763,8 +786,8 @@ class ModelManager:
                    subfolder=os.path.join(download_folder, download_list_item["subfolder"])
                    os.makedirs(subfolder,  exist_ok=True)
 
-                   #print("Downloading", download_list_item["url"], " to ", local_filename)
-                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size)
+                   print("Downloading", download_list_item["url"], " to ", local_filename)
+                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size,download_list_item["size"])
 
                    if "cancelled" in self.model_install_status[model_id]:
                        return True
@@ -881,6 +904,10 @@ class ModelManager:
                             # Specify the file name
                             file_name = "config.json"
                             os.makedirs(os.path.dirname(full_install_path), exist_ok=True)
+
+                            # SDXL sometimes takes a while to make the directory. i don't know why. this is a hack, though. 
+                            import time
+                            time.sleep(1)
 
                             # Write the data to a JSON file
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
@@ -1183,6 +1210,7 @@ class ModelManager:
                     text_future = None
                     unet_int8_future = None
                     unet_int8a16_future = None
+                    unet_fp8_future = None
                     unet_future = None
                     vae_de_future = None
                     vae_en_future = None
@@ -1197,6 +1225,19 @@ class ModelManager:
                             "unet_int8a16" : unet_int8a16_future,
                             "unet_bs1" : unet_future,
                             
+                        }
+                    elif npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
+                        # also modified the model order for less checking in the future object when it gets result
+                        models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "unet_fp8", "text_encoder", "vae_encoder" , "vae_decoder" ]
+                        shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
+                        sd15_futures = {
+                            "text_encoder" : text_future,
+                            "unet_bs1" : unet_future,
+                            "unet_int8a16" : unet_int8a16_future,
+                            "unet_int8" : unet_int8_future,
+                            "unet_fp8"  : unet_fp8_future,
+                            "vae_encoder" : vae_en_future,
+                            "vae_decoder" : vae_de_future
                         }
                     else:
                         # also modified the model order for less checking in the future object when it gets result
@@ -1217,13 +1258,19 @@ class ModelManager:
                             config = None
                             logging.info(f"Creating NPU model for {model_name}")
 
-                            if "unet_int8" in model_name or "unet_bs1" in model_name:
-                                config = { "NPU_DPU_GROUPS" : npu_config, "NPU_MAX_TILES": npu_config } if npu_config is not None else None
+                            if "unet" in model_name:
+                                config = { "NPU_COMPILATION_MODE_PARAMS" : "performance-hint-override=latency" } 
 
-                            if "unet_int8" not in model_name:
+
+                            if "unet_int8" not in model_name:    
                                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                                 output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16, config=config)
+                                # there is currently a race condition where the FP8 model won't exist the first time SD 1.5 is installed
+                                sd15_futures[model_name] = executor.submit(compile_and_export_model, 
+                                                                           core, 
+                                                                           model_path_fp16, 
+                                                                           output_path_fp16, 
+                                                                           config=config) if os.path.exists(model_path_fp16) else None
                             else:
                                 model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                                 output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
@@ -1235,9 +1282,9 @@ class ModelManager:
 
                         self.model_install_status[model_id]["percent"] = 0.0
                         for model_name, model_future in sd15_futures.items():
-                            model_future.result()
-                            self.model_install_status[model_id]["percent"] += perc_increment
-
+                            if model_future is not None:
+                                model_future.result() 
+                                self.model_install_status[model_id]["percent"] += perc_increment
 
                     # Copy shared models to INT8 directory
                     for blob_name in shared_models:
