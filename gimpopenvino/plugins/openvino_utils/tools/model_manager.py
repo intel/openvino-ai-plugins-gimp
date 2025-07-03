@@ -301,8 +301,6 @@ g_installable_base_model_map = {
 
 access_token = None
 
-NPU_THRESHOLD = 43000
-
 def does_filename_match_patterns(filename, patterns):
     for pattern in patterns:
         if fnmatch.fnmatch(filename, pattern):
@@ -386,8 +384,9 @@ def get_npu_driver_version(core):
 def get_npu_config(core, architecture):
     try:
         if architecture == NPUArchitecture.ARCH_4000:
-            gops_value = core.get_property("NPU", "DEVICE_GOPS")[ov.Type.i8]
-            return 6 if gops_value > NPU_THRESHOLD else None
+            return core.get_property("NPU", "NPU_MAX_TILES")
+        else:
+            return None
     except Exception as e:
         logging.error(f"Error retrieving NPU configuration: {str(e)}")
         return None
@@ -1219,8 +1218,9 @@ class ModelManager:
                             config = None
                             logging.info(f"Creating NPU model for {model_name}")
 
-                            if "unet_int8" in model_name or "unet_bs1" in model_name:
-                                config = { "NPU_DPU_GROUPS" : npu_config, "NPU_MAX_TILES": npu_config } if npu_config is not None else None
+                            if "unet" in model_name:
+                                config = { "NPU_COMPILATION_MODE_PARAMS" : "performance-hint-override=latency" } 
+
 
                             if "unet_int8" not in model_name:
                                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
