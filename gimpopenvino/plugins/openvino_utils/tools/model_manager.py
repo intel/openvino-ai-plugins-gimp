@@ -1218,9 +1218,9 @@ class ModelManager:
                             config = None
                             logging.info(f"Creating NPU model for {model_name}")
 
-                            if "unet_int8" in model_name or "unet_bs1" in model_name:
-                                config = { "NPU_DPU_GROUPS" : npu_config } if npu_config is not None else None
-                                
+                            if "unet" in model_name:
+                                config = { "NPU_COMPILATION_MODE_PARAMS" : "performance-hint-override=latency" } 
+
 
                             if "unet_int8" not in model_name:
                                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
