@@ -34,7 +34,7 @@ if /i "%script_dir%"=="%current_dir%" (
 echo **** openvino-ai-plugins-gimp Setup started **** 
 
 REM Create a virtual environment
-python -m venv gimpenv3
+call python -m venv gimpenv3
 
 call "gimpenv3\Scripts\activate"
 
