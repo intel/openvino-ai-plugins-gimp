@@ -1140,13 +1140,13 @@ class StableDiffusion(Gimp.PlugIn):
 
             # procedure.add_argument_from_property(self, "initial_image")
             procedure.add_int_argument("num_images",_("_Number of Images (Default:1)"),
-                                       "Number of Images to generate", 1, 50, 1,
+                                       "Number of Images to generate", 1, 200, 1,
                                         GObject.ParamFlags.READWRITE)
             procedure.add_int_argument("num_infer_steps",_("_Number of Inference steps (Default:20)"), 
-                                       "Number of Inference steps (Default:20)", 1, 50, 20,
+                                       "Number of Inference steps (Default:20)", 1, 200, 20,
                                         GObject.ParamFlags.READWRITE)
             procedure.add_int_argument("num_infer_steps_turbo",_("_Number of Inference steps (Default:2)"), 
-                                       "Number of Inference steps (Default:2)", 1, 50, 2,
+                                       "Number of Inference steps (Default:2)", 1, 200, 2,
                                         GObject.ParamFlags.READWRITE)            
             procedure.add_double_argument("guidance_scale",_("_Guidance Scale (Default:7.5)"), 
                                           "Guidance Scale (Default:7.5)", 0.0, 20.0, 7.5,
