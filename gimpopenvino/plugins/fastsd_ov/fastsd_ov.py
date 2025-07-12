@@ -14,9 +14,8 @@ import sys
 import tempfile
 from base64 import b64decode
 from concurrent.futures import ThreadPoolExecutor
-from http import client
 from threading import Thread
-from urllib.parse import urlparse
+from fastsd_api_client import FastSDApiClient
 
 from gi.repository import GimpUi
 
@@ -24,67 +23,6 @@ FASTSD_SERVER_URL = "http://localhost:8000"
 
 
 FASTSD_OV_ERROR = GLib.quark_from_string("fastsd-ov-plugin-error")
-
-
-class FastSDApiClient:
-    def __init__(self, server_url=FASTSD_SERVER_URL):
-        self.server_url = server_url
-        self.url = urlparse(self.server_url)
-
-    def get_request(self, url) -> dict:
-        try:
-            conn = client.HTTPConnection(self.url.hostname, self.url.port)
-            headers = {"Content-Type": "application/json"}
-            conn.request(
-                "GET",
-                url,
-                body=None,
-                headers=headers,
-            )
-            res = conn.getresponse()
-            data = res.read()
-            result = json.loads(data)
-            return result
-        except Exception as exception:
-            raise Exception(f"Error: {str(exception)}")
-
-    def load_settings(self) -> dict:
-        """Loads settings from the FastSD server."""
-        try:
-            config = self.get_request("/api/config")
-            return config
-        except Exception as exception:
-            raise RuntimeError("Failed to get settings!") from exception
-
-    def get_info(self) -> dict:
-        """
-        Returns information about the FastSD server
-        """
-        try:
-            result = self.get_request("/api/info")
-            return result
-        except Exception as exception:
-            raise RuntimeError("Failed to get info from FastSD") from exception
-
-    def get_models(self) -> list:
-        """
-        Returns a list of available models.
-        """
-        try:
-            result = self.get_request("/api/models")
-            return result["openvino_models"]
-        except Exception as exception:
-            raise RuntimeError("Failed to get models from API") from exception
-
-    def generate_text_to_image(self, config) -> dict:
-        """Generates an image based on the provided configuration."""
-        conn = client.HTTPConnection(self.url.hostname, self.url.port)
-        headers = {"Content-Type": "application/json"}
-        conn.request("POST", "/api/generate", config, headers)
-        res = conn.getresponse()
-        data = res.read()
-        result = json.loads(data)
-        return result
 
 
 class FastSDPluginSettings:
@@ -329,7 +267,7 @@ class FastSDPlugin(Gimp.PlugIn):
         self.info = {}
         self.models = {}
         self.settings = {}
-        self.fast_sd_requests = FastSDApiClient()
+        self.fast_sd_requests = FastSDApiClient(FASTSD_SERVER_URL)
         self.fastsd_plugin_settings = FastSDPluginSettings()
         self.file_path = None
         self.executor = ThreadPoolExecutor()
@@ -450,9 +388,11 @@ class FastSDPlugin(Gimp.PlugIn):
             vbox.pack_start(inference_box, False, False, 0)
             vbox.pack_start(width_box, False, False, 0)
             vbox.pack_start(height_box, False, False, 0)
+            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            vbox.pack_start(separator, expand=False, fill=True, padding=5)
 
-            dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-            dialog.add_button("_Help", Gtk.ResponseType.APPLY)
+            dialog.add_button("_Help", Gtk.ResponseType.HELP)
+            dialog.add_button("_OK", Gtk.ResponseType.OK)
 
             self.set_sensitive(False)
 
