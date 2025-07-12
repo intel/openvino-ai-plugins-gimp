@@ -244,7 +244,7 @@ class FastSDPlugin(Gimp.PlugIn):
         procedure.set_menu_label("FastSD")
         procedure.add_menu_path("<Image>/Layer/OpenVINO-AI-Plugins/")
         procedure.set_documentation(
-            "fastsdov",
+            "Stablediffusion on the current layer using FastSD - OpenVINO.",
             "Stablediffusion on the current layer using FastSD - OpenVINO.",
             name,
         )
@@ -281,6 +281,12 @@ class FastSDPlugin(Gimp.PlugIn):
         self.fastsd_plugin_settings.ov_model_id = selected_model
         self.fastsd_plugin_settings.inference_steps = inference_steps
         self.fastsd_plugin_settings.prompt = prompt
+        self.fastsd_plugin_settings.image_width = int(
+            self.width_combo.get_active_text()
+        )
+        self.fastsd_plugin_settings.image_height = int(
+            self.height_combo.get_active_text()
+        )
 
         return self.fastsd_plugin_settings.to_json()
 
@@ -303,7 +309,7 @@ class FastSDPlugin(Gimp.PlugIn):
             )
             result_layer = result.get_layers()[0]
             copy = Gimp.Layer.new_from_drawable(result_layer, image_new)
-            set_name = "FastSD 0"
+            set_name = "fastsd-plugin-image"
             copy.set_name(set_name)
             copy.set_mode(Gimp.LayerMode.NORMAL_LEGACY)
             image_new.insert_layer(copy, None, -1)
@@ -327,6 +333,13 @@ class FastSDPlugin(Gimp.PlugIn):
         self.fastsd_plugin_settings = FastSDPluginSettings()
         self.file_path = None
         self.executor = ThreadPoolExecutor()
+        logo_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "..",
+            "openvino_utils",
+            "images",
+            "plugin_logo.png",
+        )
 
         if run_mode == Gimp.RunMode.INTERACTIVE:
             gi.require_version("Gtk", "3.0")
@@ -335,7 +348,7 @@ class FastSDPlugin(Gimp.PlugIn):
             GimpUi.init("fastsd-plugin")
 
             dialog = GimpUi.Dialog(
-                title="FastSD",
+                title="FastSD - OpenVINO",
                 role="fastsd-plugin",
                 use_header_bar=False,
             )
@@ -347,6 +360,8 @@ class FastSDPlugin(Gimp.PlugIn):
             vbox.set_margin_bottom(10)
             vbox.set_margin_start(10)
             vbox.set_margin_end(10)
+            logo = Gtk.Image.new_from_file(logo_path)
+            vbox.pack_start(logo, False, False, 0)
 
             self.device_label = Gtk.Label(
                 label=f"{self.info.get('device_type', '').upper()} : {self.info.get('device_name', '')}"
@@ -387,24 +402,23 @@ class FastSDPlugin(Gimp.PlugIn):
 
             inference_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
-            inference_label = Gtk.Label(label="Inference Steps:")
+            inference_label = Gtk.Label(label="Number of inference steps:")
             inference_label.set_halign(Gtk.Align.START)
             inference_label.set_valign(Gtk.Align.CENTER)
             inference_box.pack_start(inference_label, False, False, 0)
 
-            self.inference_scale = Gtk.Scale.new_with_range(
-                Gtk.Orientation.HORIZONTAL, 1, 20, 1
-            )
+            self.inference_scale = Gtk.SpinButton()
+            self.inference_scale.set_range(0, 50)
             self.inference_scale.set_value(self.fastsd_plugin_settings.inference_steps)
-            self.inference_scale.set_digits(0)
-            self.inference_scale.set_hexpand(True)
+            self.inference_scale.set_increments(1, 10)
+            self.inference_scale.set_input_purpose(Gtk.InputPurpose.NUMBER)
             inference_box.pack_start(self.inference_scale, True, True, 0)
 
             vbox.pack_start(inference_box, False, False, 0)
 
             width_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
-            width_label = Gtk.Label(label="Width:")
+            width_label = Gtk.Label(label="Image Width:")
             width_label.set_halign(Gtk.Align.START)
             width_label.set_valign(Gtk.Align.CENTER)
             width_box.pack_start(width_label, False, False, 0)
@@ -419,7 +433,7 @@ class FastSDPlugin(Gimp.PlugIn):
 
             height_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
-            height_label = Gtk.Label(label="Height:")
+            height_label = Gtk.Label(label="Image Height:")
             height_label.set_halign(Gtk.Align.START)
             height_label.set_valign(Gtk.Align.CENTER)
             height_box.pack_start(height_label, False, False, 0)
@@ -436,6 +450,9 @@ class FastSDPlugin(Gimp.PlugIn):
             vbox.pack_start(inference_box, False, False, 0)
             vbox.pack_start(width_box, False, False, 0)
             vbox.pack_start(height_box, False, False, 0)
+
+            dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("_Help", Gtk.ResponseType.APPLY)
 
             self.set_sensitive(False)
 
