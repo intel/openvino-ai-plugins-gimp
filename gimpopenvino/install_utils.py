@@ -191,6 +191,7 @@ def complete_install(repo_weights_dir=None):
             "plugins/superresolution_ov/superresolution_ov.py",
             "plugins/stable_diffusion_ov/stable_diffusion_ov.py",
             "plugins/semseg_ov/semseg_ov.py",
+            "plugins/fastsd_ov/fastsd_ov.py",
         ]
         for script in scripts:
             script_path = os.path.join(plugin_loc, script)
