@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Copyright(C) 2025 Rupesh Sreeraman
+# SPDX - License - Identifier: Apache - 2.0
 from json import loads
 from http import client
 from urllib.parse import urlparse

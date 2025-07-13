@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright(C) 2025 Rupesh Sreeraman
+# SPDX - License - Identifier: Apache - 2.0
 
 import gi
 
@@ -171,7 +172,7 @@ class FastSDPlugin(Gimp.PlugIn):
         try:
             self.load_image_to_gimp(image_path)
         except Exception as e:
-            Gimp.message_dialog(f"Error loading image: {e}")
+            Gimp.message(f"Error loading image: {e}")
 
         self.generate_button.set_sensitive(True)
         self.generate_button.set_label("Generate")
@@ -295,6 +296,19 @@ class FastSDPlugin(Gimp.PlugIn):
         if run_mode == Gimp.RunMode.INTERACTIVE:
             gi.require_version("Gtk", "3.0")
             from gi.repository import Gtk
+
+            def show_error_dialog(parent, message: str):
+                dialog = Gtk.MessageDialog(
+                    parent=parent,
+                    flags=0,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="FastSD - OpenVINO",
+                    secondary_text="Error",
+                )
+                dialog.format_secondary_text(message)
+                dialog.run()
+                dialog.destroy()
 
             GimpUi.init("fastsd-plugin")
 
@@ -445,8 +459,9 @@ class FastSDPlugin(Gimp.PlugIn):
                         self.fastsd_plugin_settings.seed = int(seed_val)
                         self.fastsd_plugin_settings.use_seed = True
                     else:
-                        Gimp.message(
-                            "Invalid seed value, please enter a number for example : 42"
+                        show_error_dialog(
+                            dialog,
+                            "Error : Invalid seed value, please enter a number or leave seed blank for random seed",
                         )
                         return
                 else:
