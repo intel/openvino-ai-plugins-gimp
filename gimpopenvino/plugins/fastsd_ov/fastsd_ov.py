@@ -33,12 +33,18 @@ class FastSDPluginSettings:
         image_height: int = 512,
         ov_model_id: str = "",
         prompt: int = "",
+        seed: int = None,
+        use_seed: bool = False,
+        guidance_scale: float = 1.0,
     ):
         self.inference_steps = inference_steps
         self.image_width = image_width
         self.image_height = image_height
         self.ov_model_id = ov_model_id
         self.prompt = prompt
+        self.seed = seed
+        self.use_seed = use_seed
+        self.guidance_scale = guidance_scale
 
     def to_json(self):
         settings = {
@@ -49,6 +55,9 @@ class FastSDPluginSettings:
             "openvino_lcm_model_id": self.ov_model_id,
             "image_width": self.image_width,
             "image_height": self.image_height,
+            "seed": self.seed,
+            "use_seed": self.use_seed,
+            "guidance_scale": self.guidance_scale,
         }
         return json.dumps(settings)
 
@@ -68,24 +77,6 @@ class ImageProcessingError(Exception):
 class FastSDPlugin(Gimp.PlugIn):
     def do_query_procedures(self):
         return ["fastsd-plugin"]
-
-    def generate_image(self, config, on_complete_callback):
-        def task():
-            try:
-                result = self.fast_sd_requests.generate_text_to_image(config)
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                temp_file_path = temp_file.name
-                base64_image = result["images"][0]
-                image_data = b64decode(base64_image)
-                temp_file.write(image_data)
-                temp_file.close()
-
-                GLib.idle_add(on_complete_callback, temp_file_path)
-
-            except Exception as e:
-                print(f"Error generating image: {e}")
-
-        Thread(target=task, daemon=True).start()
 
     def init_ui_settings(self):
         with ThreadPoolExecutor() as executor:
@@ -225,6 +216,9 @@ class FastSDPlugin(Gimp.PlugIn):
         self.fastsd_plugin_settings.image_height = int(
             self.height_combo.get_active_text()
         )
+        self.fastsd_plugin_settings.guidance_scale = round(
+            self.guidance_scale.get_value(), 1
+        )
 
         return self.fastsd_plugin_settings.to_json()
 
@@ -254,6 +248,13 @@ class FastSDPlugin(Gimp.PlugIn):
             Gimp.displays_flush()
         except Exception as e:
             raise ImageProcessingError(f"Error loading image {e}")
+
+    def _is_valid_seed(self, value: str):
+        try:
+            seed = int(value)
+            return 0 <= seed <= 999999999
+        except (ValueError, TypeError):
+            return False
 
     def run(
         self,
@@ -385,9 +386,33 @@ class FastSDPlugin(Gimp.PlugIn):
 
             height_box.pack_start(self.height_combo, True, True, 0)
 
+            seed_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            seed_label = Gtk.Label(label="Seed :")
+            seed_box.pack_start(seed_label, False, False, 0)
+            self.seed = Gtk.Entry.new()
+            self.seed.set_placeholder_text("If left blank, random seed will be set..")
+            seed_box.pack_start(self.seed, True, True, 0)
+
+            guidance_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            guidance_label = Gtk.Label(label="Guidance Scale:")
+            guidance_label.set_halign(Gtk.Align.START)
+            guidance_label.set_valign(Gtk.Align.CENTER)
+            guidance_box.pack_start(guidance_label, False, False, 0)
+
+            self.guidance_scale = Gtk.SpinButton()
+            self.guidance_scale.set_range(0, 10.0)
+            self.guidance_scale.set_value(self.fastsd_plugin_settings.guidance_scale)
+            self.guidance_scale.set_increments(0.1, 0.1)
+            self.guidance_scale.set_digits(1)
+            self.guidance_scale.set_input_purpose(Gtk.InputPurpose.NUMBER)
+            guidance_box.pack_start(self.guidance_scale, True, True, 0)
+
             vbox.pack_start(inference_box, False, False, 0)
             vbox.pack_start(width_box, False, False, 0)
             vbox.pack_start(height_box, False, False, 0)
+            vbox.pack_start(seed_box, False, False, 0)
+            vbox.pack_start(guidance_box, False, False, 0)
+
             separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
             vbox.pack_start(separator, expand=False, fill=True, padding=5)
 
@@ -410,6 +435,19 @@ class FastSDPlugin(Gimp.PlugIn):
                 )
 
             def on_generate_clicked(button):
+                if self.seed.get_text() != "":
+                    seed_val = self.seed.get_text()
+                    if self._is_valid_seed(seed_val):
+                        self.fastsd_plugin_settings.seed = int(seed_val)
+                        self.fastsd_plugin_settings.use_seed = True
+                    else:
+                        Gimp.message(
+                            "Invalid seed value, please enter a number for example : 42"
+                        )
+                        return
+                else:
+                    self.fastsd_plugin_settings.use_seed = False
+
                 self.generate_button.set_sensitive(False)
                 self.generate_button.set_label("Generating...")
                 self.generate_image(self.get_gen_settings())

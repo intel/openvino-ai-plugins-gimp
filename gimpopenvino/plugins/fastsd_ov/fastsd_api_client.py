@@ -29,7 +29,7 @@ class FastSDApiClient:
             result = loads(data)
             return result
         except Exception as exception:
-            raise Exception(f"Error: {str(exception)}")
+            raise RuntimeError(f"Error: {str(exception)}")
 
     def load_settings(self) -> dict:
         """Loads FastSD settings"""
@@ -37,7 +37,9 @@ class FastSDApiClient:
             config = self._get_request("/api/config")
             return config
         except Exception as exception:
-            raise RuntimeError("Failed to get settings!") from exception
+            raise RuntimeError(
+                f"Failed to get settings! {str(exception)}"
+            ) from exception
 
     def get_info(self) -> dict:
         """
@@ -47,7 +49,9 @@ class FastSDApiClient:
             result = self._get_request("/api/info")
             return result
         except Exception as exception:
-            raise RuntimeError("Failed to get info from FastSD") from exception
+            raise RuntimeError(
+                f"Failed to get info from FastSD! {str(exception)}"
+            ) from exception
 
     def get_models(self) -> list:
         """
@@ -57,7 +61,9 @@ class FastSDApiClient:
             result = self._get_request("/api/models")
             return result["openvino_models"]
         except Exception as exception:
-            raise RuntimeError("Failed to get models from API") from exception
+            raise RuntimeError(
+                f"Failed to get models from API! {str(exception)}"
+            ) from exception
 
     def generate_text_to_image(
         self,
@@ -73,4 +79,6 @@ class FastSDApiClient:
             result = loads(data)
             return result
         except Exception as exception:
-            raise RuntimeError("Failed to generate image") from exception
+            raise RuntimeError(
+                f"Failed to generate image! {str(exception)}"
+            ) from exception
