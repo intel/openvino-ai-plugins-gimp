@@ -101,6 +101,12 @@ class FastSDPlugin(Gimp.PlugIn):
         self.fastsd_plugin_settings.image_width = diffusion_setting.get(
             "image_width", 512
         )
+        self.fastsd_plugin_settings.guidance_scale = diffusion_setting.get(
+            "guidance_scale", 1.0
+        )
+        self.fastsd_plugin_settings.use_seed = diffusion_setting.get("use_seed", False)
+        if self.fastsd_plugin_settings.use_seed:
+            self.fastsd_plugin_settings.seed = diffusion_setting.get("seed", 42)
 
     def update_ui(self):
         self.set_sensitive(True)
@@ -115,6 +121,8 @@ class FastSDPlugin(Gimp.PlugIn):
                 self.height_combo, str(self.fastsd_plugin_settings.image_height)
             )
         )
+        self.guidance_scale.set_value(self.fastsd_plugin_settings.guidance_scale)
+
         if self.models:
             for model in self.models:
                 self.model_combo.append_text(model)
@@ -127,6 +135,10 @@ class FastSDPlugin(Gimp.PlugIn):
         self.device_label.set_text(
             f"{self.info.get('device_type', '').upper()} : {self.info.get('device_name', '')}"
         )
+        if self.fastsd_plugin_settings.use_seed:
+            self.seed.set_text(str(self.fastsd_plugin_settings.seed))
+        else:
+            self.seed.set_text("")
 
     def generate_image(self, config):
         image_generation_future = self.executor.submit(
@@ -306,7 +318,6 @@ class FastSDPlugin(Gimp.PlugIn):
                 label=f"{self.info.get('device_type', '').upper()} : {self.info.get('device_name', '')}"
             )
             self.device_label.set_text("Loading settings please wait...")
-
             vbox.pack_start(self.device_label, False, False, 0)
 
             prompt_label = Gtk.Label(label="Describe the image you want to generate :")
@@ -326,41 +337,35 @@ class FastSDPlugin(Gimp.PlugIn):
             hbox.pack_start(Gtk.Label(), True, True, 0)
             hbox.pack_start(self.generate_button, False, False, 0)
 
-            model_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            # Create a grid
+            grid = Gtk.Grid()
+            grid.set_row_spacing(5)
+            grid.set_column_spacing(10)
 
             model_label = Gtk.Label(label="Model:")
             model_label.set_halign(Gtk.Align.START)
             model_label.set_valign(Gtk.Align.CENTER)
-            model_box.pack_start(model_label, False, False, 0)
-
             self.model_combo = Gtk.ComboBoxText()
 
-            model_box.pack_start(self.model_combo, True, True, 0)
-
-            vbox.pack_start(model_box, False, False, 0)
-
-            inference_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            grid.attach(model_label, 0, 0, 1, 1)
+            grid.attach(self.model_combo, 1, 0, 1, 1)
 
             inference_label = Gtk.Label(label="Number of inference steps:")
             inference_label.set_halign(Gtk.Align.START)
             inference_label.set_valign(Gtk.Align.CENTER)
-            inference_box.pack_start(inference_label, False, False, 0)
 
             self.inference_scale = Gtk.SpinButton()
             self.inference_scale.set_range(0, 50)
             self.inference_scale.set_value(self.fastsd_plugin_settings.inference_steps)
             self.inference_scale.set_increments(1, 10)
             self.inference_scale.set_input_purpose(Gtk.InputPurpose.NUMBER)
-            inference_box.pack_start(self.inference_scale, True, True, 0)
 
-            vbox.pack_start(inference_box, False, False, 0)
-
-            width_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            grid.attach(inference_label, 0, 1, 1, 1)
+            grid.attach(self.inference_scale, 1, 1, 1, 1)
 
             width_label = Gtk.Label(label="Image Width:")
             width_label.set_halign(Gtk.Align.START)
             width_label.set_valign(Gtk.Align.CENTER)
-            width_box.pack_start(width_label, False, False, 0)
 
             self.width_combo = Gtk.ComboBoxText()
             self.width_combo.append_text("256")
@@ -368,14 +373,13 @@ class FastSDPlugin(Gimp.PlugIn):
             self.width_combo.append_text("768")
             self.width_combo.append_text("1024")
             self.width_combo.set_active(0)
-            width_box.pack_start(self.width_combo, True, True, 0)
 
-            height_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            grid.attach(width_label, 0, 2, 1, 1)
+            grid.attach(self.width_combo, 1, 2, 1, 1)
 
             height_label = Gtk.Label(label="Image Height:")
             height_label.set_halign(Gtk.Align.START)
             height_label.set_valign(Gtk.Align.CENTER)
-            height_box.pack_start(height_label, False, False, 0)
 
             self.height_combo = Gtk.ComboBoxText()
             self.height_combo.append_text("256")
@@ -384,20 +388,22 @@ class FastSDPlugin(Gimp.PlugIn):
             self.height_combo.append_text("1024")
             self.height_combo.set_active(0)
 
-            height_box.pack_start(self.height_combo, True, True, 0)
+            grid.attach(height_label, 0, 3, 1, 1)
+            grid.attach(self.height_combo, 1, 3, 1, 1)
 
-            seed_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             seed_label = Gtk.Label(label="Seed :")
-            seed_box.pack_start(seed_label, False, False, 0)
+            seed_label.set_halign(Gtk.Align.START)
+            seed_label.set_valign(Gtk.Align.CENTER)
+
             self.seed = Gtk.Entry.new()
             self.seed.set_placeholder_text("If left blank, random seed will be set..")
-            seed_box.pack_start(self.seed, True, True, 0)
 
-            guidance_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            grid.attach(seed_label, 0, 4, 1, 1)
+            grid.attach(self.seed, 1, 4, 1, 1)
+
             guidance_label = Gtk.Label(label="Guidance Scale:")
             guidance_label.set_halign(Gtk.Align.START)
             guidance_label.set_valign(Gtk.Align.CENTER)
-            guidance_box.pack_start(guidance_label, False, False, 0)
 
             self.guidance_scale = Gtk.SpinButton()
             self.guidance_scale.set_range(0, 10.0)
@@ -405,13 +411,11 @@ class FastSDPlugin(Gimp.PlugIn):
             self.guidance_scale.set_increments(0.1, 0.1)
             self.guidance_scale.set_digits(1)
             self.guidance_scale.set_input_purpose(Gtk.InputPurpose.NUMBER)
-            guidance_box.pack_start(self.guidance_scale, True, True, 0)
 
-            vbox.pack_start(inference_box, False, False, 0)
-            vbox.pack_start(width_box, False, False, 0)
-            vbox.pack_start(height_box, False, False, 0)
-            vbox.pack_start(seed_box, False, False, 0)
-            vbox.pack_start(guidance_box, False, False, 0)
+            grid.attach(guidance_label, 0, 5, 1, 1)
+            grid.attach(self.guidance_scale, 1, 5, 1, 1)
+
+            vbox.pack_start(grid, False, False, 0)
 
             separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
             vbox.pack_start(separator, expand=False, fill=True, padding=5)
