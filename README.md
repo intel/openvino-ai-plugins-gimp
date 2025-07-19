@@ -15,6 +15,7 @@
     * SD 3.0 Medium
     * SD 3.5 Medium Turbo
     * SDXL (Turbo, Base)
+4. [FastSD](https://github.com/rupeshs/fastsdcpu) 
 
 
 # Objectives
@@ -111,6 +112,24 @@ _Note that the screenshots below are based on the previous UI_
 ### OpenVINO™ Super Resolution Plugin
 ![](gifs/super-res.webp)
 
+### FastSD Plugin
+![FastSD plugin screenshot](gifs/fastsd-plugin.png)
+
+FastSD is a faster version of stable diffusion based on Latent Consistency Models and Adversarial Diffusion Distillation. It Supports CPU/GPU/NPU faster inference using OpenVINO.
+
+To use FastSD Plugin follow these steps :
+- Download and install FastSD from official [repo](https://github.com/rupeshs/fastsdcpu)
+- Run FastSD as REST API server
+    - Windows users run the `start-webserver.bat`script
+    - Linux users run the `start-webserver.sh` script
+- Now we are ready to use the plugin
+
+By default FastSD uses CPU,to use GPU OR NPU follow [this guide](https://github.com/rupeshs/fastsdcpu?tab=readme-ov-file#intel-ai-pc-support---openvino-cpu-gpu-npu)
+
+## How to add new models to FastSD Plugin
+FastSD supports local model folder path and also huggingface model path(For example : `rupeshs/sd-turbo-openvino`)
+To convert SD/SDXL model use the [LCM OpenVINO converter](https://github.com/rupeshs/lcm-openvino-converter)
+These models can be added in `configs/openvino-lcm-models.txt` file in FastSD.
 
 # Acknowledgements
 * Plugin architecture inspired from GIMP-ML - https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML

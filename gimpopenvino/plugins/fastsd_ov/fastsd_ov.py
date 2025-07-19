@@ -15,10 +15,14 @@ import sys
 import tempfile
 from base64 import b64decode
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
+
 from fastsd_api_client import FastSDApiClient
 
+sys.path.extend(
+    [os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils")]
+)
 from gi.repository import GimpUi
+from tools.tools_utils import config_path_dir
 
 FASTSD_SERVER_URL = "http://localhost:8000"
 
@@ -174,7 +178,7 @@ class FastSDPlugin(Gimp.PlugIn):
         except Exception as e:
             Gimp.message(f"Error loading image: {e}")
 
-        self.generate_button.set_sensitive(True)
+        self.set_sensitive(True)
         self.generate_button.set_label("Generate")
         return False
 
@@ -203,13 +207,19 @@ class FastSDPlugin(Gimp.PlugIn):
             index += 1
         return -1
 
-    def set_sensitive(self, sensitive: bool):
+    def set_sensitive(
+        self,
+        sensitive: bool,
+    ):
+        self.generate_button.set_sensitive(sensitive)
         self.textview.set_sensitive(sensitive)
         self.model_combo.set_sensitive(sensitive)
         self.inference_scale.set_sensitive(sensitive)
         self.width_combo.set_sensitive(sensitive)
         self.height_combo.set_sensitive(sensitive)
         self.generate_button.set_sensitive(sensitive)
+        self.seed.set_sensitive(sensitive)
+        self.guidance_scale.set_sensitive(sensitive)
 
     def get_gen_settings(self):
         prompt = self.textview.get_buffer().get_text(
@@ -269,6 +279,18 @@ class FastSDPlugin(Gimp.PlugIn):
         except (ValueError, TypeError):
             return False
 
+    def _get_plugin_version(self):
+        try:
+            with open(
+                os.path.join(config_path_dir, "gimp_openvino_config.json"),
+                "r",
+            ) as file:
+                config_path_output = json.load(file)
+
+            return config_path_output.get("plugin_version")
+        except Exception:
+            return None
+
     def run(
         self,
         procedure,
@@ -285,6 +307,7 @@ class FastSDPlugin(Gimp.PlugIn):
         self.fastsd_plugin_settings = FastSDPluginSettings()
         self.file_path = None
         self.executor = ThreadPoolExecutor()
+
         logo_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "..",
@@ -311,20 +334,25 @@ class FastSDPlugin(Gimp.PlugIn):
                 dialog.destroy()
 
             GimpUi.init("fastsd-plugin")
+            plugin_version = self._get_plugin_version()
+            if plugin_version:
+                plugin_title = f"FastSD - OpenVINO : {plugin_version}"
+            else:
+                plugin_title = "FastSD - OpenVINO"
 
             dialog = GimpUi.Dialog(
-                title="FastSD - OpenVINO",
+                title=plugin_title,
                 role="fastsd-plugin",
                 use_header_bar=False,
             )
-            dialog.set_default_size(400, 400)
+            dialog.set_default_size(450, 400)
             dialog.set_resizable(False)
 
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-            vbox.set_margin_top(10)
-            vbox.set_margin_bottom(10)
-            vbox.set_margin_start(10)
-            vbox.set_margin_end(10)
+            vbox.set_margin_top(20)
+            vbox.set_margin_bottom(20)
+            vbox.set_margin_start(20)
+            vbox.set_margin_end(20)
             logo = Gtk.Image.new_from_file(logo_path)
             vbox.pack_start(logo, False, False, 0)
 
@@ -334,13 +362,13 @@ class FastSDPlugin(Gimp.PlugIn):
             self.device_label.set_text("Loading settings please wait...")
             vbox.pack_start(self.device_label, False, False, 0)
 
-            prompt_label = Gtk.Label(label="Describe the image you want to generate :")
+            prompt_label = Gtk.Label(label="Describe the image you want to generate")
             prompt_label.set_halign(Gtk.Align.START)
             prompt_label.set_valign(Gtk.Align.CENTER)
             vbox.pack_start(prompt_label, False, False, 0)
             self.textview = Gtk.TextView()
             self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-            self.textview.set_size_request(-1, 50)
+            self.textview.set_size_request(-1, 70)
             vbox.pack_start(self.textview, False, False, 0)
 
             hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -351,12 +379,11 @@ class FastSDPlugin(Gimp.PlugIn):
             hbox.pack_start(Gtk.Label(), True, True, 0)
             hbox.pack_start(self.generate_button, False, False, 0)
 
-            # Create a grid
             grid = Gtk.Grid()
             grid.set_row_spacing(5)
             grid.set_column_spacing(10)
 
-            model_label = Gtk.Label(label="Model:")
+            model_label = Gtk.Label(label="OpenVINO Model")
             model_label.set_halign(Gtk.Align.START)
             model_label.set_valign(Gtk.Align.CENTER)
             self.model_combo = Gtk.ComboBoxText()
@@ -364,12 +391,12 @@ class FastSDPlugin(Gimp.PlugIn):
             grid.attach(model_label, 0, 0, 1, 1)
             grid.attach(self.model_combo, 1, 0, 1, 1)
 
-            inference_label = Gtk.Label(label="Number of inference steps:")
+            inference_label = Gtk.Label(label="Number of inference steps")
             inference_label.set_halign(Gtk.Align.START)
             inference_label.set_valign(Gtk.Align.CENTER)
 
             self.inference_scale = Gtk.SpinButton()
-            self.inference_scale.set_range(0, 50)
+            self.inference_scale.set_range(1, 50)
             self.inference_scale.set_value(self.fastsd_plugin_settings.inference_steps)
             self.inference_scale.set_increments(1, 10)
             self.inference_scale.set_input_purpose(Gtk.InputPurpose.NUMBER)
@@ -377,7 +404,7 @@ class FastSDPlugin(Gimp.PlugIn):
             grid.attach(inference_label, 0, 1, 1, 1)
             grid.attach(self.inference_scale, 1, 1, 1, 1)
 
-            width_label = Gtk.Label(label="Image Width:")
+            width_label = Gtk.Label(label="Image Width")
             width_label.set_halign(Gtk.Align.START)
             width_label.set_valign(Gtk.Align.CENTER)
 
@@ -391,7 +418,7 @@ class FastSDPlugin(Gimp.PlugIn):
             grid.attach(width_label, 0, 2, 1, 1)
             grid.attach(self.width_combo, 1, 2, 1, 1)
 
-            height_label = Gtk.Label(label="Image Height:")
+            height_label = Gtk.Label(label="Image Height")
             height_label.set_halign(Gtk.Align.START)
             height_label.set_valign(Gtk.Align.CENTER)
 
@@ -405,7 +432,7 @@ class FastSDPlugin(Gimp.PlugIn):
             grid.attach(height_label, 0, 3, 1, 1)
             grid.attach(self.height_combo, 1, 3, 1, 1)
 
-            seed_label = Gtk.Label(label="Seed :")
+            seed_label = Gtk.Label(label="Seed")
             seed_label.set_halign(Gtk.Align.START)
             seed_label.set_valign(Gtk.Align.CENTER)
 
@@ -415,7 +442,7 @@ class FastSDPlugin(Gimp.PlugIn):
             grid.attach(seed_label, 0, 4, 1, 1)
             grid.attach(self.seed, 1, 4, 1, 1)
 
-            guidance_label = Gtk.Label(label="Guidance Scale:")
+            guidance_label = Gtk.Label(label="Guidance Scale")
             guidance_label.set_halign(Gtk.Align.START)
             guidance_label.set_valign(Gtk.Align.CENTER)
 
@@ -467,7 +494,7 @@ class FastSDPlugin(Gimp.PlugIn):
                 else:
                     self.fastsd_plugin_settings.use_seed = False
 
-                self.generate_button.set_sensitive(False)
+                self.set_sensitive(False)
                 self.generate_button.set_label("Generating...")
                 self.generate_image(self.get_gen_settings())
 
@@ -475,7 +502,10 @@ class FastSDPlugin(Gimp.PlugIn):
 
             dialog.get_content_area().add(vbox)
             dialog.show_all()
-            _ = dialog.run()
+            response = dialog.run()
+            if response == Gtk.ResponseType.HELP:
+                url = "https://github.com/intel/openvino-ai-plugins-gimp.git"
+                Gio.app_info_launch_default_for_uri(url, None)
             dialog.destroy()
 
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
