@@ -857,7 +857,7 @@ class ModelManager:
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
                         
-                        optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
+                        optimum_ex = "optimum-cli"
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
