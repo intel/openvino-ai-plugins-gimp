@@ -8,13 +8,13 @@ There are two methods for installing the plugins in Linux:
  For Linux distributions supporting snaps (e.g. Ubuntu), the plugins can be installed along with the GIMP snap with these commands:
 
 ```
-sudo snap install gimp --channel preview/stable
-sudo snap install intel-npu-driver --beta # for NPU support
-sudo snap install openvino-toolkit-2404 --beta
-sudo snap install openvino-ai-plugins-gimp --beta
+sudo snap install gimp
+sudo snap install intel-npu-driver # for NPU support
+sudo snap install openvino-toolkit-2404
+sudo snap install openvino-ai-plugins-gimp
 ```
 
-More details can be found [here](https://github.com/snapcrafters/gimp/tree/preview?tab=readme-ov-file#openvino-ai-plugins).
+More details can be found [here](https://github.com/snapcrafters/gimp?tab=readme-ov-file#openvino-ai-plugins).
 
 # Building and installing the plugins manually
 
