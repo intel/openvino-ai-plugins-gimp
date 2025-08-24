@@ -45,7 +45,7 @@ deactivate
 
 # Copy to GIMP plugin dir
 echo "Installing plugin in $HOME/.config/GIMP/3.0/plug-ins"
-for d in openvino_utils semseg_ov stable_diffusion_ov superresolution_ov; do
+for d in openvino_utils semseg_ov stable_diffusion_ov superresolution_ov fastsd_ov; do
     mkdir -p "$HOME/.config/GIMP/3.0/plug-ins/$d"
     rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$HOME/.config/GIMP/3.0/plug-ins/."
 done
