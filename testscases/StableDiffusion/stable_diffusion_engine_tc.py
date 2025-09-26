@@ -19,7 +19,12 @@ import numpy as np
 from PIL import Image
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
 from openvino.runtime import Core
-from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
+
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
+
+from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path, SDOptionCache,config_path_dir
+
 from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import (
     stable_diffusion_engine,
     stable_diffusion_engine_genai,
@@ -31,9 +36,16 @@ from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov import 
     controlnet_canny_edge,
     controlnet_scribble,
     controlnet_openpose_advanced,
-    controlnet_cannyedge_advanced
+    controlnet_cannyedge_advanced,
+    stable_diffusion_engine_fastsd
+
 )
 
+from gimpopenvino.plugins.openvino_utils.tools.openvino_common.models_ov.fastsd.model_config import ModelConfig
+fast_sd_models_config = ModelConfig(os.path.join(config_path_dir, "fastsd_models.json")).load()
+fast_sd_models = fast_sd_models_config.get("models", [])
+fast_sd_models_up = [model.lower() for model in fast_sd_models]
+fast_sd_models_map = {model.lower(): model for model in fast_sd_models}
 
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO, stream=sys.stdout) 
 log = logging.getLogger()
@@ -147,6 +159,10 @@ def initialize_engine(model_name, model_path, device_list):
         return controlnet_openpose.ControlNetOpenPose(model=model_path, device=device_list)
     if model_name == "controlnet_referenceonly":
         return stable_diffusion_engine.StableDiffusionEngineReferenceOnly(model=model_path, device=device_list)
+    if model_name in  fast_sd_models:
+        return stable_diffusion_engine_fastsd.StableDiffusionEngineFastSD(
+            model=model_path, device=device_list, model_name=model_name
+        )
     return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list, model_name=model_name)
 
 def parse_args() -> argparse.Namespace:
@@ -233,6 +249,7 @@ def main():
     args = parse_args()
     results = []
     generation_time = []
+    use_fastsd = False
 
     if args.model_base_path:
         weight_path = args.model_base_path
@@ -245,6 +262,9 @@ def main():
     
     execution_devices = ["GPU"]*5
     
+    
+    model_name = args.model_name
+ 
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
@@ -271,28 +291,34 @@ def main():
         "controlnet_openpose_int8": ["stable-diffusion-ov", "controlnet-openpose-int8"],
         "controlnet_canny_int8": ["stable-diffusion-ov", "controlnet-canny-int8"],
         "controlnet_scribble_int8": ["stable-diffusion-ov", "controlnet-scribble-int8"],
-    }
-
+        }
+ 
     if args.list:
-        print(f"\nInstalled models: ")
+        print(f"\nPre installed models: ")
         for key in validate_model_paths(weight_path, model_paths).keys():
             print(f"{key}")
+        print("\n\nFastSD Models (installed at runtime):")
+        for fsd_model in fast_sd_models:
+            print(f"{fsd_model}")
         exit()
- 
-    model_name = args.model_name
-    model_path = os.path.join(weight_path, *model_paths.get(model_name))    
-    model_config_file_name = os.path.join(model_path, "config.json")
 
+    if model_name not in fast_sd_models_up:
+        model_path = os.path.join(weight_path, *model_paths.get(model_name))    
+        model_config_file_name = os.path.join(model_path, "config.json")
+    else:
+        model_path = ""
+        use_fastsd = True
+    
 
     try:
-        if args.power_mode is not None and os.path.exists(model_config_file_name):
+        if not use_fastsd and args.power_mode is not None and os.path.exists(model_config_file_name):
             with open(model_config_file_name, 'r') as file:
                 model_config = json.load(file)
                 if model_config['power modes supported'].lower() == "yes":
                     execution_devices = model_config[args.power_mode.lower()]
                 else:
                     execution_devices = model_config['best performance']
-        
+    
         # commandline over rides power mode config
         if args.text_device is not None:
             execution_devices[0] = args.text_device
@@ -305,7 +331,7 @@ def main():
 
     except (KeyError, FileNotFoundError, json.JSONDecodeError) as e:
         log.error(f"Error loading configuration: {e}. Only CPU will be used.")
-
+        
     print_system_info() 
     
     log.info('')
@@ -314,12 +340,16 @@ def main():
     for device in core.available_devices:
         log.info(f'  {device}  : {core.get_versions(device)[device].build_number}')
     log.info('')
-    log.info('Initializing Inference Engine...') 
-    log.info('Model Path: %s',model_path ) 
 
-    if "turbo" in model_name and args.guidance_scale > 1.0:
-        log.warning(f"Max guidance scale for {model_name} is 1.0, adjusting {args.guidance_scale} down to 1.0")
-        args.guidance_scale = 1.0
+    if not use_fastsd:
+        log.info('Initializing Inference Engine...') 
+        log.info('Model Path: %s',model_path ) 
+       
+        if "turbo" in model_name and args.guidance_scale > 1.0:
+            log.warning(f"Max guidance scale for {model_name} is 1.0, adjusting {args.guidance_scale} down to 1.0")
+            args.guidance_scale = 1.0
+    else:
+        log.info('Initializing FastSD engine...')
     
     prompt = args.prompt #"a beautiful artwork illustration, concept art sketch of an astronaut in white futuristic cybernetic armor in a dark cave, volumetric fog, godrays, high contrast, vibrant colors, vivid colors, high saturation, by Greg Rutkowski and Jesper Ejsing and Raymond Swanland and alena aenami, featured on artstation, wide angle, vertical orientation" 
     negative_prompt = args.neg_prompt # "lowres, bad quality, monochrome, cropped head, deformed face, bad anatomy" 
@@ -336,13 +366,16 @@ def main():
                     beta_schedule="scaled_linear" 
     ) 
     
-    engine = initialize_engine(model_name=model_name, model_path=model_path, device_list=execution_devices)
+    engine = None
+    if not use_fastsd:
+        engine = initialize_engine(model_name=model_name, model_path=model_path, device_list=execution_devices)
+    else:
+        engine = initialize_engine(fast_sd_models_map[model_name], model_name, execution_devices)
 
     current_time = datetime.now()
 
     # 24-hour format
     timestamp_24 = current_time.strftime("%Y%m%d-%H%M%S")
-       
 
     for i in range(0,args.num_images):
         log.info('Starting inference...') 
@@ -366,8 +399,20 @@ def main():
         
         
         start_time = time.time()
-
-        if model_name == "sd_1.5_inpainting" or model_name == "sd_1.5_inpainting_int8":
+        if use_fastsd:
+            # hard coding height and width to 512 for now
+            fastsd_h = 512
+            fastsd_w = 512 
+            output = engine(
+                    prompt=prompt,
+                    negative_prompt=None,
+                    height=fastsd_h,
+                    width=fastsd_w,
+                    num_inference_steps=num_infer_steps,
+                    guidance_scale=guidance_scale,
+                    seed=ran_seed,
+                )
+        elif model_name == "sd_1.5_inpainting" or model_name == "sd_1.5_inpainting_int8":
             output = engine(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -441,6 +486,7 @@ def main():
                  callback=progress_callback,
                  callback_userdata=conn,
             )                           
+       
         else:
             if model_name == "sd_2.1_square":
                 scheduler = EulerDiscreteScheduler(
@@ -471,6 +517,8 @@ def main():
 
         gen_time = time.time() - start_time
         print (f"Image Generation Time: {round(gen_time,2)} seconds")
+        if use_fastsd:
+            model_name = model_name.replace("/","_")
         results.append([output,model_name 
                         + "_" + timestamp_24 
                         + "_" + '_'.join(map(str,execution_devices)) 
@@ -486,7 +534,7 @@ def main():
     if args.save_image:
         index = 1
         for result in results:
-            if "sd_3.0" not in model_name and "lcm" not in model_name and "sdxl" not in model_name:
+            if not use_fastsd and "sd_3.0" not in model_name and "lcm" not in model_name and "sdxl" not in model_name:
                 cv2.imwrite(result[1] + "_" + str(index) + ".jpg", result[0])                         
             else:
                 result[0].save(result[1] + "_" + str(index) + ".jpg")
