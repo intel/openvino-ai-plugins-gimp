@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
 
+
 sys.path.extend(
     [os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils")]
 )
@@ -30,6 +31,8 @@ MODEL_DISPLAY_TEXT_MAX_LENGTH = 40
 STABLE_DIFFUSION_OV_SERVER = "stable_diffusion_ov_server.py"
 CONFIG_FILE = os.path.join(config_path_dir, "fastsd_models.json")
 FASTSD_CACHE_CONFIG = "gimp_openvino_run_fastsd.json"
+
+
 class ModelManagerDialog(Gtk.Dialog):
     """Dialog to add/remove models (persistent)."""
 
@@ -163,9 +166,7 @@ class SDRunner:
         self.config_path_output = config_path_output
         self.result = None
         self.sd_data = SDOptionCache(
-            os.path.join(
-                config_path_output["weight_path"], "..", FASTSD_CACHE_CONFIG
-            )
+            os.path.join(config_path_output["weight_path"], "..", FASTSD_CACHE_CONFIG)
         )
         self.saved_seed = self.sd_data.get("seed")
         self.seed = self.saved_seed
@@ -264,9 +265,12 @@ class FastSDPlugin(Gimp.PlugIn):
         return ["fastsd-plugin"]
 
     def _load_model_config(self):
-        config = self.models_config.load()
-        self.models = config.get("models", [])
-        self.device_name = config.get("device_name", "CPU")
+        self.config = self.models_config.load()
+        self.models = self.config.get("models", [])
+        self.device_name = self.config.get("device_name", "CPU")
+
+    def _get_current_device(self):
+        return self.config.get("device_name", "CPU")
 
     def init_ui_settings(self):
         self.models_config = ModelConfig(CONFIG_FILE)
@@ -294,7 +298,7 @@ class FastSDPlugin(Gimp.PlugIn):
             src_width = 512
             self.model_path = ""
             seed = None
-        
+
         buffer = self.prompt_text.get_buffer()
         buffer.set_text(prompt)
         self.inference_scale.set_value(num_infer_steps)
@@ -305,7 +309,6 @@ class FastSDPlugin(Gimp.PlugIn):
             self.find_index_by_text(self.height_combo, str(src_height))
         )
         self.guidance_scale.set_value(guidance_scale)
-        model_map = {}
         store = Gtk.ListStore(str, str)
         if self.models:
             for model in self.models:
@@ -313,13 +316,12 @@ class FastSDPlugin(Gimp.PlugIn):
                     short_model = model[:MODEL_DISPLAY_TEXT_MAX_LENGTH] + "..."
                 else:
                     short_model = model
-                model_map[short_model] = ""
                 store.append([short_model, model])
 
             self.model_combo.set_model(store)
             self.model_combo.set_active(0)
 
-        index = self.find_index_by_text(self.model_combo, self.model_path)
+        index = self.find_index_by_text(self.model_combo, self.model_path, 1)
         if index != -1:
             self.model_combo.set_active(index)
         else:
@@ -333,10 +335,7 @@ class FastSDPlugin(Gimp.PlugIn):
         for device_name in self.supported_devices:
             self.device_combo.append_text(device_name)
 
-        if "CPU" in self.supported_devices:
-            self.device_combo.set_active(
-                self.find_index_by_text(self.device_combo, self.device_name)
-            )
+        self._update_devices_combo(self.get_model_full_path())
 
     def do_create_procedure(self, name):
         procedure = Gimp.ImageProcedure.new(
@@ -354,11 +353,11 @@ class FastSDPlugin(Gimp.PlugIn):
         procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.ALWAYS)
         return procedure
 
-    def find_index_by_text(self, combo, target_text):
+    def find_index_by_text(self, combo, target_text, row_index=0):
         index = 0
         model = combo.get_model()
         for row in model:
-            if row[0] == target_text:
+            if row[row_index] == target_text:
                 return index
             index += 1
         return -1
@@ -398,7 +397,7 @@ class FastSDPlugin(Gimp.PlugIn):
             cwd=str(get_bin_dir(python_path)),
             close_fds=True,
         )
-        GLib.idle_add(lambda: self.generate_button.set_sensitive(True))
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((HOST, 65433))
@@ -409,8 +408,13 @@ class FastSDPlugin(Gimp.PlugIn):
                     while True:
                         data = conn.recv(1024)
                         if data.decode() == "Ready":
+                            GLib.idle_add(lambda: self.on_model_ready())
                             break
                     break
+
+    def on_model_ready(self):
+        self.is_model_loaded = True
+        self.set_sensitive(True)
 
     def set_sensitive(
         self,
@@ -422,11 +426,11 @@ class FastSDPlugin(Gimp.PlugIn):
         self.inference_scale.set_sensitive(sensitive)
         self.width_combo.set_sensitive(sensitive)
         self.height_combo.set_sensitive(sensitive)
-        self.generate_button.set_sensitive(sensitive)
         self.seed.set_sensitive(sensitive)
         self.guidance_scale.set_sensitive(sensitive)
         self.edit_models_btn.set_sensitive(sensitive)
         self.load_model_button.set_sensitive(sensitive)
+        self.device_combo.set_sensitive(sensitive)
 
     def update_gen_settings(self, sd_option_cache):
         prompt = self.prompt_text.get_buffer().get_text(
@@ -484,6 +488,34 @@ class FastSDPlugin(Gimp.PlugIn):
         )
         return config_path
 
+    def _update_devices_combo(
+        self,
+        model_name,
+    ):
+        cur_device = self.device_combo.get_active_text()
+        devices = self.supported_devices.copy()
+        if "square" not in model_name.lower():
+            self.device_combo.remove_all()
+            if "NPU" in devices:
+                devices.remove("NPU")
+            if "GPU" in devices:
+                if "int8" in model_name.lower():
+                    devices.remove("GPU")
+                if model_name == "rupeshs/sana-sprint-0.6b-openvino-int4":
+                    devices.remove("GPU")
+            for device_name in devices:
+                self.device_combo.append_text(device_name)
+        cur_index = self.find_index_by_text(self.device_combo, cur_device)
+        self.device_combo.set_active(cur_index if cur_index != -1 else 0)
+
+    def get_model_full_path(self):
+        tree_iter = self.model_combo.get_active_iter()
+        if tree_iter is not None:
+            model = self.model_combo.get_model()
+            model_path = model[tree_iter][1]
+            return model_path
+        return None
+
     def run(
         self,
         procedure,
@@ -503,6 +535,7 @@ class FastSDPlugin(Gimp.PlugIn):
         sd_option_cache = SDOptionCache(self._get_sd_options_path())
         self.supported_devices = []
         self.model_path = None
+        self.is_model_changed = False
         self.executor = ThreadPoolExecutor()
         self.init_ui_settings()
 
@@ -679,17 +712,51 @@ class FastSDPlugin(Gimp.PlugIn):
 
             self.set_sensitive(False)
             self.update_ui()
+
+            def on_device_changed(combo):
+                device = combo.get_active_text()
+                cur_device = self._get_current_device()
+                if self.is_model_loaded and not self.is_model_changed:
+                    self.generate_button.set_sensitive(device == cur_device)
+
+            def on_model_changed(combo):
+                self.is_model_changed = True
+                model_name = self.get_model_full_path()
+                cur_model = sd_option_cache.get("model_name")
+                if self.is_model_loaded:
+                    if model_name != cur_model:
+                        self.generate_button.set_sensitive(False)
+                    else:
+                        self.generate_button.set_sensitive(True)
+                self._update_devices_combo(model_name)
+                self.is_model_changed = False
+
+            self.device_combo.connect("changed", on_device_changed)
+            self.model_combo.connect("changed", on_model_changed)
+
             if is_server_running():
                 self.generate_button.set_sensitive(True)
+                self.is_model_loaded = True
+                current_model = sd_option_cache.get("model_name")
+                self.device_combo.set_active(
+                    self.find_index_by_text(
+                        self.device_combo,
+                        self._get_current_device(),
+                    )
+                )
+                mindex = self.find_index_by_text(
+                    self.model_combo,
+                    current_model,
+                    1,
+                )
+                self.model_combo.set_active(mindex)
             else:
                 self.generate_button.set_sensitive(False)
+                self.is_model_loaded = False
 
             def on_load_model_clicked(button):
-                tree_iter = self.model_combo.get_active_iter()
-                if tree_iter is not None:
-                    model = self.model_combo.get_model()
-                    model_path = model[tree_iter][1]
-                self.model_path = model_path
+                self.model_path = self.get_model_full_path()
+
                 server = STABLE_DIFFUSION_OV_SERVER
                 server_path = os.path.join(
                     os.path.dirname(os.path.realpath(__file__)),
@@ -699,18 +766,25 @@ class FastSDPlugin(Gimp.PlugIn):
                     server,
                 )
                 selected_device = self.device_combo.get_active_text()
-
+                self.set_sensitive(False)
+                self.is_model_loaded = False
                 run_load_model_thread = Thread(
                     target=self.async_load_models,
                     args=(
                         python_path,
                         server_path,
-                        model_path,
+                        self.model_path,
                         [selected_device],
                         "",
                         True,
                         dialog,
                     ),
+                )
+
+                sd_option_cache.set("model_name", self.model_path)
+                sd_option_cache.save()
+                self.models_config.save(
+                    "device_name", self.device_combo.get_active_text()
                 )
                 run_load_model_thread.start()
 

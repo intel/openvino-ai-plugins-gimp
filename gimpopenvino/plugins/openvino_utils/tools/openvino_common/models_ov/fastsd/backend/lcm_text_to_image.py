@@ -36,18 +36,10 @@ except ImportError:
     LCMScheduler = None
 
 
-from constants import DEVICE, GGUF_THREADS
+from constants import DEVICE
 
 from image_ops import resize_pil_image
 from backend.openvino.ov_hc_stablediffusion_pipeline import OvHcLatentConsistency
-from backend.gguf.gguf_diffusion import (
-    GGUFDiffusion,
-    ModelConfig,
-    Txt2ImgConfig,
-    SampleMethod,
-)
-from paths import get_app_path
-from pprint import pprint
 
 try:
     # support for token merging; keeping it optional for now
@@ -92,29 +84,6 @@ class LCMTextToImage:
             torch_dtype=self.torch_data_type,
         )
 
-    def _add_freeu(self):
-        pipeline_class = self.pipeline.__class__.__name__
-        if isinstance(self.pipeline.scheduler, LCMScheduler):
-            if pipeline_class == "StableDiffusionPipeline":
-                print("Add FreeU - SD")
-                self.pipeline.enable_freeu(
-                    s1=0.9,
-                    s2=0.2,
-                    b1=1.2,
-                    b2=1.4,
-                )
-            elif pipeline_class == "StableDiffusionXLPipeline":
-                print("Add FreeU - SDXL")
-                self.pipeline.enable_freeu(
-                    s1=0.6,
-                    s2=0.4,
-                    b1=1.1,
-                    b2=1.2,
-                )
-
-    def _enable_vae_tiling(self):
-        self.pipeline.vae.enable_tiling()
-
     def _update_lcm_scheduler_params(self):
         if isinstance(self.pipeline.scheduler, LCMScheduler):
             self.pipeline.scheduler = LCMScheduler.from_config(
@@ -127,12 +96,9 @@ class LCMTextToImage:
         return "square" in self.ov_model_id.lower()
 
     def _load_ov_hetero_pipeline(self):
-        print("Loading Heterogeneous Compute pipeline")
-        if self.device.upper() == "NPU":
-            device = ["NPU", "NPU", "NPU"]
-            self.pipeline = OvHcLatentConsistency(self.ov_model_id, device)
-        else:
-            self.pipeline = OvHcLatentConsistency(self.ov_model_id)
+        device_name = self.device.upper()
+        device = [device_name] * 3
+        self.pipeline = OvHcLatentConsistency(self.ov_model_id,device)
 
     def _generate_images_hetero_compute(
         self,
@@ -270,12 +236,6 @@ class LCMTextToImage:
                         )
             elif lcm_diffusion_setting.use_gguf_model:
                 model = lcm_diffusion_setting.gguf_model.diffusion_path
-                print(f"***** Init Text to image (GGUF) - {model} *****")
-                # if self.pipeline:
-                #     self.pipeline.terminate()
-                #     del self.pipeline
-                #     self.pipeline = None
-                self._init_gguf_diffusion(lcm_diffusion_setting)
             else:
                 if self.pipeline or self.img_to_img_pipeline:
                     self.pipeline = None
@@ -346,9 +306,6 @@ class LCMTextToImage:
                 else:
                     if not lcm_diffusion_setting.use_gguf_model and not lcm_diffusion_setting.use_openvino:
                         self._update_lcm_scheduler_params()
-
-            if use_lora:
-                self._add_freeu()
 
             self.previous_model_id = model_id
             self.previous_ov_model_id = self.ov_model_id
@@ -462,8 +419,6 @@ class LCMTextToImage:
 
         if is_openvino_pipe and self._is_hetero_pipeline():
             return self._generate_images_hetero_compute(lcm_diffusion_setting)
-        elif lcm_diffusion_setting.use_gguf_model:
-            return self._generate_images_gguf(lcm_diffusion_setting)
 
         if lcm_diffusion_setting.clip_skip > 1:
             # We follow the convention that "CLIP Skip == 2" means "skip
@@ -565,42 +520,3 @@ class LCMTextToImage:
 
         return result_images
 
-    def _init_gguf_diffusion(
-        self,
-        lcm_diffusion_setting: LCMDiffusionSetting,
-    ):
-        config = ModelConfig()
-        config.model_path = lcm_diffusion_setting.gguf_model.diffusion_path
-        config.diffusion_model_path = lcm_diffusion_setting.gguf_model.diffusion_path
-        config.clip_l_path = lcm_diffusion_setting.gguf_model.clip_path
-        config.t5xxl_path = lcm_diffusion_setting.gguf_model.t5xxl_path
-        config.vae_path = lcm_diffusion_setting.gguf_model.vae_path
-        config.n_threads = GGUF_THREADS
-        print(f"GGUF Threads : {GGUF_THREADS} ")
-        print("GGUF - Model config")
-        pprint(lcm_diffusion_setting.gguf_model.model_dump())
-        self.pipeline = GGUFDiffusion(
-            get_app_path(),  # Place DLL in fastsdcpu folder
-            config,
-            True,
-        )
-
-    def _generate_images_gguf(
-        self,
-        lcm_diffusion_setting: LCMDiffusionSetting,
-    ):
-        if lcm_diffusion_setting.diffusion_task == DiffusionTask.text_to_image.value:
-            t2iconfig = Txt2ImgConfig()
-            t2iconfig.prompt = lcm_diffusion_setting.prompt
-            t2iconfig.batch_count = lcm_diffusion_setting.number_of_images
-            t2iconfig.cfg_scale = lcm_diffusion_setting.guidance_scale
-            t2iconfig.height = lcm_diffusion_setting.image_height
-            t2iconfig.width = lcm_diffusion_setting.image_width
-            t2iconfig.sample_steps = lcm_diffusion_setting.inference_steps
-            t2iconfig.sample_method = SampleMethod.EULER
-            if lcm_diffusion_setting.use_seed:
-                t2iconfig.seed = lcm_diffusion_setting.seed
-            else:
-                t2iconfig.seed = -1
-
-            return self.pipeline.generate_text2mg(t2iconfig)

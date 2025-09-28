@@ -290,7 +290,6 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
             output.save(os.path.join(weight_path, "..", image))
             src_width, src_height = output.size   
 
-            options.set("model_name", model_name)
             options.set("src_height",src_height)
             options.set("src_width", src_width)
             options.set("inference_status", "success")

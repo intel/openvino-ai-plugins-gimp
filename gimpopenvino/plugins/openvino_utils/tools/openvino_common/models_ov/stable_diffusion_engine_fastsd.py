@@ -35,6 +35,8 @@ class StableDiffusionEngineFastSD:
         self.config.lcm_diffusion_setting.use_openvino = True
         print(f"Setting DEVICE to {self.device}")
         os.environ["DEVICE"] = self.device
+        self.context.init(self.device, self.config)
+        print("Model loaded successfully.")
 
     def _is_reshape_required(
         self,
@@ -45,7 +47,6 @@ class StableDiffusionEngineFastSD:
     ) -> bool:
         reshape_required = False
         if prev_width != cur_width or prev_height != cur_height:
-            print("Reshape and compile")
             reshape_required = True
 
         return reshape_required

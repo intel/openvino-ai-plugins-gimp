@@ -29,6 +29,12 @@ class Context:
     @property
     def error(self):
         return self._error
+    
+    def init(self, device, settings: Settings):
+        self.lcm_text_to_image.init(
+                device,
+                settings.lcm_diffusion_setting,
+            )
 
     def generate_text_to_image(
         self,
@@ -41,23 +47,17 @@ class Context:
             self._error = ""
             tick = perf_counter()
             from state import get_settings
-
             if (
                 settings.lcm_diffusion_setting.diffusion_task
                 == DiffusionTask.text_to_image.value
             ):
                 settings.lcm_diffusion_setting.init_image = None
-
             if save_config:
                 get_settings().save()
 
             if not settings.lcm_diffusion_setting.lcm_lora:
                 return None
-            self.lcm_text_to_image.init(
-                device,
-                settings.lcm_diffusion_setting,
-            )
-
+            
             images = self.lcm_text_to_image.generate(
                 settings.lcm_diffusion_setting,
                 reshape,
