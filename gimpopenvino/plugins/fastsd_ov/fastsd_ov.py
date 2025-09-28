@@ -494,8 +494,11 @@ class FastSDPlugin(Gimp.PlugIn):
     ):
         cur_device = self.device_combo.get_active_text()
         devices = self.supported_devices.copy()
-        if "square" not in model_name.lower():
-            self.device_combo.remove_all()
+        self.device_combo.remove_all()
+        if "square" in model_name.lower():
+            for device_name in devices:
+                self.device_combo.append_text(device_name)
+        else:
             if "NPU" in devices:
                 devices.remove("NPU")
             if "GPU" in devices:
