@@ -94,11 +94,12 @@ setup(
         "scikit-image",
         "timm==0.4.5",
         "transformers>=4.37.0",
-        "diffusers",
+        "diffusers==0.33.0",
         "controlnet-aux>=0.0.6",
         "openvino",
         "psutil",
-        "matplotlib"
+        "matplotlib",
+        "sentencepiece"
     ],
 )
 

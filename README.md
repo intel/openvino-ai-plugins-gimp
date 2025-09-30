@@ -15,6 +15,7 @@
     * SD 3.0 Medium
     * SD 3.5 Medium Turbo
     * SDXL (Turbo, Base)
+4. [FastSD](https://github.com/rupeshs/fastsdcpu) 
 
 
 # Objectives
@@ -110,6 +111,14 @@ _Note that the screenshots below are based on the previous UI_
 
 ### OpenVINO™ Super Resolution Plugin
 ![](gifs/super-res.webp)
+
+### FastSD Plugin
+![FastSD plugin screenshot](gifs/fastsd-plugin.png)
+FastSD is a faster version of stable diffusion based on Latent Consistency Models and Adversarial Diffusion Distillation. It Supports CPU/GPU/NPU faster inference using OpenVINO.
+- FastSD models can be edited by using the Model Manager
+- FLUX.1-schnell (3 to 4 steps),SANA sprint model (2 steps) support
+
+Note: For NPU usage please use the `rupeshs/sd15-lcm-square-openvino-int8` model.
 
 
 # Acknowledgements
