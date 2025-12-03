@@ -246,8 +246,8 @@ g_installable_base_model_map = {
     "sd_15_inpainting":
     {
         "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "stabilityai/stable-diffusion-2-inpainting",
-        "download_exclude_filters": ["512-inpainting-ema.ckpt", "512-inpainting-ema.safetensors", "*.bin","*.fp16.safetensors"],
+        "repo_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+        "download_exclude_filters": [],
     },
 
     "sd_15_openpose":
