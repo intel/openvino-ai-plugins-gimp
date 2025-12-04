@@ -126,6 +126,12 @@ g_supported_model_map = {
         "install_id": "sd_15_inpainting",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
     },
+    "sdxl_inpainting":
+    {
+        "name": "Stable Diffusion XL [Inpainting] [FP16]",
+        "install_id": "sdxl_inpainting",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
+    },
 
     "controlnet_openpose":
     {
@@ -244,9 +250,16 @@ g_installable_base_model_map = {
     },
 
     "sd_15_inpainting":
+     {
+         "name": "Stable Diffusion 1.5 Inpainting",
+         "repo_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+         "download_exclude_filters": [],
+     },
+
+    "sdxl_inpainting":
     {
-        "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+        "name": "Stable Diffusion XL Inpainting",
+        "repo_id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
         "download_exclude_filters": [],
     },
 
@@ -860,7 +873,7 @@ class ModelManager:
                         optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
-                        if(model_id != "sd_15_inpainting"):
+                        if("inpainting" not in model_id):
                             config = { 	"power modes supported": "No",
                                             "best performance" : ["GPU","GPU","GPU"]
                                     }
@@ -887,7 +900,7 @@ class ModelManager:
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
                                 json.dump(config, json_file, indent=4)
 
-                        if model_id == "sd_15_inpainting":
+                        if "inpainting" in model_id:
                             self.model_install_status[model_id]["status"] = "Converting Model"
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
                         else:

@@ -726,7 +726,8 @@ def run(procedure, run_mode, image, layer, config, data):
 
         # spinner
         spinner = Gtk.Spinner()
-        grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.BOTTOM, 1, 1)
+        # grid.attach_next_to(spinner, sd_run_label, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach(spinner, 3,3, 1, 1)
 
         # Show Logo
         logo = Gtk.Image.new_from_file(image_paths["logo"])
