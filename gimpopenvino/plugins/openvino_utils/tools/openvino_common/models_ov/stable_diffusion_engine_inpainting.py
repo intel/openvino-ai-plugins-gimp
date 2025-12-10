@@ -9,7 +9,7 @@ import inspect
 from typing import List, Optional, Union, Dict
 import numpy as np
 # openvino
-from openvino.runtime import Core, Model
+from openvino import Core, Model
 # tokenizer
 from transformers import CLIPTokenizer
 import torch

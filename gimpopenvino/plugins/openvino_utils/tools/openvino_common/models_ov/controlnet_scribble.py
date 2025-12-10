@@ -30,7 +30,7 @@ import time
 
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
-from openvino.runtime import Model, Core
+from openvino import Model, Core
 from collections import namedtuple
 
 from controlnet_aux import HEDdetector

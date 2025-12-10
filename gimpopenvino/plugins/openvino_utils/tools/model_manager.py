@@ -1060,6 +1060,7 @@ class ModelManager:
                 "sd_15_portrait",
                 "sd_15_landscape",
                 "sd_15_inpainting",
+                "sdxl_inpainting",
                 "sd_15_LCM",
                 "sdxl_base",
                 "sdxl_turbo",
