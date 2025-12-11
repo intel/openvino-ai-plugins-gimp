@@ -866,6 +866,7 @@ class ModelManager:
                             shutil.rmtree(full_install_path)
                         else:
                             os.makedirs(full_install_path)
+                            time.sleep(1) # give time for os to create folder
 
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
@@ -921,6 +922,14 @@ class ModelManager:
                                 model_name="sdxl_turbo_square"
                         if "sdxl_base" in model_id:
                                 model_name="sdxl_base_1.0_square"
+                        if "sdxl_inpainting" in model_id:
+                                model_name="sdxl_inpainting"
+                                self.model_install_status[model_id]["status"] = "Compiling Model"
+                                stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
+                                if config["power modes supported"] == "yes":
+                                    stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["GPU","NPU","GPU"])
+                                    stable_diffusion_engine_inpaintinggenai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["NPU","NPU","GPU"])                                 
+                                                                     
                         if "sdxl" in model_id:
                                 self.model_install_status[model_id]["status"] = "Compiling Model"
                                 stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
