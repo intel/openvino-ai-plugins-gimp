@@ -22,7 +22,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-from models_ov import (stable_diffusion_engine_genai)
+from models_ov import (stable_diffusion_engine_genai, stable_diffusion_engine_inpainting_genai)
 from gimpopenvino.install_utils import *
 
 
@@ -864,9 +864,9 @@ class ModelManager:
                         print("Download path",full_download_folder)
                         if os.path.isdir(full_install_path):
                             shutil.rmtree(full_install_path)
-                        else:
-                            os.makedirs(full_install_path)
-                            time.sleep(1) # give time for os to create folder
+                        
+                        os.makedirs(full_install_path, exist_ok=True)
+                        time.sleep(1) # give time for os to create folder
 
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
@@ -925,12 +925,9 @@ class ModelManager:
                         if "sdxl_inpainting" in model_id:
                                 model_name="sdxl_inpainting"
                                 self.model_install_status[model_id]["status"] = "Compiling Model"
-                                stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
-                                if config["power modes supported"] == "yes":
-                                    stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["GPU","NPU","GPU"])
-                                    stable_diffusion_engine_inpaintinggenai.StableDiffusionEngineInpaintingGenai(model=full_install_path,model_name=model_name,device=["NPU","NPU","GPU"])                                 
+                                stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,device="GPU")                                 
                                                                      
-                        if "sdxl" in model_id:
+                        elif "sdxl" in model_id:
                                 self.model_install_status[model_id]["status"] = "Compiling Model"
                                 stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
                                 if config["power modes supported"] == "yes":
