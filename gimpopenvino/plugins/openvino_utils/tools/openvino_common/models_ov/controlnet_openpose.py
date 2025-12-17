@@ -31,7 +31,7 @@ import time
 
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
-from openvino.runtime import Model, Core
+from openvino import Model, Core
 from collections import namedtuple
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
     

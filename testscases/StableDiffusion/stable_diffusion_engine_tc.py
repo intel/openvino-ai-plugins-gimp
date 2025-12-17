@@ -22,7 +22,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, LCMScheduler, EulerDiscreteScheduler
-from openvino.runtime import Core
+from openvino import Core
 
 # Local imports
 sys.path.extend(

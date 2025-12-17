@@ -7,7 +7,7 @@ import inspect
 from typing import Union, Optional, Any, List, Dict
 import numpy as np
 # openvino
-from openvino.runtime import Core
+from openvino import Core
 # tokenizer
 from transformers import CLIPTokenizer
 import torch

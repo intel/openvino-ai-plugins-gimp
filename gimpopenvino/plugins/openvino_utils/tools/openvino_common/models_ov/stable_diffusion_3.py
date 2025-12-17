@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union, Any
 import os
 
-from openvino.runtime import Core
+from openvino import Core
 import concurrent.futures
 
 import torch
