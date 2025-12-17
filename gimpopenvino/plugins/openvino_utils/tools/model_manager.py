@@ -22,7 +22,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-from models_ov import (stable_diffusion_engine_genai)
+from models_ov import (stable_diffusion_engine_genai, stable_diffusion_engine_inpainting_genai)
 from gimpopenvino.install_utils import *
 
 
@@ -125,6 +125,12 @@ g_supported_model_map = {
         "name": "Stable Diffusion 1.5 [Inpainting] [FP16]",
         "install_id": "sd_15_inpainting",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
+    },
+    "sdxl_inpainting":
+    {
+        "name": "Stable Diffusion XL [Inpainting] [FP16]",
+        "install_id": "sdxl_inpainting",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
     },
 
     "controlnet_openpose":
@@ -244,10 +250,17 @@ g_installable_base_model_map = {
     },
 
     "sd_15_inpainting":
+     {
+         "name": "Stable Diffusion 1.5 Inpainting",
+         "repo_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+         "download_exclude_filters": [],
+     },
+
+    "sdxl_inpainting":
     {
-        "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "stabilityai/stable-diffusion-2-inpainting",
-        "download_exclude_filters": ["512-inpainting-ema.ckpt", "512-inpainting-ema.safetensors", "*.bin","*.fp16.safetensors"],
+        "name": "Stable Diffusion XL Inpainting",
+        "repo_id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+        "download_exclude_filters": [],
     },
 
     "sd_15_openpose":
@@ -851,8 +864,9 @@ class ModelManager:
                         print("Download path",full_download_folder)
                         if os.path.isdir(full_install_path):
                             shutil.rmtree(full_install_path)
-                        else:
-                            os.makedirs(full_install_path)
+                        
+                        os.makedirs(full_install_path, exist_ok=True)
+                        time.sleep(1) # give time for os to create folder
 
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
@@ -860,7 +874,7 @@ class ModelManager:
                         optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
-                        if(model_id != "sd_15_inpainting"):
+                        if("inpainting" not in model_id):
                             config = { 	"power modes supported": "No",
                                             "best performance" : ["GPU","GPU","GPU"]
                                     }
@@ -887,7 +901,7 @@ class ModelManager:
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
                                 json.dump(config, json_file, indent=4)
 
-                        if model_id == "sd_15_inpainting":
+                        if "inpainting" in model_id:
                             self.model_install_status[model_id]["status"] = "Converting Model"
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
                         else:
@@ -908,7 +922,12 @@ class ModelManager:
                                 model_name="sdxl_turbo_square"
                         if "sdxl_base" in model_id:
                                 model_name="sdxl_base_1.0_square"
-                        if "sdxl" in model_id:
+                        if "sdxl_inpainting" in model_id:
+                                model_name="sdxl_inpainting"
+                                self.model_install_status[model_id]["status"] = "Compiling Model"
+                                stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,device="GPU")                                 
+                                                                     
+                        elif "sdxl" in model_id:
                                 self.model_install_status[model_id]["status"] = "Compiling Model"
                                 stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
                                 if config["power modes supported"] == "yes":
@@ -1047,6 +1066,7 @@ class ModelManager:
                 "sd_15_portrait",
                 "sd_15_landscape",
                 "sd_15_inpainting",
+                "sdxl_inpainting",
                 "sd_15_LCM",
                 "sdxl_base",
                 "sdxl_turbo",

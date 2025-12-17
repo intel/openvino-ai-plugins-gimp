@@ -77,6 +77,7 @@ def run(model_name, available_devices, power_mode):
             "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
             "sdxl_base_1.0_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_base"],
             "sdxl_turbo_square": ["stable-diffusion-ov", "stable-diffusion-xl", "square_turbo"],
+            "sdxl_inpainting": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
             "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
             "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
             "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
@@ -200,7 +201,7 @@ def initialize_engine(model_name, model_path, device_list):
         device_list = ["GPU"]
         log.info('Device list: %s', device_list)
         return stable_diffusion_3.StableDiffusionThreeEngine(model=model_path, device=device_list)
-    if model_name == "sd_1.5_inpainting":
+    if "inpainting" in model_name:
         return stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=model_path, device=device_list[0])
     if model_name in ("sd_1.5_square_lcm","sdxl_base_1.0_square","sdxl_turbo_square","sd_3.0_med_diffuser_square","sd_3.5_med_turbo_square"):
         return stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=model_path,model_name=model_name,device=device_list)
@@ -347,7 +348,7 @@ def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
 
             start_time = time.time()
             
-            if model_name == "sd_1.5_inpainting" or model_name == "sd_1.5_inpainting_int8":
+            if "inpainting" in model_name:
                 output = engine(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
