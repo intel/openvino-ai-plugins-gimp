@@ -103,22 +103,15 @@ def run(model_name, available_devices, power_mode):
         # Default path if model_name is not in the dictionary
         default_path = ["stable-diffusion-ov", "stable-diffusion-1.4"]
         if "GPU" in available_devices:
-            if "GPU" in available_devices:
-        default_config = {
-                 "power modes supported" : "no",
-                 "best performance" : ["GPU", "GPU","GPU", "GPU"]
-                    }
+            default_config = {
+            "power modes supported" : "no",
+            "best performance" : ["GPU", "GPU", "GPU", "GPU"]
+            }
         else:
             default_config = {
             "power modes supported" : "no",
-            "best performance" : ["CPU", "CPU","CPU", "CPU"]
+            "best performance" : ["CPU", "CPU", "CPU", "CPU"]
             }
-        
-        else:
-        default_config = {
-         "power modes supported" : "no",
-         "best performance" : ["CPU", "CPU","CPU", "CPU"]
-        }
         
         model_path = os.path.join(weight_path, *model_paths.get(model_name, default_path))
 

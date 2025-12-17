@@ -1177,13 +1177,15 @@ class ModelManager:
         
         # Default config is that everything should be on GPU, if we have it. 
         if "GPU" in core.get_available_devices():
-            config_fp_16 = config_int8 = { 	"power modes supported": "No",
+            config_fp_16 = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU","GPU"]
                  }
+            config_int8 = config_fp_16.copy()
         else:
-            config_fp_16 = config_int8 = { 	"power modes supported": "No",
+            config_fp_16 = { 	"power modes supported": "No",
                     "best performance" : ["CPU","CPU","CPU","CPU"] }
-         
+            config_int8 = config_fp_16.copy()
+            
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
             print("Downloading Intel/sd-1.5-square-quantized Models")
