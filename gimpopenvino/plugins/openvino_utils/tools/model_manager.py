@@ -512,13 +512,19 @@ class ModelManager:
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
 
-                config = { 	"power modes supported": "No",
+                if "GPU" in self._core.get_available_devices():
+                    config = { 	"power modes supported": "No",
                                 "best performance" : ["GPU","GPU","GPU"]
-                        }
+                            }
+                else:
+                    config = { 	"power modes supported": "No",
+                                "best performance" : ["CPU","CPU","CPU"]
+                            }
                 
                 npu_is_available = self._npu_is_available
                 npu_arch = self._npu_arch
-                                                        
+
+                # if we have an NPU, we must have a GPU as well.                                        
                 if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
                     config = { 	"power modes supported": "yes",
                                     "best performance" : ["GPU","GPU","GPU"],
@@ -861,11 +867,16 @@ class ModelManager:
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
-                            config = { 	"power modes supported": "No",
-                                            "best performance" : ["GPU","GPU","GPU"]
-                                    }
+                            if "GPU" in self._core.get_available_devices():
+                                config = { 	"power modes supported": "No",
+                                             "best performance" : ["GPU","GPU","GPU"]
+                                         }
+                            else:
+                                config = { 	"power modes supported": "No",
+                                            "best performance" : ["CPU","CPU","CPU"]
+                                         }
                             
-
+                            # if we have an NPU, we must have a GPU as well.
                             npu_is_available = self._npu_is_available
                             npu_arch = self._npu_arch
                             if npu_is_available:
@@ -1164,13 +1175,15 @@ class ModelManager:
 
         download_success = True
         
-        # Default config is that everything should be on GPU.
-        config_fp_16 = { 	"power modes supported": "No",
+        # Default config is that everything should be on GPU, if we have it. 
+        if "GPU" in core.get_available_devices():
+            config_fp_16 = config_int8 = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU","GPU"]
                  }
-        config_int8 = { 	"power modes supported": "No",
-                    "best performance" : ["GPU","GPU","GPU","GPU"]
-                 }
+        else:
+            config_fp_16 = config_int8 = { 	"power modes supported": "No",
+                    "best performance" : ["CPU","CPU","CPU","CPU"] }
+         
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
             print("Downloading Intel/sd-1.5-square-quantized Models")
@@ -1301,10 +1314,15 @@ class ModelManager:
             print("Downloading Intel/sd-1.5-lcm-openvino")
             download_success = self._download_model(model_id)
 
-        # Default config is that everything should be on GPU.
-        config = { 	"power modes supported": "No",
-                    "best performance" : ["GPU","GPU","GPU"]
-                 }
+        # Default config is that everything should be on GPU, if we have it.
+        if "GPU" in core.get_available_devices():
+            config = { 	"power modes supported": "No",
+                        "best performance" : ["GPU","GPU","GPU"]
+                     }
+        else:
+            config = { 	"power modes supported": "No",
+                        "best performance" : ["CPU","CPU","CPU"]
+                     }
 
         if npu_is_available:
             if download_success:
