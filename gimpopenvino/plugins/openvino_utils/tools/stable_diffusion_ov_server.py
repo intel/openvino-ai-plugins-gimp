@@ -103,17 +103,24 @@ def run(model_name, available_devices, power_mode):
 
         # Default path if model_name is not in the dictionary
         default_path = ["stable-diffusion-ov", "stable-diffusion-1.4"]
-        default_config = {
+        if "GPU" in available_devices:
+            default_config = {
             "power modes supported" : "no",
-            "best performance" : ["GPU", "GPU","GPU", "GPU"]
-        }
+            "best performance" : ["GPU", "GPU", "GPU", "GPU"]
+            }
+        else:
+            default_config = {
+            "power modes supported" : "no",
+            "best performance" : ["CPU", "CPU", "CPU", "CPU"]
+            }
+        
         model_path = os.path.join(weight_path, *model_paths.get(model_name, default_path))
 
         log.info('Initializing Inference Engine...')
         log.info('Model Path: %s', model_path)
         device_list = ["CPU"] * 5
         model_config_file_name = os.path.join(model_path, "config.json")
-        
+
         try:
             if os.path.exists(model_config_file_name):
                 with open(model_config_file_name, 'r') as file:

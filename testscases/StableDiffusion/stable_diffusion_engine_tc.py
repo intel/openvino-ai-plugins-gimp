@@ -242,6 +242,18 @@ def main() -> int:
 
     model_name_key = (args.model_name or "").lower()
 
+    if args.model_base_path:
+        weight_path = args.model_base_path
+    else:
+        weight_path = get_weight_path()
+    
+    # Check if the directory path exists
+    if not os.path.exists(weight_path):
+        raise FileNotFoundError(f"The directory path {weight_path} does not exist.")
+    
+    available_devices = Core().get_available_devices()
+    execution_devices = ["GPU"]*5 if "GPU" in available_devices else ["CPU"]*5
+    
     model_paths = {
         "sd_1.4": ["stable-diffusion-ov", "stable-diffusion-1.4"],
         "sd_1.5_square_lcm": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_lcm"],
