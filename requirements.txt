@@ -4,4 +4,6 @@ optimum
 optimum-intel 
 peft
 pydantic
+tomesd
+hf_xet 
 transformers<=4.56.2

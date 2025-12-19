@@ -80,6 +80,7 @@ def run(model_name, available_devices, power_mode):
             "sdxl_inpainting": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
             "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
             "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
+			"sd_1.5_square_fp8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
             "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
             "sd_1.5_square_int8a16": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
             "sd_3.0_med_diffuser_square": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
@@ -200,7 +201,6 @@ def run(model_name, available_devices, power_mode):
                     handle_client_data(data, conn, engine, model_name, model_path, scheduler)
 
 def initialize_engine(model_name, model_path, device_list):
-
     if model_name == "sd_1.5_square_int8":
         log.info('Device list: %s', device_list)
         return stable_diffusion_engine.StableDiffusionEngineAdvanced(model=model_path, device=device_list)
@@ -237,7 +237,6 @@ def initialize_engine(model_name, model_path, device_list):
             model=model_path, device=device_list, model_name=model_name
         )
     return stable_diffusion_engine.StableDiffusionEngine(model=model_path, device=device_list, model_name=model_name)
-
 
 def handle_client_data(data, conn, engine, model_name, model_path, scheduler):
     if data.decode() == "kill":

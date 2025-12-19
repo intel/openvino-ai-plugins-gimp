@@ -25,6 +25,7 @@ class NPUArchitecture(Enum):
     ARCH_3700 = "3700" # Keem Bay
     ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
     ARCH_4000 = "4000" # Lunar Lake
+    ARCH_5000 = "5000" # Panther Lake
     ARCH_NONE = "0000" # No NPU
     ARCH_NEXT = "FFFF" # Next Lake
 
