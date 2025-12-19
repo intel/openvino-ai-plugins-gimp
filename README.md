@@ -81,9 +81,6 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 5. Follow steps 4,5 from section A.
 6. Click on “Generate”. Wait for the total inference steps to get completed.
 
-![](gifs/controlnet-openpose.png)
-
-
 #### E. Stable-Diffusion-1.5 Controlnet-CannyEdge - Make sure to download and convert the model during install process.
 1. Open an image that you want to use for generating the new image.
 2. Select Stable Diffusion from the drop down list in layers -> OpenVINO-AI-Plugins
@@ -127,7 +124,7 @@ The very first time you do "Load Models", it may take a few minutes. Subsequent 
 FastSD is a faster version of stable diffusion based on Latent Consistency Models and Adversarial Diffusion Distillation. It Supports CPU/GPU/NPU faster inference using OpenVINO.
 - FastSD models can be edited by using the FastSD Model Manager
 - FLUX.1-schnell (3 to 4 steps),SANA sprint model (2 steps) support
-- Models are downloaded at runtime, the first time the model is used. 
+- ⚠️ Models are downloaded at runtime, the first time the model is used, hence the initial generation may take some time. Subsequent image generation will be more performant.
 
 Note: For NPU usage please use the `rupeshs/sd15-lcm-square-openvino-int8` model.
 
@@ -135,6 +132,7 @@ Note: For NPU usage please use the `rupeshs/sd15-lcm-square-openvino-int8` model
 # Acknowledgements
 * Plugin architecture inspired from GIMP-ML - https://github.com/kritiksoman/GIMP-ML/tree/GIMP3-ML
 * Stable Diffusion Engine - https://github.com/bes-dev/stable_diffusion.openvino
+* Rupesh Sreeraman for his contribution of FastSD to the repo, and for being an Intel&reg; Software Innovator for OpenVINO&trade; champion! - https://github.com/rupeshs
 
 # License
 Apache 2.0
