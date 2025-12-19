@@ -12,10 +12,21 @@
     * SD 1.5 Controlnet-OpenPose 
     * SD 1.5 Controlnet-CannyEdge 
     * SD 1.5 Controlnet-Scribble 
+    * SDXL (Turbo, Base)
+    * SDXL Inpainting 
     * SD 3.0 Medium
     * SD 3.5 Medium Turbo
-    * SDXL (Turbo, Base)
+    
 4. [FastSD](https://github.com/rupeshs/fastsdcpu) 
+    * rupeshs/sd-turbo-openvino
+    * rupeshs/sdxs-512-0.9-openvino
+    * rupeshs/SDXL-Lightning-2steps-openvino-int8
+    * rupeshs/sdxl-turbo-openvino-int8
+    * rupeshs/LCM-dreamshaper-v7-openvino
+    * rupeshs/sd15-lcm-square-openvino-int8
+    * OpenVINO/FLUX.1-schnell-int4-ov
+    * rupeshs/sana-sprint-0.6b-openvino-int4
+    
 
 
 # Objectives
@@ -104,8 +115,6 @@ The very first time you do "Load Models", it may take a few minutes. Subsequent 
 
 ![](gifs/stable-diffusion2.png)
 
-_Note that the screenshots below are based on the previous UI_
-
 ### OpenVINO™ Semantic Segmentation Plugin
 ![](gifs/semantic-segmentation.webp)
 
@@ -114,9 +123,11 @@ _Note that the screenshots below are based on the previous UI_
 
 ### FastSD Plugin
 ![FastSD plugin screenshot](gifs/fastsd-plugin.png)
+
 FastSD is a faster version of stable diffusion based on Latent Consistency Models and Adversarial Diffusion Distillation. It Supports CPU/GPU/NPU faster inference using OpenVINO.
-- FastSD models can be edited by using the Model Manager
+- FastSD models can be edited by using the FastSD Model Manager
 - FLUX.1-schnell (3 to 4 steps),SANA sprint model (2 steps) support
+- Models are downloaded at runtime, the first time the model is used. 
 
 Note: For NPU usage please use the `rupeshs/sd15-lcm-square-openvino-int8` model.
 

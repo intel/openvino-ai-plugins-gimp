@@ -18,8 +18,7 @@
   - Intel® NPU driver: Use the most recent driver you have available. 
 - Software and Package:
   - git
-  - python 3.10-3.13
-    - Note: This document will use python 3.10.6 as an example.
+  - python 3.10-3.14
   - VC runtime
   - [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.6-setup-1.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.

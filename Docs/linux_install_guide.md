@@ -32,7 +32,7 @@ More details can be found [here](https://github.com/canonical/openvino-ai-plugin
     ```sh
     git clone https://gitlab.gnome.org/GNOME/babl
     cd babl
-    git checkout BABL_0_1_118
+    git checkout tags/BABL_0_1_118
     meson _build
     ninja -C _build
     sudo ninja -C _build install
