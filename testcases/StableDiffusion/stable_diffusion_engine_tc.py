@@ -337,11 +337,11 @@ def main() -> int:
     if not use_fastsd:
         if args.text_device:
             execution_devices[0] = args.text_device
-        if args.unet_device:
+        if args.unet_device is not None:
             execution_devices[1] = args.unet_device
-        if args.unet_neg_device:
+        if args.unet_neg_device is not None:
             execution_devices[2] = args.unet_neg_device
-        if args.vae_device:
+        if args.vae_device is not None:
             idx = 3 if "lcm" not in model_name_key else 2
             if 0 <= idx < len(execution_devices):
                 execution_devices[idx] = args.vae_device
