@@ -73,12 +73,11 @@ setup(
     classifiers=[
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python :: 3.7",  # Specify supported versions
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "License :: OSI Approved :: MIT License",
     ],
     keywords="openvino gimp ai plugins",
@@ -98,7 +97,8 @@ setup(
         "controlnet-aux>=0.0.6",
         "openvino",
         "psutil",
-        "matplotlib"
+        "matplotlib",
+        "sentencepiece"
     ],
 )
 

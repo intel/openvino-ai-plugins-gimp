@@ -34,7 +34,7 @@ if /i "%script_dir%"=="%current_dir%" (
 echo **** openvino-ai-plugins-gimp Setup started **** 
 
 REM Create a virtual environment
-call python -m venv gimpenv3
+call "python" -m venv gimpenv3
 
 call "gimpenv3\Scripts\activate"
 
@@ -52,7 +52,7 @@ rem cls
 echo.   
 REM copy to gimp plugin dir
 echo Installing plugin in "%appdata%\GIMP\3.0\plug-ins"
-for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\3.0\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
+for /d %%d in (openvino_utils semseg_ov stable_diffusion_ov superresolution_ov fastsd_ov ) do ( robocopy "gimpenv3\Lib\site-packages\gimpopenvino\plugins\%%d" "%appdata%\GIMP\3.0\plug-ins\%%d" /mir /NFL /NDL /NJH /NJS /nc /ns /np )
 
 echo *** openvino-ai-plugins-gimp Installed ***
 echo.    

@@ -22,7 +22,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
-from models_ov import (stable_diffusion_engine_genai)
+from models_ov import (stable_diffusion_engine_genai, stable_diffusion_engine_inpainting_genai)
 from gimpopenvino.install_utils import *
 
 
@@ -39,6 +39,13 @@ g_supported_model_map = {
     {
         "name": "Stable Diffusion 1.5 [Square] [FP16]",
         "install_id": "sd_15_square",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
+    },
+    
+    "sd_1.5_square_fp8":
+    {
+        "name": "Stable Diffusion 1.5 [Square] [FP8]",
+        "install_id": "sd_15_square_fp8",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
     },
 
@@ -125,6 +132,12 @@ g_supported_model_map = {
         "name": "Stable Diffusion 1.5 [Inpainting] [FP16]",
         "install_id": "sd_15_inpainting",
         "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "inpainting"],
+    },
+    "sdxl_inpainting":
+    {
+        "name": "Stable Diffusion XL [Inpainting] [FP16]",
+        "install_id": "sdxl_inpainting",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
     },
 
     "controlnet_openpose":
@@ -244,10 +257,17 @@ g_installable_base_model_map = {
     },
 
     "sd_15_inpainting":
+     {
+         "name": "Stable Diffusion 1.5 Inpainting",
+         "repo_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+         "download_exclude_filters": [],
+     },
+
+    "sdxl_inpainting":
     {
-        "name": "Stable Diffusion 1.5 Inpainting",
-        "repo_id": "stabilityai/stable-diffusion-2-inpainting",
-        "download_exclude_filters": ["512-inpainting-ema.ckpt", "512-inpainting-ema.safetensors", "*.bin","*.fp16.safetensors"],
+        "name": "Stable Diffusion XL Inpainting",
+        "repo_id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+        "download_exclude_filters": [],
     },
 
     "sd_15_openpose":
@@ -343,11 +363,10 @@ def compile_and_export_model(core, model_path, output_path, device='NPU', config
         tb_str = traceback.format_exc()
         raise RuntimeError(f"Model compilation or export failed for {model_path} on device {device}.\nDetails: {tb_str}")
 
-def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size,total_file_size):
+def download_file_with_progress(url, local_filename, callback, total_bytes_downloaded, total_file_list_size, total_file_size):
     response = requests.get(url, stream=True)
     total_size = int(total_file_size)
     downloaded_size = 0
-
     percent_complete = 0
     percent_complete_last = -1.0;
     with open(local_filename, 'wb') as file:
@@ -437,7 +456,8 @@ class ModelManager:
                 continue
 
             if install_id not in self.installable_model_map:
-                print("Unexpected error: install_id=", install_id, " not present in installable model map..")
+                if "square_fp8" not in install_id and self._npu_arch is not NPUArchitecture.ARCH_5000:
+                    print("Unexpected error: install_id=", install_id, " not present in installable model map..")
                 continue
 
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
@@ -506,19 +526,32 @@ class ModelManager:
                 if not os.path.isfile(required_bin_path):
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
+            
+            if model_id == "sd_1.5_square_fp8" and self._npu_arch is NPUArchitecture.ARCH_5000:
+                install_subdir = g_supported_model_map[model_id]["install_subdir"]
+                full_install_path = os.path.join(self._weight_path, *install_subdir)
+                required_bin_path = os.path.join(full_install_path, "unet_fp8.bin")
+                if not os.path.isfile(required_bin_path):
+                    print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
+                    return False
                 
-            #print("model_id",model_id)
             if "sd_3.0_med" in model_id or "sd_3.5_med" in model_id:
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
 
-                config = { 	"power modes supported": "No",
+                if "GPU" in self._core.get_available_devices():
+                    config = { 	"power modes supported": "No",
                                 "best performance" : ["GPU","GPU","GPU"]
-                        }
+                            }
+                else:
+                    config = { 	"power modes supported": "No",
+                                "best performance" : ["CPU","CPU","CPU"]
+                            }
                 
                 npu_is_available = self._npu_is_available
                 npu_arch = self._npu_arch
-                                                        
+
+                # if we have an NPU, we must have a GPU as well.                                        
                 if npu_is_available and npu_arch is not NPUArchitecture.ARCH_3720 :
                     config = { 	"power modes supported": "yes",
                                     "best performance" : ["GPU","GPU","GPU"],
@@ -579,7 +612,7 @@ class ModelManager:
 
             # If these NPU driver versions do not match, then it means that the driver has been updated since these blobs were installed.
             if installed_npu_driver_version != current_system_npu_driver_version:
-                print(f"is_model_update_available: model_id={model_id}, returning True because NPU driver update detected {installed_npu_driver_version} -> {current_system_npu_driver_version}")
+                logging.debug(f"is_model_update_available: model_id={model_id}, returning True because NPU driver update detected {installed_npu_driver_version} -> {current_system_npu_driver_version}")
                 return True
 
             return False
@@ -764,8 +797,8 @@ class ModelManager:
                    subfolder=os.path.join(download_folder, download_list_item["subfolder"])
                    os.makedirs(subfolder,  exist_ok=True)
 
-                   #print("Downloading", download_list_item["url"], " to ", local_filename)
-                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size, download_list_item["size"])
+                   print("Downloading", download_list_item["url"], " to ", local_filename)
+                   downloaded_size = download_file_with_progress(download_list_item["url"], local_filename, bytes_downloaded_callback, total_bytes_downloaded, total_file_list_size,download_list_item["size"])
 
                    if "cancelled" in self.model_install_status[model_id]:
                        return True
@@ -851,8 +884,9 @@ class ModelManager:
                         print("Download path",full_download_folder)
                         if os.path.isdir(full_install_path):
                             shutil.rmtree(full_install_path)
-                        else:
-                            os.makedirs(full_install_path)
+                        
+                        os.makedirs(full_install_path, exist_ok=True)
+                        time.sleep(1) # give time for os to create folder
 
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
@@ -861,11 +895,16 @@ class ModelManager:
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
-                            config = { 	"power modes supported": "No",
-                                            "best performance" : ["GPU","GPU","GPU"]
-                                    }
+                            if "GPU" in self._core.get_available_devices():
+                                config = { 	"power modes supported": "No",
+                                             "best performance" : ["GPU","GPU","GPU"]
+                                         }
+                            else:
+                                config = { 	"power modes supported": "No",
+                                            "best performance" : ["CPU","CPU","CPU"]
+                                         }
                             
-
+                            # if we have an NPU, we must have a GPU as well.
                             npu_is_available = self._npu_is_available
                             npu_arch = self._npu_arch
                             if npu_is_available:
@@ -887,7 +926,7 @@ class ModelManager:
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
                                 json.dump(config, json_file, indent=4)
 
-                        if model_id == "sd_15_inpainting":
+                        if "inpainting" in model_id:
                             self.model_install_status[model_id]["status"] = "Converting Model"
                             export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
                         else:
@@ -908,7 +947,12 @@ class ModelManager:
                                 model_name="sdxl_turbo_square"
                         if "sdxl_base" in model_id:
                                 model_name="sdxl_base_1.0_square"
-                        if "sdxl" in model_id:
+                        if "sdxl_inpainting" in model_id:
+                                model_name="sdxl_inpainting"
+                                self.model_install_status[model_id]["status"] = "Compiling Model"
+                                stable_diffusion_engine_inpainting_genai.StableDiffusionEngineInpaintingGenai(model=full_install_path,device="GPU")                                 
+                                                                     
+                        elif "sdxl" in model_id:
                                 self.model_install_status[model_id]["status"] = "Compiling Model"
                                 stable_diffusion_engine_genai.StableDiffusionEngineGenai(model=full_install_path,model_name=model_name,device=["GPU","GPU","GPU"])
                                 if config["power modes supported"] == "yes":
@@ -1047,6 +1091,7 @@ class ModelManager:
                 "sd_15_portrait",
                 "sd_15_landscape",
                 "sd_15_inpainting",
+                "sdxl_inpainting",
                 "sd_15_LCM",
                 "sdxl_base",
                 "sdxl_turbo",
@@ -1164,13 +1209,17 @@ class ModelManager:
 
         download_success = True
         
-        # Default config is that everything should be on GPU.
-        config_fp_16 = { 	"power modes supported": "No",
+        # Default config is that everything should be on GPU, if we have it. 
+        if "GPU" in core.get_available_devices():
+            config_fp_16 = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU","GPU"]
                  }
-        config_int8 = { 	"power modes supported": "No",
-                    "best performance" : ["GPU","GPU","GPU","GPU"]
-                 }
+            config_int8 = config_fp_16.copy()
+        else:
+            config_fp_16 = { 	"power modes supported": "No",
+                    "best performance" : ["CPU","CPU","CPU","CPU"] }
+            config_int8 = config_fp_16.copy()
+            
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
             print("Downloading Intel/sd-1.5-square-quantized Models")
@@ -1184,6 +1233,7 @@ class ModelManager:
                     text_future = None
                     unet_int8_future = None
                     unet_int8a16_future = None
+                    unet_fp8_future = None
                     unet_future = None
                     vae_de_future = None
                     vae_en_future = None
@@ -1198,6 +1248,19 @@ class ModelManager:
                             "unet_int8a16" : unet_int8a16_future,
                             "unet_bs1" : unet_future,
                             
+                        }
+                    elif npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
+                        # also modified the model order for less checking in the future object when it gets result
+                        models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "unet_fp8", "text_encoder", "vae_encoder" , "vae_decoder" ]
+                        shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
+                        sd15_futures = {
+                            "text_encoder" : text_future,
+                            "unet_bs1" : unet_future,
+                            "unet_int8a16" : unet_int8a16_future,
+                            "unet_int8" : unet_int8_future,
+                            "unet_fp8"  : unet_fp8_future,
+                            "vae_encoder" : vae_en_future,
+                            "vae_decoder" : vae_de_future
                         }
                     else:
                         # also modified the model order for less checking in the future object when it gets result
@@ -1225,7 +1288,12 @@ class ModelManager:
                             if "unet_int8" not in model_name:
                                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                                 output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
-                                sd15_futures[model_name] = executor.submit(compile_and_export_model, core, model_path_fp16, output_path_fp16, config=config)
+                                # there is currently a race condition where the FP8 model won't exist the first time SD 1.5 is installed
+                                sd15_futures[model_name] = executor.submit(compile_and_export_model, 
+                                                                           core, 
+                                                                           model_path_fp16, 
+                                                                           output_path_fp16, 
+                                                                           config=config) if os.path.exists(model_path_fp16) else None
                             else:
                                 model_path_int8 = os.path.join(install_location, model_int8, model_name + ".xml")
                                 output_path_int8 = os.path.join(install_location, model_int8, model_name + ".blob")
@@ -1237,9 +1305,9 @@ class ModelManager:
 
                         self.model_install_status[model_id]["percent"] = 0.0
                         for model_name, model_future in sd15_futures.items():
-                            model_future.result()
-                            self.model_install_status[model_id]["percent"] += perc_increment
-
+                            if model_future is not None:
+                                model_future.result() 
+                                self.model_install_status[model_id]["percent"] += perc_increment
 
                     # Copy shared models to INT8 directory
                     for blob_name in shared_models:
@@ -1301,10 +1369,15 @@ class ModelManager:
             print("Downloading Intel/sd-1.5-lcm-openvino")
             download_success = self._download_model(model_id)
 
-        # Default config is that everything should be on GPU.
-        config = { 	"power modes supported": "No",
-                    "best performance" : ["GPU","GPU","GPU"]
-                 }
+        # Default config is that everything should be on GPU, if we have it.
+        if "GPU" in core.get_available_devices():
+            config = { 	"power modes supported": "No",
+                        "best performance" : ["GPU","GPU","GPU"]
+                     }
+        else:
+            config = { 	"power modes supported": "No",
+                        "best performance" : ["CPU","CPU","CPU"]
+                     }
 
         if npu_is_available:
             if download_success:

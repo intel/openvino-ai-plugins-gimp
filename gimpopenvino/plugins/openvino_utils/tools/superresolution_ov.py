@@ -22,10 +22,10 @@ def get_sr(img,s, model_name="sr_1033", weight_path=None,device="CPU"):
     if weight_path is None:
         weight_path = get_weight_path()
     
-    if model_name == "esrgan":
+    if "esrgan" in model_name:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             out_thread = executor.submit(run, img, 
-                                        os.path.join(weight_path, "superresolution-ov", "realesrgan.xml"), 
+                                        os.path.join(weight_path, "superresolution-ov", "realesrgan-x4-fp16.xml"), 
                                         device, 
                                         model_name
                                         )

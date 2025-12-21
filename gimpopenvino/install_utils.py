@@ -25,6 +25,7 @@ class NPUArchitecture(Enum):
     ARCH_3700 = "3700" # Keem Bay
     ARCH_3720 = "3720" # Meteor Lake and Arrow Lake
     ARCH_4000 = "4000" # Lunar Lake
+    ARCH_5000 = "5000" # Panther Lake
     ARCH_NONE = "0000" # No NPU
     ARCH_NEXT = "FFFF" # Next Lake
 
@@ -191,6 +192,7 @@ def complete_install(repo_weights_dir=None):
             "plugins/superresolution_ov/superresolution_ov.py",
             "plugins/stable_diffusion_ov/stable_diffusion_ov.py",
             "plugins/semseg_ov/semseg_ov.py",
+            "plugins/fastsd_ov/fastsd_ov.py",
         ]
         for script in scripts:
             script_path = os.path.join(plugin_loc, script)

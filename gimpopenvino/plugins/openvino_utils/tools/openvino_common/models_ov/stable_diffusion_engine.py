@@ -7,7 +7,7 @@ import inspect
 from typing import Union, Optional, Any, List, Dict
 import numpy as np
 # openvino
-from openvino.runtime import Core
+from openvino import Core
 # tokenizer
 from transformers import CLIPTokenizer
 import torch
@@ -462,8 +462,8 @@ class StableDiffusionEngine(DiffusionPipeline):
 
         batch_size = 2 if device[1] == device[2] and device[1] == "GPU" else 1
 
-        # if 'int8' is in model, then we are using unet_int8a16 model, and for this we will always use batch size 1.
-        if "int8" in model_name:
+        # if 'int8'or 'fp8' is in model, then we will always use batch size 1.
+        if "int8" in model_name or "fp8" in model_name:
             batch_size = 1
 
         self.batch_size = batch_size
@@ -489,6 +489,10 @@ class StableDiffusionEngine(DiffusionPipeline):
                     print("Loading models ... int8a16")
                     unet_future     = executor.submit(self.load_model, model, "unet_int8a16", device[1])
                     unet_neg_future = executor.submit(self.load_model, model, "unet_int8a16", device[2]) if device[1] != device[2] else None
+                elif "fp8" in model_name:
+                    print("Loading models ... fp8")
+                    unet_future     = executor.submit(self.load_model, model, "unet_fp8", device[1])
+                    unet_neg_future = executor.submit(self.load_model, model, "unet_fp8", device[2]) if device[1] != device[2] else None
                 else:
                     print("Loading models ... fp16 bs1")
                     unet_future     = executor.submit(self.load_model, model, "unet_bs1", device[1])

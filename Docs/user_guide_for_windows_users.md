@@ -18,20 +18,19 @@
   - Intel® NPU driver: Use the most recent driver you have available. 
 - Software and Package:
   - git
-  - python 3.9-3.12
-    - Note: This document will use python 3.9.13 as an example.
+  - python 3.10-3.14
   - VC runtime
-  - [GIMP 3.0.4](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.4-setup.exe)
+  - [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.6-setup-1.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
 ### Install Python
 
->__Notes:__ Use Python `3.9.13` as an example.
+>__Notes:__ Use Python `3.12.10` as an example.
 
-Please download the prebuilt Windows x64 package from [link](https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe). After downloading, please following below steps to install the Python package.
+Please download the prebuilt Windows x64 package from [link](https://www.python.org/downloads/windows/). After downloading, please following below steps to install the Python package.
 
-- Check "Add Python 3.9 to PATH", then click "Install Now"
+- Check "Add Python 3.x to PATH", then click "Install Now"
 
     ![](figs/python_installation_setup.png)
     ![](figs/python_installation_processing.png)
@@ -72,21 +71,13 @@ Please download the latest Visual C++ Redistributable package from MSFT [site](h
 ![](figs/VC_runtime_close.png) 
 
 
-### Install GIMP 3.0.4
+### Install GIMP 3.0.6
 
-Please download [GIMP 3.0.4](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.4-setup.exe) and follow below steps to install GIMP.
+Please download [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.6-setup-1.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
     ![](figs/gimp_installation_install_for_all.png)
-
-- Select English and click "OK"
-
-    ![](figs/gimp_installation_select_english.png)
-
-- Click "Continue"
-
-    ![](figs/gimp_installation_click_continue.png)
 
 - Click "Install"
 

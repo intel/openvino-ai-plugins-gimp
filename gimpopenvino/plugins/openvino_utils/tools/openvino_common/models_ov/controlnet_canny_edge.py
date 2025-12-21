@@ -14,9 +14,6 @@ import numpy as np
 from transformers import CLIPTokenizer
 import torch
 
-#from diffusers import DiffusionPipeline
-#from diffusers import UniPCMultistepScheduler
-#from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler,EulerAncestralDiscreteScheduler
 
 from diffusers import DiffusionPipeline
 from diffusers import UniPCMultistepScheduler,DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler, EulerDiscreteScheduler
@@ -34,7 +31,7 @@ import time
 
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
 
-from openvino.runtime import Model, Core
+from openvino import Model, Core
 from collections import namedtuple
 
 
