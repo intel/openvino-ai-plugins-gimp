@@ -66,11 +66,11 @@ For detailed steps and tips please refer to [Linux Installation Guide](./Docs/li
 4. By default the opened image in canvas will be used as initial image to the model. You can also select a different image by browsing from files.
 5. Click on “Generate”. Wait for the total inference steps to get completed.
 
-#### C. Stable-Diffusion-1.5 Inpainting - Make sure to download and convert the model during install process.
+#### C. Stable-Diffusion-1.5 / SDXL Inpainting - Make sure to download and convert the model during install process.
 1. Choose a layer or Open an image of size 512x512. (Currently works best with this resolution)
 2. Use "Free select tool" to select the area in your image that you wish to change.
 3. Right click on your image and click on "Add layer mask". Then choose "Selection" in "Initialize layer Mask to". This should create a mask with your selection.
-4. Follow steps 2,3,4,5 from section A. Please note that you will only see "sd_1.5_Inpainting" in model options if you added a mask layer to your image.
+4. Follow steps 2,3,4,5 from section A. Please note that you will only see the inpainting models in the drop down menu, if you added a mask layer to your image.
 5. Click on “Generate”. Wait for the total inference steps to get completed.
 
 #### D. Stable-Diffusion-1.5 Controlnet-Openpose - Make sure to download and convert the model during install process.
@@ -123,7 +123,6 @@ The very first time you do "Load Models", it may take a few minutes. Subsequent 
 
 FastSD is a faster version of stable diffusion based on Latent Consistency Models and Adversarial Diffusion Distillation. It Supports CPU/GPU/NPU faster inference using OpenVINO.
 - FastSD models can be edited by using the FastSD Model Manager
-- FLUX.1-schnell (3 to 4 steps),SANA sprint model (2 steps) support
 - ⚠️ Models are downloaded at runtime, the first time the model is used, hence the initial generation may take some time. Subsequent image generation will be more performant.
 
 Note: For NPU usage please use the `rupeshs/sd15-lcm-square-openvino-int8` model.
