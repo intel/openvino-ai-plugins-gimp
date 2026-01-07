@@ -45,8 +45,8 @@ g_supported_model_map = {
     "sd_1.5_square_fp8":
     {
         "name": "Stable Diffusion 1.5 [Square] [FP8]",
-        "install_id": "sd_15_square_fp8",
-        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"]
+        "install_id": "sd_15_square",
+        "install_subdir": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_fp8"]
     },
 
     "sd_1.5_square_int8":
@@ -456,8 +456,11 @@ class ModelManager:
                 continue
 
             if install_id not in self.installable_model_map:
-                if "square_fp8" not in install_id and self._npu_arch is not NPUArchitecture.ARCH_5000:
-                    print("Unexpected error: install_id=", install_id, " not present in installable model map..")
+                logging.error(f"Unexpected error: install_id={install_id} not present in installable model map..")
+                continue
+
+            if "fp8" in supported_model_details["name"].lower() and not self._npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
+                logging.debug(f"Skipping addition of {supported_model_id} to installable model map -- FP8 models are only supported on NPU5000+ architectures.")
                 continue
 
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
@@ -527,7 +530,7 @@ class ModelManager:
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
             
-            if model_id == "sd_1.5_square_fp8" and self._npu_arch is NPUArchitecture.ARCH_5000:
+            if model_id == "sd_1.5_square_fp8" and self._npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
                 required_bin_path = os.path.join(full_install_path, "unet_fp8.bin")
@@ -851,7 +854,6 @@ class ModelManager:
             download_cancelled = self._download_hf_repo(repo_id, model_id, download_folder, download_exclude_filters)
 
             if not download_cancelled:
-
                 # A given install_id may install multiple models. So, iterate through these.
                 for supported_model in installable_details["supported_model_ids"]:
 
@@ -997,8 +999,23 @@ class ModelManager:
                         #if the 'right-most' installation directory *doesn't* contain 'int8',
                         # then this is the FP16 model.
                         if not 'int8' in leaf_folder:
-                            # copy the FP16 collateral
-                            shutil.copytree(os.path.join(download_folder, 'FP16'), full_install_path, dirs_exist_ok=True)
+                            if "fp8" in leaf_folder:
+                                # special case where we need to skip copying some unet files.
+                                shutil.copytree(os.path.join(download_folder, 'FP16'), 
+                                                full_install_path, 
+                                                dirs_exist_ok=True, 
+                                                ignore=shutil.ignore_patterns("unet.xml",
+                                                                              "unet.bin",
+                                                                              "unet_bs1.xml",
+                                                                              "unet_bs1.bin"))
+                            else:
+                                # copy the FP16 collateral
+                                shutil.copytree(os.path.join(download_folder, 'FP16'), 
+                                                full_install_path, 
+                                                dirs_exist_ok=True,
+                                                ignore=shutil.ignore_patterns("unet_fp8.xml",
+                                                                              "unet_fp8.bin"))
+                            
                         else:
                             if os.path.isdir(os.path.join(download_folder, 'INT8')):
                                 # copy the INT8 collateral
@@ -1201,6 +1218,7 @@ class ModelManager:
         repo_id = "Intel/sd-1.5-square-quantized"
         model_fp16 = os.path.join("stable-diffusion-1.5", "square")
         model_int8 = os.path.join("stable-diffusion-1.5", "square_int8")
+        model_fp8  = os.path.join("stable-diffusion-1.5", "square_fp8")
         install_location=self._install_location
         core = self._core
         npu_arch = self._npu_arch
@@ -1214,11 +1232,12 @@ class ModelManager:
             config_fp_16 = { 	"power modes supported": "No",
                     "best performance" : ["GPU","GPU","GPU","GPU"]
                  }
-            config_int8 = config_fp_16.copy()
         else:
             config_fp_16 = { 	"power modes supported": "No",
                     "best performance" : ["CPU","CPU","CPU","CPU"] }
-            config_int8 = config_fp_16.copy()
+            
+        config_int8 = config_fp_16.copy()
+        config_fp8  = config_fp_16.copy()
             
         # If we are only recompiling the NPU models, don't download.
         if only_npu_recompilation is False:
@@ -1249,8 +1268,8 @@ class ModelManager:
                             "unet_bs1" : unet_future,
                             
                         }
-                    elif npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
-                        # also modified the model order for less checking in the future object when it gets result
+                    elif npu_arch.is_at_least(NPUArchitecture.ARCH_5000): 
+                        # only support FP8 for PTL and beyond... 
                         models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "unet_fp8", "text_encoder", "vae_encoder" , "vae_decoder" ]
                         shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
                         sd15_futures = {
@@ -1285,7 +1304,15 @@ class ModelManager:
                                 config = { "NPU_COMPILATION_MODE_PARAMS" : "performance-hint-override=latency" } 
 
 
-                            if "unet_int8" not in model_name:
+                            if "unet_fp8" in model_name and npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
+                                model_path_fp8  = os.path.join(install_location, model_fp8, model_name + ".xml")
+                                output_path_fp8 = os.path.join(install_location, model_fp8, model_name + ".blob")
+                                sd15_futures[model_name] = executor.submit(compile_and_export_model, 
+                                                                           core, 
+                                                                           model_path_fp8, 
+                                                                           output_path_fp8, 
+                                                                           config=config) if os.path.exists(model_path_fp8) else None
+                            elif "unet_int8" not in model_name:
                                 model_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".xml")
                                 output_path_fp16 = os.path.join(install_location, model_fp16, model_name + ".blob")
                                 # there is currently a race condition where the FP8 model won't exist the first time SD 1.5 is installed
@@ -1309,12 +1336,17 @@ class ModelManager:
                                 model_future.result() 
                                 self.model_install_status[model_id]["percent"] += perc_increment
 
-                    # Copy shared models to INT8 directory
+                    # Copy shared models to INT8 and FP8 directories
                     for blob_name in shared_models:
                         shutil.copy(
                             os.path.join(install_location, model_fp16, blob_name),
                             os.path.join(install_location, model_int8, blob_name)
                         )
+                        if npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
+                            shutil.copy(
+                                os.path.join(install_location, model_fp16, blob_name),
+                                os.path.join(install_location, model_fp8, blob_name)
+                            )
 
                     # Record the npu_driver version that we used to create the blobs.
                     self.model_install_status[model_id]["install_info"]["npu_blob_driver_version"] = self._npu_driver_version
@@ -1329,7 +1361,11 @@ class ModelManager:
                                                     "balanced" : ["GPU","NPU","NPU","GPU"],
                                        "best power efficiency" : ["NPU","NPU","NPU","GPU"]
                     }
-
+                    config_fp8  = { 	"power modes supported": "yes",
+                                            "best performance" : ["GPU","NPU","NPU","GPU"],
+                                                    "balanced" : ["NPU","NPU","GPU","GPU"],
+                                       "best power efficiency" : ["NPU","NPU","NPU","GPU"]
+                    }
                     
 
                 except Exception as e:
@@ -1351,6 +1387,9 @@ class ModelManager:
         # Write the data to a JSON file
         with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
             json.dump(config_int8, json_file, indent=4)
+        if npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
+            with open(os.path.join(install_location, model_fp8, file_name), 'w') as json_file:
+                json.dump(config_fp8, json_file, indent=4)
 
     def dl_sd_15_LCM(self, model_id, only_npu_recompilation=False):
         repo_id = "Intel/sd-1.5-lcm-openvino"
