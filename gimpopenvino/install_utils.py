@@ -28,6 +28,10 @@ class NPUArchitecture(Enum):
     ARCH_5000 = "5000" # Panther Lake
     ARCH_NONE = "0000" # No NPU
     ARCH_NEXT = "FFFF" # Next Lake
+    def as_int(self) -> int:
+        return int(self.value, 16)
+    def is_at_least(self, other: "NPUArchitecture") -> bool:
+        return self.as_int() >= other.as_int()
 
 
 def install_base_models(base_model_dir, repo_weights_dir):

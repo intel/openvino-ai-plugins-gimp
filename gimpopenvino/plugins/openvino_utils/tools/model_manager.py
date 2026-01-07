@@ -459,8 +459,8 @@ class ModelManager:
                 logging.error(f"Unexpected error: install_id={install_id} not present in installable model map..")
                 continue
 
-            if "fp8" in supported_model_details["name"].lower() and self._npu_arch is not NPUArchitecture.ARCH_5000:
-                logging.debug(f"Skipping addition of {supported_model_id} to installable model map -- FP8 models are only supported on NPU 5000 architecture.")
+            if "fp8" in supported_model_details["name"].lower() and not self._npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
+                logging.debug(f"Skipping addition of {supported_model_id} to installable model map -- FP8 models are only supported on NPU5000+ architectures.")
                 continue
 
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
@@ -530,7 +530,7 @@ class ModelManager:
                     print(f"{model_id} installation folder exists, but it is missing {required_bin_path}")
                     return False
             
-            if model_id == "sd_1.5_square_fp8" and self._npu_arch is NPUArchitecture.ARCH_5000:
+            if model_id == "sd_1.5_square_fp8" and self._npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
                 install_subdir = g_supported_model_map[model_id]["install_subdir"]
                 full_install_path = os.path.join(self._weight_path, *install_subdir)
                 required_bin_path = os.path.join(full_install_path, "unet_fp8.bin")
@@ -1268,8 +1268,8 @@ class ModelManager:
                             "unet_bs1" : unet_future,
                             
                         }
-                    elif npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
-                        # also modified the model order for less checking in the future object when it gets result
+                    elif npu_arch.is_at_least(NPUArchitecture.ARCH_5000): 
+                        # only support FP8 for PTL and beyond... 
                         models_to_compile = [ "unet_int8a16", "unet_int8", "unet_bs1", "unet_fp8", "text_encoder", "vae_encoder" , "vae_decoder" ]
                         shared_models = ["text_encoder.blob", "vae_encoder.blob", "vae_decoder.blob"]
                         sd15_futures = {
@@ -1304,7 +1304,7 @@ class ModelManager:
                                 config = { "NPU_COMPILATION_MODE_PARAMS" : "performance-hint-override=latency" } 
 
 
-                            if "unet_fp8" in model_name and (npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT):
+                            if "unet_fp8" in model_name and npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
                                 model_path_fp8  = os.path.join(install_location, model_fp8, model_name + ".xml")
                                 output_path_fp8 = os.path.join(install_location, model_fp8, model_name + ".blob")
                                 sd15_futures[model_name] = executor.submit(compile_and_export_model, 
@@ -1342,7 +1342,7 @@ class ModelManager:
                             os.path.join(install_location, model_fp16, blob_name),
                             os.path.join(install_location, model_int8, blob_name)
                         )
-                        if npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
+                        if npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
                             shutil.copy(
                                 os.path.join(install_location, model_fp16, blob_name),
                                 os.path.join(install_location, model_fp8, blob_name)
@@ -1387,7 +1387,7 @@ class ModelManager:
         # Write the data to a JSON file
         with open(os.path.join(install_location, model_int8, file_name), 'w') as json_file:
             json.dump(config_int8, json_file, indent=4)
-        if npu_arch == NPUArchitecture.ARCH_5000 or npu_arch == NPUArchitecture.ARCH_NEXT:
+        if npu_arch.is_at_least(NPUArchitecture.ARCH_5000):
             with open(os.path.join(install_location, model_fp8, file_name), 'w') as json_file:
                 json.dump(config_fp8, json_file, indent=4)
 
