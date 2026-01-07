@@ -456,8 +456,11 @@ class ModelManager:
                 continue
 
             if install_id not in self.installable_model_map:
-                #if "square_fp8" not in install_id and self._npu_arch is not NPUArchitecture.ARCH_5000:
-                print("Unexpected error: install_id=", install_id, " not present in installable model map..")
+                logging.error(f"Unexpected error: install_id={install_id} not present in installable model map..")
+                continue
+
+            if "fp8" in supported_model_details["name"].lower() and self._npu_arch is not NPUArchitecture.ARCH_5000:
+                logging.debug(f"Skipping addition of {supported_model_id} to installable model map -- FP8 models are only supported on NPU 5000 architecture.")
                 continue
 
             self.installable_model_map[install_id]["supported_model_ids"].append(supported_model_id)
