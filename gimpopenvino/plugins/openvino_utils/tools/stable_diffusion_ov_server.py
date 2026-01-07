@@ -80,7 +80,7 @@ def run(model_name, available_devices, power_mode):
             "sdxl_inpainting": ["stable-diffusion-ov", "stable-diffusion-xl", "inpainting"],
             "sd_1.5_portrait": ["stable-diffusion-ov", "stable-diffusion-1.5", "portrait"],
             "sd_1.5_square": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
-			"sd_1.5_square_fp8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square"],
+			"sd_1.5_square_fp8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_fp8"],
             "sd_1.5_square_int8": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
             "sd_1.5_square_int8a16": ["stable-diffusion-ov", "stable-diffusion-1.5", "square_int8"],
             "sd_3.0_med_diffuser_square": ["stable-diffusion-ov", "stable-diffusion-3.0-medium", "square_diffusers" ],
