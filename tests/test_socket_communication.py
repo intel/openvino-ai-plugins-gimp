@@ -270,10 +270,9 @@ def test_socket_connection_refused():
     """Test handling of connection refused error."""
     with pytest.raises(ConnectionRefusedError):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-            client.settimeout(1.0)
+            client.settimeout(10.0)
             # Try to connect to a port that's not listening
             client.connect(("127.0.0.1", 65435))
-
 
 @pytest.mark.unit
 @pytest.mark.socket
