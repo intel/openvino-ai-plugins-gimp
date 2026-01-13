@@ -77,12 +77,11 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
-        "Programming Language :: Python :: 3.14",
         "License :: OSI Approved :: MIT License",
     ],
     keywords="openvino gimp ai plugins",
     packages=find_packages(),
-    python_requires=">=3.7",  # Update Python requirement
+    python_requires=">=3.10",
     include_package_data=True,
     install_requires=[
         "numpy",
@@ -91,14 +90,20 @@ setup(
         "requests",
         "opencv-python>=4.8.1.78",
         "scikit-image",
-        "timm==0.4.5",
-        "transformers>=4.37.0",
+        "transformers>=4.37.0,<=4.56.2",
         "diffusers",
         "controlnet-aux>=0.0.6",
-        "openvino",
+        "openvino==2025.4.0",
+        "openvino-genai==2025.4.0.0",
         "psutil",
         "matplotlib",
-        "sentencepiece"
+        "sentencepiece",
+        "optimum",
+        "optimum-intel",
+        "peft",
+        "pydantic",
+        "tomesd",
+        "hf_xet"
     ],
 )
 

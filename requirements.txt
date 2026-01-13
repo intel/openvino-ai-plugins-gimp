@@ -1,9 +1,10 @@
-openvino==2025.4.0
-openvino-genai==2025.4.0.0
-optimum
-optimum-intel 
-peft
-pydantic
-tomesd
-hf_xet 
-transformers<=4.56.2
+# Runtime dependencies for GIMP OpenVINO AI Plugins
+# All runtime dependencies are now managed in setup.py
+# This file is kept for backwards compatibility with existing install scripts
+# 
+# To install the package with all dependencies, use:
+#   pip install -e .
+# 
+# For development dependencies, use:
+#   pip install -r requirements-dev.txt
+

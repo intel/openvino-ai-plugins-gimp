@@ -1,6 +1,42 @@
 # Contributing
 
-### License
+## Dependency Management
+
+This project follows modern Python packaging best practices:
+
+### Runtime Dependencies
+All runtime dependencies are managed in `setup.py` under the `install_requires` section. This is the single source of truth for dependencies needed to run the GIMP OpenVINO AI Plugins.
+
+**To install the package with all runtime dependencies:**
+```bash
+pip install -e .
+```
+
+### Development Dependencies
+Development and testing dependencies are managed in `requirements-dev.txt`. These include:
+- Testing frameworks (pytest, pytest-cov, etc.)
+- Code quality tools (black, flake8, isort, mypy)
+- Additional testing utilities
+
+**To install development dependencies:**
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Key Dependency Versions
+- **Python**: Requires Python 3.10 or later (Python 3.7-3.9 are EOL)
+- **OpenVINO**: Pinned to version 2025.4.0 for stability and compatibility
+- **transformers**: Version range 4.37.0 to 4.56.2 for compatibility with OpenVINO
+- **openvino-genai**: Pinned to 2025.4.0.0 to match OpenVINO version
+
+### Adding New Dependencies
+When adding new dependencies:
+1. Add runtime dependencies to `setup.py` under `install_requires`
+2. Add development/test dependencies to `requirements-dev.txt`
+3. Specify version constraints when compatibility matters
+4. Test installation in a clean virtual environment
+
+## License
 
 openvino-ai-plugins-gimp is licensed under the terms in [Apache 2.0] https://github.com/intel/openvino-ai-plugins-gimp/LICENSE.md. By contributing to the project, you agree to the license and copyright terms therein and release your contribution under these terms.
 
