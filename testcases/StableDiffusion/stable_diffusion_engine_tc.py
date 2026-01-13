@@ -4,10 +4,19 @@
 
 from __future__ import annotations
 
+import warnings
+import os
+
+# Suppress all warnings
+warnings.filterwarnings("ignore")
+
+# Additional environment variables to suppress specific library warnings
+os.environ["PYTHONWARNINGS"] = "ignore"
+
+
 import argparse
 import json
 import logging
-import os
 import platform
 import random
 import subprocess

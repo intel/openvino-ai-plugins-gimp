@@ -8,4 +8,3 @@
 # For development dependencies, use:
 #   pip install -r requirements-dev.txt
 
--e .
