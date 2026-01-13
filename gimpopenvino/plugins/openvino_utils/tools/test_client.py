@@ -3,13 +3,15 @@
 # SPDX - License - Identifier: Apache - 2.0
 
 import socket
+import sys
+import os
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 65432  # The port used by the server
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")])
+from gimpopenvino import config
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+    s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
     s.sendall(b"Hello, GIMP")
-    data = s.recv(1024)
+    data = s.recv(config.SOCKET_BUFFER_SIZE)
 
 print(f"Received {data!r}")

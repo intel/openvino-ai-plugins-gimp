@@ -9,20 +9,20 @@ from pathlib import Path
 import psutil
 import threading
 
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")])
+from gimpopenvino import config
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
 
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from model_manager import ModelManager
 
-HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
-PORT = 65434  # Port to listen on (stable_diffusion_ov_server uses port 65432 &  65433)
-
 # This function is run on a dedicated thread when a new connection is established.
 def run_connection_routine(model_manager, conn):
     with conn:
         while True:
-            data = conn.recv(1024)
+            data = conn.recv(config.SOCKET_BUFFER_SIZE)
 
             if not data:
                 break
@@ -42,20 +42,20 @@ def run_connection_routine(model_manager, conn):
                 # Send the list of installed models
                 num_installed_models = len(installed_models)
                 conn.sendall(bytes(str(num_installed_models), 'utf-8'))
-                data = conn.recv(1024) # <-wait for ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <-wait for ack
                 for i in range(0, num_installed_models):
                     for detail in ["name", "id"]:
                         conn.sendall(bytes(installed_models[i][detail], 'utf-8'))
-                        data = conn.recv(1024) # <-wait for ack
+                        data = conn.recv(config.SOCKET_BUFFER_SIZE) # <-wait for ack
 
                 # Send the installable model details
                 num_installable_models = len(installable_model_details)
                 conn.sendall(bytes(str(num_installable_models), 'utf-8'))
-                data = conn.recv(1024) # <-wait for ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <-wait for ack
                 for i in range(0, num_installable_models):
                     for detail in ["name", "description", "id", "install_status"]:
                         conn.sendall(bytes(installable_model_details[i][detail], 'utf-8'))
-                        data = conn.recv(1024) # <-wait for ack
+                        data = conn.recv(config.SOCKET_BUFFER_SIZE) # <-wait for ack
 
                 continue
 
@@ -66,7 +66,7 @@ def run_connection_routine(model_manager, conn):
 
                #get model id.
                #TODO: Need a timeout here.
-               model_id = conn.recv(1024).decode()
+               model_id = conn.recv(config.SOCKET_BUFFER_SIZE).decode()
 
                if model_id not in model_manager.model_install_status:
 
@@ -99,7 +99,7 @@ def run_connection_routine(model_manager, conn):
                 model_install_status = model_manager.model_install_status.copy()
 
                 # Get the model-id that we are interested in.
-                data = conn.recv(1024)
+                data = conn.recv(config.SOCKET_BUFFER_SIZE)
                 model_id = data.decode()
 
                 if model_id in model_install_status:
@@ -115,11 +115,11 @@ def run_connection_routine(model_manager, conn):
 
                 # first, send the status
                 conn.sendall(bytes(status, 'utf-8'))
-                data = conn.recv(1024) # <- get ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <- get ack
 
                 # then, send the send the percent
                 conn.sendall(bytes(str(perc), 'utf-8'))
-                data = conn.recv(1024) # <- get ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <- get ack
 
                 continue
 
@@ -128,18 +128,18 @@ def run_connection_routine(model_manager, conn):
                 conn.sendall(data)
 
                 # Get the model-id that we are interested in.
-                data = conn.recv(1024)
+                data = conn.recv(config.SOCKET_BUFFER_SIZE)
                 model_id = data.decode()
 
                 summary, details = model_manager.get_error_details(model_id)
 
                 # first, send the summary
                 conn.sendall(bytes(summary, 'utf-8'))
-                data = conn.recv(1024) # <- get ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <- get ack
 
                 # then, send the send the details
                 conn.sendall(bytes(details, 'utf-8'))
-                data = conn.recv(1024) # <- get ack
+                data = conn.recv(config.SOCKET_BUFFER_SIZE) # <- get ack
 
 
                 continue
@@ -149,7 +149,7 @@ def run_connection_routine(model_manager, conn):
                 conn.sendall(data)
 
                 # Get the model-id that we are interested in.
-                data = conn.recv(1024)
+                data = conn.recv(config.SOCKET_BUFFER_SIZE)
                 model_id = data.decode()
 
                 #send ack
@@ -178,7 +178,7 @@ def run():
     model_manager = ModelManager(weight_path)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
+        s.bind((config.DEFAULT_HOST, config.MODEL_MANAGEMENT_PORT))
         s.listen()
         while True:
             conn, addr = s.accept()

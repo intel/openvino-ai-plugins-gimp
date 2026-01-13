@@ -19,6 +19,10 @@ from PIL import Image
 import numpy as np
 import psutil
 import threading
+
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")])
+from gimpopenvino import config
+
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
 
@@ -51,9 +55,6 @@ from models_ov import (
 )
 
 from models_ov.fastsd.model_config import ModelConfig
-
-HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
-PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
 
 log.basicConfig(format='[ %(levelname)s ] %(message)s', level=log.DEBUG, stream=sys.stdout)
 fast_sd_models_config = ModelConfig(os.path.join(config_path_dir, "fastsd_models.json")).load()
@@ -153,10 +154,10 @@ def run(model_name, available_devices, power_mode):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # Enable address reuse to avoid 'Address already in use' errors
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        retries = 15
+        retries = config.SERVER_BIND_RETRIES
         while( retries > 0):
             try:
-                s.bind((HOST, PORT))
+                s.bind((config.DEFAULT_HOST, config.SERVER_PORT))
                 break
             except Exception as e:
                 traceback.print_exc()
@@ -164,8 +165,8 @@ def run(model_name, available_devices, power_mode):
                 print("Error in server binding. Retries left = ", retries)
 
                 if retries > 0:
-                   print("Waiting 5 seconds until next retry")
-                   time.sleep(5)
+                   print("Waiting {} seconds until next retry".format(config.SERVER_RETRY_DELAY))
+                   time.sleep(config.SERVER_RETRY_DELAY)
                 else:
                    print("Error in stable diffusion server binding. Out of retries.")
 
@@ -175,7 +176,7 @@ def run(model_name, available_devices, power_mode):
 
         s.listen()
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s2.connect((HOST, 65433))
+        s2.connect((config.DEFAULT_HOST, config.HANDSHAKE_PORT))
         s2.sendall(b"Ready")
         #print("Ready")
         while True:

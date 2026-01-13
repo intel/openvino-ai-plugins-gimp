@@ -9,6 +9,9 @@ import os
 import socket
 import subprocess
 
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")])
+from gimpopenvino import config
+
 class ErrorWindow(Gtk.Dialog):
     def __init__(self, parent, summary, details):
         Gtk.Dialog.__init__(self, title="Error", transient_for=parent, flags=0)
@@ -59,8 +62,8 @@ class ModelManagementWindow(Gtk.Window):
         self.set_visible(False)
 
         self._models_updated_callback = models_updated_callback
-        self._host = "127.0.0.1"
-        self._port = 65434
+        self._host = config.DEFAULT_HOST
+        self._port = config.MODEL_MANAGEMENT_PORT
         server = "model_management_server.py"
         server_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", server)
 
@@ -332,18 +335,18 @@ class ModelManagementWindow(Gtk.Window):
         s.sendall(b"error_details")
 
         #wait for an ack
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
 
         # send the model_id
         s.sendall(bytes(model_id, 'utf-8'))
 
         # get the summary
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
         summary = data.decode()
         s.sendall(data) # <- send ack
 
         # get the details
-        data = s.recv(4096)
+        data = s.recv(config.SOCKET_BUFFER_SIZE_LARGE)
         details = data.decode()
         s.sendall(data) # <- send ack
 
@@ -355,18 +358,18 @@ class ModelManagementWindow(Gtk.Window):
         s.sendall(b"install_status")
 
         #wait for an ack
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
 
         # send the model_id
         s.sendall(bytes(model_id, 'utf-8'))
 
         # get the status
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
         status = data.decode()
         s.sendall(data) # <- send ack
 
         # get the percent
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
         percent = float(data.decode())
         s.sendall(data) # <- send ack
 
@@ -380,7 +383,7 @@ class ModelManagementWindow(Gtk.Window):
         s.sendall(b"get_all_model_details")
 
         # get number of installed models
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
         num_models = int(data.decode())
 
         #send ack
@@ -390,7 +393,7 @@ class ModelManagementWindow(Gtk.Window):
         for i in range(0, num_models):
             model_detail = {}
             for detail in ["name", "id"]:
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
                 model_detail[detail] = data.decode()
                 #send ack
                 s.sendall(data)
@@ -398,7 +401,7 @@ class ModelManagementWindow(Gtk.Window):
             installed_models.append(model_detail)
 
         # get the number of installable models
-        data = s.recv(1024)
+        data = s.recv(config.SOCKET_BUFFER_SIZE)
         num_installable_models = int(data.decode())
 
         #send ack
@@ -408,7 +411,7 @@ class ModelManagementWindow(Gtk.Window):
         for i in range(0, num_installable_models):
             model_detail = {}
             for detail in ["name", "description", "id", "install_status"]:
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
                 model_detail[detail] = data.decode()
                 #send ack
                 s.sendall(data)
@@ -442,13 +445,13 @@ class ModelManagementWindow(Gtk.Window):
                 s.sendall(b"install_cancel")
 
                 #wait for ack
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
 
                 #send model name
                 s.sendall(bytes(model_id, 'utf-8'))
 
                 #wait for ack
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
 
 
         except Exception as e:
@@ -468,13 +471,13 @@ class ModelManagementWindow(Gtk.Window):
                 s.sendall(b"install_model")
 
                 #wait for ack
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
 
                 #send model name
                 s.sendall(bytes(model_id, 'utf-8'))
 
                 #wait for ack
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
 
                 poll_install_status_thread = threading.Thread(target=self.poll_install_status, args=(model_id,))
                 poll_install_status_thread.start()
@@ -493,10 +496,10 @@ class ModelManagementWindow(Gtk.Window):
         ret = False
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.1) # <- set connection timeout to 100 ms (default is a few seconds)
+                s.settimeout(config.SOCKET_TIMEOUT)
                 s.connect((self._host, self._port))
                 s.sendall(b"ping")
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
                 if data.decode() == "ping":
                     ret = True
         except Exception as e:
