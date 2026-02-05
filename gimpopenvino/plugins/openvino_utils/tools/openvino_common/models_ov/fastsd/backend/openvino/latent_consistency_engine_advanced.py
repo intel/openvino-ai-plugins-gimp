@@ -107,7 +107,8 @@ class LatentConsistencyEngineAdvanced(DiffusionPipeline):
         super().__init__()
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
-        except:
+        except Exception as e:
+            # Fallback to downloading tokenizer if local files not available
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 
@@ -461,7 +462,8 @@ class StableDiffusionEngineReferenceOnly(DiffusionPipeline):
         # self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
-        except:
+        except Exception as e:
+            # Fallback to downloading tokenizer if local files not available
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 

@@ -224,7 +224,8 @@ def is_server_running():
             data = s.recv(config.SOCKET_BUFFER_SIZE)
             if data.decode() == "ping":
                 return True
-    except:
+    except (ConnectionError, OSError, socket.timeout) as e:
+        # Server not running or connection failed
         return False
 
     return False
@@ -236,7 +237,7 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
         s.sendall(b"kill")
 
         print("stable-diffusion model server killed")
-    except:
+    except (ConnectionError, OSError) as e:
         print("No stable-diffusion model server found to kill")
 
     if sys.platform == 'win32':
@@ -325,7 +326,8 @@ def run(procedure, run_mode, image, layer, config, data):
 
             try:
                 list_layers = image.get_layers()
-            except:
+            except AttributeError as e:
+                # Fallback for older GIMP API
                 list_layers = image.list_layers()
 
 
