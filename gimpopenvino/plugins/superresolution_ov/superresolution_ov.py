@@ -15,7 +15,7 @@ import sys
 from enum import IntEnum
 
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
-from plugin_utils import *
+from plugin_utils import show_dialog, save_image
 
 gi.require_version("Gimp", "3.0")
 gi.require_version("GimpUi", "3.0")

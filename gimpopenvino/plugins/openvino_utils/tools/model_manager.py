@@ -23,7 +23,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO, stream=sys.stdout)
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","tools")])
 from models_ov import (stable_diffusion_engine_genai, stable_diffusion_engine_inpainting_genai)
-from gimpopenvino.install_utils import *
+from gimpopenvino.install_utils import NPUArchitecture, get_npu_architecture
 
 
 # This dictionary is used to populate the drop-down model selection list.
