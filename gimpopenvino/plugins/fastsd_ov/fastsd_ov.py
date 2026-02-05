@@ -374,7 +374,7 @@ class FastSDPlugin(Gimp.PlugIn):
             s.sendall(b"kill")
 
             print("stable-diffusion model server killed")
-        except:
+        except (ConnectionError, OSError) as e:
             print("No stable-diffusion model server found to kill")
 
         if sys.platform == "win32":

@@ -95,7 +95,7 @@ def try_enable_npu_turbo(device, core):
         if all(arch not in architecture for arch in ["3700","3720"]):
             try:
                 core.set_property(properties={'NPU_TURBO': 'YES'},device_name='NPU')
-            except:
+            except Exception as e:
                 print(f"Failed loading NPU_TURBO for device {device}. Skipping... ")
             else:
                 print_npu_turbo_art()
@@ -111,7 +111,8 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
                   device=["CPU", "CPU", "CPU", "CPU"]):
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
-        except:
+        except Exception as e:
+            # Fallback to downloading tokenizer if local files not available
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 
@@ -260,14 +261,16 @@ class StableDiffusionEngineAdvanced(DiffusionPipeline):
                 #print("In transpose")
                 try:
                     latent_model_input = latent_model_input.permute(0,2,3,1)
-                except:
+                except AttributeError:
+                    # Fallback to NumPy transpose when PyTorch tensor not available
                     latent_model_input = latent_model_input.transpose(0,2,3,1)
 
             if self.unet_neg.input("latent_model_input").shape[1] != 4:
                 #print("In transpose")
                 try:
                     latent_model_input_neg = latent_model_input_neg.permute(0,2,3,1)
-                except:
+                except AttributeError:
+                    # Fallback to NumPy transpose when PyTorch tensor not available
                     latent_model_input_neg = latent_model_input_neg.transpose(0,2,3,1)
 
 
@@ -637,13 +640,15 @@ class StableDiffusionEngine(DiffusionPipeline):
                 if self.unet.input(self.unet_input_tensor_name).shape[1] != 4:
                     try:
                         latent_model_input_pos = latent_model_input_pos.permute(0,2,3,1)
-                    except:
+                    except AttributeError:
+                        # Fallback to NumPy transpose when PyTorch tensor not available
                         latent_model_input_pos = latent_model_input_pos.transpose(0,2,3,1)
                 
                 if self.unet_neg.input(self.unet_input_tensor_name).shape[1] != 4:
                     try:
                         latent_model_input_neg = latent_model_input_neg.permute(0,2,3,1)
-                    except:
+                    except AttributeError:
+                        # Fallback to NumPy transpose when PyTorch tensor not available
                         latent_model_input_neg = latent_model_input_neg.transpose(0,2,3,1)
                 
                 if "sample" in self.unet_input_tensor_name:                                        
@@ -812,7 +817,8 @@ class LatentConsistencyEngine(DiffusionPipeline):
         super().__init__()
         try:
             self.tokenizer = CLIPTokenizer.from_pretrained(model, local_files_only=True)
-        except:
+        except Exception as e:
+            # Fallback to downloading tokenizer if local files not available
             self.tokenizer = CLIPTokenizer.from_pretrained(tokenizer)
             self.tokenizer.save_pretrained(model)
 
