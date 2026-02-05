@@ -9,14 +9,13 @@ from pathlib import Path
 import psutil
 import threading
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")])
-from gimpopenvino import config
-
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "openvino_common")])
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils","tools")])
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
 
 from gimpopenvino.plugins.openvino_utils.tools.tools_utils import get_weight_path
 from model_manager import ModelManager
+import config
 
 # This function is run on a dedicated thread when a new connection is established.
 def run_connection_routine(model_manager, conn):

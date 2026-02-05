@@ -6,8 +6,8 @@ import socket
 import sys
 import os
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")])
-from gimpopenvino import config
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")])
+import config
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((config.DEFAULT_HOST, config.SERVER_PORT))

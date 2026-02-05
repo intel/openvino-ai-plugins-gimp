@@ -22,16 +22,12 @@ from threading import Thread
 
 
 sys.path.extend(
-    [os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")]
-)
-from gimpopenvino import config
-
-sys.path.extend(
     [os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "openvino_utils")]
 )
 from gi.repository import GimpUi
 from tools.openvino_common.models_ov.fastsd.model_config import ModelConfig
 from tools.tools_utils import SDOptionCache, config_path_dir
+import config
 MODEL_DISPLAY_TEXT_MAX_LENGTH = 40
 STABLE_DIFFUSION_OV_SERVER = "stable_diffusion_ov_server.py"
 CONFIG_FILE = os.path.join(config_path_dir, "fastsd_models.json")

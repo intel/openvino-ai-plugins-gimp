@@ -9,8 +9,8 @@ import os
 import socket
 import subprocess
 
-sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")])
-from gimpopenvino import config
+sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)))])
+import config
 
 class ErrorWindow(Gtk.Dialog):
     def __init__(self, parent, summary, details):
