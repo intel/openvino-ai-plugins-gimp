@@ -25,13 +25,11 @@ from enum import IntEnum
 import glob
 from pathlib import Path
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 65432  # The port used by the server
-
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
 from plugin_utils import *
 from model_management_window import ModelManagementWindow
 from tools.tools_utils import base_model_dir, config_path_dir, SDOptionCache
+import config
 
 _ = gettext.gettext
 image_paths = {
@@ -154,10 +152,10 @@ class SDRunner:
                 
         self.current_step = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
+            s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
             s.sendall(b"go")
             while True:
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
                 response = data.decode()
                 if response == "done":
                     break
@@ -218,15 +216,12 @@ class SDRunner:
             return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 def is_server_running():
-    HOST = "127.0.0.1"  # The server's hostname or IP address
-    PORT = 65432  # The port used by the server
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.1) # <- set connection timeout to 100 ms (default is a few seconds)
-            s.connect((HOST, PORT))
+            s.settimeout(config.SOCKET_TIMEOUT)
+            s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
             s.sendall(b"ping")
-            data = s.recv(1024)
+            data = s.recv(config.SOCKET_BUFFER_SIZE)
             if data.decode() == "ping":
                 return True
     except:
@@ -237,7 +232,7 @@ def is_server_running():
 def async_load_models(python_path, server_path, model_name, supported_devices, device_power_mode, show_console, dialog):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((HOST, PORT))
+        s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
         s.sendall(b"kill")
 
         print("stable-diffusion model server killed")
@@ -270,13 +265,13 @@ def async_load_models(python_path, server_path, model_name, supported_devices, d
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, 65433))
+        s.bind((config.DEFAULT_HOST, config.HANDSHAKE_PORT))
         s.listen()
         while True:
             conn, addr = s.accept()
             with conn:
                 while True:
-                    data = conn.recv(1024)
+                    data = conn.recv(config.SOCKET_BUFFER_SIZE)
                     if data.decode() == "Ready":
                         break
                 break

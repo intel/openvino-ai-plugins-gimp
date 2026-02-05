@@ -27,9 +27,7 @@ sys.path.extend(
 from gi.repository import GimpUi
 from tools.openvino_common.models_ov.fastsd.model_config import ModelConfig
 from tools.tools_utils import SDOptionCache, config_path_dir
-
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 65432  # The port used by the server
+import config
 MODEL_DISPLAY_TEXT_MAX_LENGTH = 40
 STABLE_DIFFUSION_OV_SERVER = "stable_diffusion_ov_server.py"
 CONFIG_FILE = os.path.join(config_path_dir, "fastsd_models.json")
@@ -133,17 +131,12 @@ class ModelManagerDialog(Gtk.Dialog):
 
 
 def is_server_running():
-    HOST = "127.0.0.1"
-    PORT = 65432
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(
-                0.1
-            )  # <- set connection timeout to 100 ms (default is a few seconds)
-            sock.connect((HOST, PORT))
+            sock.settimeout(config.SOCKET_TIMEOUT)
+            sock.connect((config.DEFAULT_HOST, config.SERVER_PORT))
             sock.sendall(b"ping")
-            data = sock.recv(1024)
+            data = sock.recv(config.SOCKET_BUFFER_SIZE)
             if data.decode() == "ping":
                 return True
     except Exception as exc:
@@ -190,10 +183,10 @@ class SDRunner:
 
         self.current_step = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
+            s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
             s.sendall(b"go")
             while True:
-                data = s.recv(1024)
+                data = s.recv(config.SOCKET_BUFFER_SIZE)
                 response = data.decode()
                 if response == "done":
                     break
@@ -377,7 +370,7 @@ class FastSDPlugin(Gimp.PlugIn):
     ):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((HOST, PORT))
+            s.connect((config.DEFAULT_HOST, config.SERVER_PORT))
             s.sendall(b"kill")
 
             print("stable-diffusion model server killed")
@@ -403,13 +396,13 @@ class FastSDPlugin(Gimp.PlugIn):
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((HOST, 65433))
+            s.bind((config.DEFAULT_HOST, config.HANDSHAKE_PORT))
             s.listen()
             while True:
                 conn, addr = s.accept()
                 with conn:
                     while True:
-                        data = conn.recv(1024)
+                        data = conn.recv(config.SOCKET_BUFFER_SIZE)
                         if data.decode() == "Ready":
                             GLib.idle_add(lambda: self.on_model_ready())
                             break
