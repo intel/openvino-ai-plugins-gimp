@@ -18,7 +18,7 @@ import json
 import os
 import sys
 sys.path.extend([os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","openvino_utils")])
-from plugin_utils import *
+from plugin_utils import show_dialog, save_image, N_
 from tools.tools_utils import base_model_dir, config_path_dir
 
 _ = gettext.gettext
