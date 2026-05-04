@@ -25,9 +25,9 @@ pip install -r requirements-dev.txt
 
 ### Key Dependency Versions
 - **Python**: Requires Python 3.10 or later (Python 3.7-3.9 are EOL)
-- **OpenVINO**: Pinned to version 2025.4.0 for stability and compatibility
+- **OpenVINO**: Pinned to version 2026.1.0 for stability and compatibility
 - **transformers**: Version range 4.37.0 to 4.56.2 for compatibility with OpenVINO
-- **openvino-genai**: Pinned to 2025.4.0.0 to match OpenVINO version
+- **openvino-genai**: Pinned to 2026.1.0.0 to match OpenVINO version
 
 ### Adding New Dependencies
 When adding new dependencies:
