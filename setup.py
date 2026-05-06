@@ -94,7 +94,7 @@ setup(
         "diffusers<=0.37.1",
         "controlnet-aux>=0.0.6",
         "openvino==2026.1.0",
-        "openvino-genai==2026.1.0",
+        "openvino-genai==2026.1.0.0",
         "psutil",
         "matplotlib",
         "sentencepiece",
