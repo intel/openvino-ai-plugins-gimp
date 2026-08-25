@@ -220,7 +220,7 @@ g_installable_base_model_map = {
     {
         "name": "Stable Diffusion 1.5 LCM",
         "repo_id": "SimianLuo/LCM_Dreamshaper_v7",
-        "download_exclude_filters": ["*.py", "*.png", "LCM_Dreamshaper_v7_4k.safetensors","model.onnx_data"],
+        "download_exclude_filters": ["*.py", "*.png", "LCM_Dreamshaper_v7_4k.safetensors","*.onnx_data","*.onnx"],
         
     },
 
