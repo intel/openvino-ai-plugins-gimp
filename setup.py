@@ -92,7 +92,7 @@ setup(
         "opencv-python>=4.8.1.78",
         "scikit-image",
         "timm==0.4.5",
-        "transformers>=4.37.0,<=4.56.2",
+        "transformers>=4.51.0,<5.6",
         "diffusers<=0.37.1",
         "controlnet-aux>=0.0.6",
         "openvino>=2026.2",
