@@ -11,6 +11,7 @@ import sys
 import json
 import uuid
 import shutil
+import logging
 import platform
 import subprocess
 from pathlib import Path
