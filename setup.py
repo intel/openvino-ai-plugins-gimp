@@ -92,7 +92,8 @@ setup(
         "opencv-python>=4.8.1.78",
         "scikit-image",
         "timm==0.4.5",
-        "transformers>=4.51.0,<5.6",
+        # transformers <5.10 has a security vulnerability; optimum-intel main caps at <5.11.
+        "transformers>=5.10,<5.11",
         "diffusers<=0.37.1",
         "controlnet-aux>=0.0.6",
         "openvino>=2026.2",
@@ -101,8 +102,9 @@ setup(
         "psutil",
         "matplotlib",
         "sentencepiece",
-        "optimum",
-        "optimum-intel",
+        "optimum~=2.3.0",
+        # No PyPI optimum-intel release supports transformers>=5.6 yet; pin main commit.
+        "optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@20390257acb98993f99cdd3bf4df1c983eccadef",
         "peft",
         "pydantic",
         "tomesd",
