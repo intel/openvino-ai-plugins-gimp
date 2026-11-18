@@ -264,6 +264,9 @@ class SDRunner:
 
 
 class FastSDPlugin(Gimp.PlugIn):
+    def do_set_i18n(self, procname):
+        return True, 'gimp30-python', None
+
     def do_query_procedures(self):
         return ["fastsd-plugin"]
 

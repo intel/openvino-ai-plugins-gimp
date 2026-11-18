@@ -90,20 +90,26 @@ if [[ "$script_dir" == "$current_dir" ]]; then
     cd ..
 fi
 
+fail() {
+    echo "ERROR: $1" >&2
+    echo "**** openvino-ai-plugins-gimp installation FAILED ****" >&2
+    exit 1
+}
+
 echo "**** openvino-ai-plugins-gimp Setup started ****"
 
 # Create a virtual environment
-python3 -m venv gimpenv3
+python3 -m venv gimpenv3 || fail "Could not create the Python virtual environment. On Debian/Ubuntu, install it with: sudo apt install python3-venv"
 
 # Activate the virtual environment
-source gimpenv3/bin/activate
+source gimpenv3/bin/activate || fail "Could not activate the virtual environment gimpenv3"
 
 # Upgrade pip and install required packages
-pip3 install --upgrade pip
-pip3 install "$script_dir/."
+pip3 install --upgrade pip || fail "Could not upgrade pip"
+pip3 install "$script_dir/." || fail "Could not install the openvino-ai-plugins-gimp Python package"
 
 # post installation steps
-python3 -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'${script_dir}/weights')"
+python3 -c "from gimpopenvino import install_utils; install_utils.complete_install(repo_weights_dir=r'${script_dir}/weights')" || fail "Post-installation setup failed"
 
 echo "**** openvino-ai-plugins-gimp Setup Ended ****"
 # Deactivate the virtual environment
@@ -113,16 +119,16 @@ deactivate
 echo "Installing plugin in $PLUGIN_DIR"
 for d in openvino_utils semseg_ov stable_diffusion_ov superresolution_ov fastsd_ov; do
     mkdir -p "$PLUGIN_DIR/$d"
-    rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$PLUGIN_DIR/."
+    rsync -a gimpenv3/lib/python*/site-packages/gimpopenvino/plugins/"$d" "$PLUGIN_DIR/." || fail "Could not copy the $d plugin to $PLUGIN_DIR"
 done
 echo "*** openvino-ai-plugins-gimp Installed ***"
 
 # If MODEL_SETUP was set, run the model setup
 if [[ "$MODEL_SETUP" -eq 1 ]]; then
     echo "**** OpenVINO MODEL SETUP STARTED ****"
-    gimpenv3/bin/python3 "$script_dir/model_setup.py"
+    gimpenv3/bin/python3 "$script_dir/model_setup.py" || fail "Model setup failed"
 fi
 
-cd $current_dir
+cd "$current_dir"
 
 exit 0
