@@ -73,6 +73,24 @@ then skip to [Install Plugins](#install-plugins). A packaged GIMP doesn't need t
 
 > **Note:** The `x86_64-linux-gnu` paths here and below are for 64-bit Intel/AMD systems. On other architectures, use the matching multiarch directory (run `gcc -print-multiarch` to find it).
 
+## GPU and NPU drivers
+The plugins always run on the CPU. To also run them on an Intel GPU or NPU, install the drivers OpenVINO needs **before** installing the plugins; the install script records which devices are available. The Linux kernel already includes the GPU and NPU kernel drivers, but OpenVINO also needs these user-space drivers, which are not installed by default.
+
+* **GPU** (Intel Arc and integrated Intel graphics): install the Intel GPU compute runtime (OpenCL and Level Zero):
+    ```sh
+    sudo apt install -y intel-opencl-icd libze-intel-gpu1 clinfo
+    ```
+    `clinfo -l` should then list an Intel OpenCL device. On older distributions these packages may be missing, or too old for newer GPUs such as Lunar Lake's Arc 130V/140V; install the latest release from [intel/compute-runtime](https://github.com/intel/compute-runtime/releases) instead.
+* **NPU** (Intel Core Ultra): install the Level Zero NPU driver from [intel/linux-npu-driver](https://github.com/intel/linux-npu-driver/releases) and follow the installation steps in its release notes.
+
+Your user must be in the `render` group to use the GPU and NPU. Check with `groups`; if `render` is missing, run `sudo usermod -aG render $USER`, then log out and back in.
+
+After installing the plugins, check which devices OpenVINO can use:
+```sh
+$HOME/GIMP/gimpenv3/bin/python3 -c "import openvino as ov; print(ov.Core().available_devices)"
+```
+This should print e.g. `['CPU', 'GPU', 'NPU']`. If you install or update GPU or NPU drivers after installing the plugins, re-run the install script (see [Updating](#updating)) so the plugins pick up the new devices.
+
 ## Install Plugins
 1. Clone this repo into the same directory
    ```sh
@@ -118,6 +136,8 @@ If the menu is missing:
 * Check that the plugins are in `~/.config/GIMP/<version>/plug-ins` for your GIMP version, e.g. `~/.config/GIMP/3.2/plug-ins` (folders `semseg_ov`, `superresolution_ov`, `stable_diffusion_ov`, `fastsd_ov` and `openvino_utils`). Run `gimp-3 --version` to see your GIMP version.
 * If the install script installed for the wrong version, re-run it with `--gimp-version X.Y`.
 * Start GIMP from a terminal with `run-gimp.sh` and look for plugin errors in the output.
+
+If GPU or NPU is missing from a plugin's device list, see [GPU and NPU drivers](#gpu-and-npu-drivers).
 
 ## GIMP versions
 GIMP reads user plugins from a folder named after its major.minor version, for example `~/.config/GIMP/3.0/plug-ins` for GIMP 3.0.x and `~/.config/GIMP/3.2/plug-ins` for GIMP 3.2.x. The install script finds the installed GIMP version by looking for `gimp-3.x` programs in your `PATH`, `/usr/local/bin` and `/usr/bin`, and picks the newest one. If it can't find GIMP, it assumes 3.2.
