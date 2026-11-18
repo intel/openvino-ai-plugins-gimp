@@ -5,7 +5,7 @@ You can install the plugins on Linux in two ways:
 * [Install from the Snap Store](#snap-installation) (quickest, for distributions that support snaps)
 * [Build GIMP and install the plugins manually](#building-and-installing-the-plugins-manually)
 
-The manual steps are tested on Ubuntu 24.04 on x86_64. Flatpak builds of GIMP are not supported.
+The plugins work with GIMP 3.0 and later 3.x releases; the manual steps below build the latest release, GIMP 3.2.8. The manual steps are tested on Ubuntu 24.04 on x86_64. Flatpak builds of GIMP are not supported.
 
 # Snap Installation
 
@@ -20,7 +20,11 @@ See the [snap README](https://github.com/canonical/openvino-ai-plugins-gimp-snap
 
 # Building and installing the plugins manually
 
-The steps below build GIMP 3.0.6. The install script copies the plugins into `~/.config/GIMP/3.0/plug-ins`, the folder GIMP 3.0.x reads plugins from. If you use a different GIMP version (for example, GIMP 3.2 from your distribution's packages), see [Using a different GIMP version](#using-a-different-gimp-version).
+The steps below build GIMP 3.2.8 from source. If your distribution already packages GIMP 3.0 or newer (for example, Ubuntu 26.04 ships GIMP 3.2 in `apt`), you can install that instead of building it:
+```sh
+sudo apt install -y gimp git python3-venv rsync
+```
+then skip to [Install Plugins](#install-plugins). A packaged GIMP doesn't need the launcher script in [Start GIMP](#start-gimp); start it as usual. The install script detects your GIMP version and copies the plugins into that version's plugin folder, e.g. `~/.config/GIMP/3.2/plug-ins` (see [GIMP versions](#gimp-versions)).
 
 ## Build GIMP
 1. Create a directory where you will download and build the GIMP sources. The plugin repo and its Python virtual environment will also live here.
@@ -31,7 +35,7 @@ The steps below build GIMP 3.0.6. The install script copies the plugins into `~/
 2. Install dependencies
     ```sh
     sudo apt update
-    sudo apt install -y cmake libgflags-dev patchelf python3-pip python3-venv python3-gi rsync gettext git git-lfs build-essential meson ninja-build autoconf libcairo2-dev libxt-dev libgdk-pixbuf-2.0-dev libgexiv2-dev libgtk-3-dev libmypaint-dev mypaint-brushes libbz2-dev libatk1.0-dev libgirepository1.0-dev libgirepository-2.0-dev libx11-xcb-dev libwmf-dev libxcb-glx0-dev libxcb-dri2-0-dev libxxf86vm-dev valgrind libappstream-glib-dev libappstream-dev libpugixml-dev libxmu-dev libpoppler-glib-dev xsltproc librsvg2-dev libopencv-dev
+    sudo apt install -y cmake libgflags-dev patchelf python3-pip python3-venv python3-gi rsync gettext git git-lfs build-essential meson ninja-build autoconf libcairo2-dev libxt-dev libgdk-pixbuf-2.0-dev libgexiv2-dev libgtk-3-dev libmypaint-dev mypaint-brushes libbz2-dev libfribidi-dev libarchive-dev libatk1.0-dev libgirepository1.0-dev libgirepository-2.0-dev libx11-xcb-dev libwmf-dev libxcb-glx0-dev libxcb-dri2-0-dev libxxf86vm-dev valgrind libappstream-glib-dev libappstream-dev libpugixml-dev libxmu-dev libpoppler-glib-dev xsltproc librsvg2-dev libopencv-dev
     ```
 3. Clone, build, and install babl
     ```sh
@@ -57,7 +61,7 @@ The steps below build GIMP 3.0.6. The install script copies the plugins into `~/
     ```sh
     git clone https://gitlab.gnome.org/GNOME/gimp
     cd gimp
-    git checkout tags/GIMP_3_0_6
+    git checkout tags/GIMP_3_2_8
     git submodule update --init
     export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0:/usr/local/lib/x86_64-linux-gnu/girepository-1.0
     sudo ldconfig
@@ -72,6 +76,7 @@ The steps below build GIMP 3.0.6. The install script copies the plugins into `~/
 ## Install Plugins
 1. Clone this repo into the same directory
    ```sh
+   mkdir -p $HOME/GIMP
    cd $HOME/GIMP
    git clone https://github.com/intel/openvino-ai-plugins-gimp.git
    ```
@@ -82,7 +87,7 @@ The steps below build GIMP 3.0.6. The install script copies the plugins into `~/
    chmod +x openvino-ai-plugins-gimp/install.sh
    ./openvino-ai-plugins-gimp/install.sh -i
    ```
-   Leave out `-i` to install only the plugins. The Semantic Segmentation and Super Resolution models are included with the plugins. FastSD downloads its models the first time you use them.
+   Leave out `-i` to install only the plugins. The script prints the GIMP version it installed the plugins for; to choose it yourself, add `--gimp-version X.Y` (e.g. `--gimp-version 3.0`). The Semantic Segmentation and Super Resolution models are included with the plugins. FastSD downloads its models the first time you use them.
 
 > **Important:** The script creates the virtual environment in the directory you run it from, and the plugins record that location. Always run it from `$HOME/GIMP`, and don't move or rename `gimpenv3` or the repo afterwards. If you do, re-run the install script.
 
@@ -110,18 +115,19 @@ Start GIMP with `$HOME/GIMP/run-gimp.sh`. A GIMP started from the desktop app me
 Open or create an image. **Layer → OpenVINO-AI-Plugins** should list Semantic Segmentation, Super Resolution, Stable Diffusion and FastSD.
 
 If the menu is missing:
-* Check that the plugins are in `~/.config/GIMP/3.0/plug-ins` (folders `semseg_ov`, `superresolution_ov`, `stable_diffusion_ov`, `fastsd_ov` and `openvino_utils`).
+* Check that the plugins are in `~/.config/GIMP/<version>/plug-ins` for your GIMP version, e.g. `~/.config/GIMP/3.2/plug-ins` (folders `semseg_ov`, `superresolution_ov`, `stable_diffusion_ov`, `fastsd_ov` and `openvino_utils`). Run `gimp-3 --version` to see your GIMP version.
+* If the install script installed for the wrong version, re-run it with `--gimp-version X.Y`.
 * Start GIMP from a terminal with `run-gimp.sh` and look for plugin errors in the output.
-* Check that your GIMP version matches the plugin folder (see below).
 
-## Using a different GIMP version
-GIMP reads user plugins from a folder named after its major.minor version, for example `~/.config/GIMP/3.2/plug-ins` for GIMP 3.2. The install script always copies the plugins to `~/.config/GIMP/3.0/plug-ins`. For another GIMP 3.x version, copy them to that version's folder after installing:
+## GIMP versions
+GIMP reads user plugins from a folder named after its major.minor version, for example `~/.config/GIMP/3.0/plug-ins` for GIMP 3.0.x and `~/.config/GIMP/3.2/plug-ins` for GIMP 3.2.x. The install script finds the installed GIMP version by looking for `gimp-3.x` programs in your `PATH`, `/usr/local/bin` and `/usr/bin`, and picks the newest one. If it can't find GIMP, it assumes 3.2.
+
+To install for a specific version, or for several versions side by side, pass `--gimp-version`:
 ```sh
-GIMP_VER=3.2   # your GIMP version (major.minor)
-mkdir -p $HOME/.config/GIMP/$GIMP_VER/plug-ins
-cp -r $HOME/.config/GIMP/3.0/plug-ins/{openvino_utils,semseg_ov,stable_diffusion_ov,superresolution_ov,fastsd_ov} $HOME/.config/GIMP/$GIMP_VER/plug-ins/
+cd $HOME/GIMP
+./openvino-ai-plugins-gimp/install.sh --gimp-version 3.0
 ```
-Only GIMP 3.0.x is tested.
+When you upgrade GIMP to a new minor version (e.g. 3.0 to 3.2), re-run the install script so the plugins are copied to the new version's folder.
 
 ## Updating
 ```sh
@@ -134,7 +140,8 @@ Models you already downloaded are kept.
 
 ## Uninstalling
 ```sh
-rm -rf $HOME/.config/GIMP/3.0/plug-ins/{openvino_utils,semseg_ov,stable_diffusion_ov,superresolution_ov,fastsd_ov}
+GIMP_VER=3.2   # the GIMP version the plugins were installed for
+rm -rf $HOME/.config/GIMP/$GIMP_VER/plug-ins/{openvino_utils,semseg_ov,stable_diffusion_ov,superresolution_ov,fastsd_ov}
 rm -rf $HOME/GIMP/gimpenv3
 rm -rf $HOME/openvino-ai-plugins-gimp   # downloaded models
 ```
