@@ -20,7 +20,7 @@
   - git
   - python 3.10-3.14
   - VC runtime
-  - [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.6-setup-1.exe)
+  - [GIMP 3.2.8](https://download.gimp.org/gimp/v3.2/windows/gimp-3.2.8-setup.exe)
   - [GIMP AI plugins with OpenVINO™ Backend](https://github.com/intel/openvino-ai-plugins-gimp) from Github.
 
 
@@ -71,9 +71,9 @@ Please download the latest Visual C++ Redistributable package from MSFT [site](h
 ![](figs/VC_runtime_close.png) 
 
 
-### Install GIMP 3.0.6
+### Install GIMP 3.2.8
 
-Please download [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.0.6-setup-1.exe) and follow below steps to install GIMP.
+Please download [GIMP 3.2.8](https://download.gimp.org/gimp/v3.2/windows/gimp-3.2.8-setup.exe) and follow below steps to install GIMP.
 
 - Click "Install for all users (recommended)"
 
@@ -109,5 +109,7 @@ Please download [GIMP 3.0.6](https://download.gimp.org/gimp/v3.0/windows/gimp-3.
     ```
 
     This step will take time for downloading necessary packages.
+
+    The script detects the installed GIMP version and copies the plugins into that version's plugin folder, e.g. `%APPDATA%\GIMP\3.2\plug-ins` for GIMP 3.2. Add `-i` to also download Stable Diffusion models, or `--gimp-version X.Y` (e.g. `--gimp-version 3.0`) to install for a specific GIMP version. If you later upgrade GIMP to a new minor version (e.g. 3.0 to 3.2), run `install.bat` again.
 
 - After creating python environment, gimpenv3, and downloaded necessary packages, you can now launch GIMP application. See the [Usage Guide](GIMP_StableDiffusion_Usage.md) for running Stable Diffusion example.
