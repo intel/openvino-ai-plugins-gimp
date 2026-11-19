@@ -899,7 +899,9 @@ class ModelManager:
                         #print("optimun-cli full install path",full_install_path)
                         import subprocess
                         
-                        optimum_ex = sys.executable.replace("python", "optimum-cli").replace("optimum-cli3", "optimum-cli")
+                        # Run optimum-cli through a wrapper that applies a Python 3.14 fix
+                        # for optimum's export configs (see optimum_cli_compat.py).
+                        optimum_cli = [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "optimum_cli_compat.py")]
 
                         output_file = Path(os.path.join(full_install_path, "export_output.log"))
                         if(model_id != "sd_15_inpainting"):
@@ -934,16 +936,26 @@ class ModelManager:
                             with open(os.path.join(full_install_path,file_name), 'w') as json_file:
                                 json.dump(config, json_file, indent=4)
 
-                        if "inpainting" in model_id:
-                            self.model_install_status[model_id]["status"] = "Converting Model"
-                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task image-to-image {Path(full_install_path)}"
-                        else:
-                            self.model_install_status[model_id]["status"] = "Converting Model"
-                            export_command = f"{Path(optimum_ex)} export openvino --model {Path(full_download_folder)} --weight-format fp16 --task stable-diffusion {Path(full_install_path)}"
-                        print("Running the command:", export_command)
+                        self.model_install_status[model_id]["status"] = "Converting Model"
+                        export_task = "image-to-image" if "inpainting" in model_id else "stable-diffusion"
+                        export_command = optimum_cli + ["export", "openvino",
+                                                        "--model", str(Path(full_download_folder)),
+                                                        "--weight-format", "fp16",
+                                                        "--task", export_task,
+                                                        str(Path(full_install_path))]
+                        print("Running the command:", " ".join(export_command))
 
                         with open(output_file, "w") as f:
-                             result = subprocess.run(export_command, shell=True, stdout=f, stderr=subprocess.STDOUT, text=True)
+                             result = subprocess.run(export_command, stdout=f, stderr=subprocess.STDOUT, text=True)
+
+                        if result.returncode != 0:
+                            # Keep the downloaded files so the conversion can be retried or debugged.
+                            with open(output_file, "r", errors="replace") as f:
+                                log_tail = "".join(f.readlines()[-5:])
+                            raise RuntimeError(
+                                f"Model conversion failed (optimum-cli exit code {result.returncode}). "
+                                f"See {output_file} for details. Last lines:\n{log_tail}"
+                            )
 
                         if os.path.isdir(download_folder):
                             shutil.rmtree(download_folder, ignore_errors=True)
